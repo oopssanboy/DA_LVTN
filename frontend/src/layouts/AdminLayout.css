@@ -1,0 +1,90 @@
+/* Thiết lập khung Sidebar */
+.custom-sidebar {
+    width: 280px;
+    /* Cho rộng ra một chút để chữ không bị chèn ép */
+    background-color: #ffffff;
+    /* Nền trắng sáng, sạch sẽ */
+    border-right: 1px solid #f1f5f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
+    /* Đổ bóng cực nhẹ tạo chiều sâu */
+}
+
+/* Header của Sidebar */
+.sidebar-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Thiết lập từng dòng menu */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    margin: 4px 16px;
+    /* Cách lề để tạo khoảng trống cho bo góc */
+    color: #475569;
+    /* Chữ xám xanh dịu mắt, dễ đọc */
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 8px;
+    /* Bo góc hiện đại */
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+/* Khoảng cách cho Icon */
+.sidebar-icon {
+    font-size: 18px;
+    margin-right: 14px;
+    color: #94a3b8;
+    /* Icon mờ hơn chữ một chút để tôn phần chữ lên */
+    transition: color 0.2s ease;
+}
+
+/* Hiệu ứng khi lướt chuột qua (Hover) */
+.sidebar-item:hover {
+    background-color: #f8fafc;
+    /* Nền xám rất nhạt */
+    color: #0f172a;
+    /* Chữ đậm lên */
+}
+
+.sidebar-item:hover .sidebar-icon {
+    color: #64748b;
+}
+
+/* TRẠNG THÁI ĐANG ĐƯỢC CHỌN (ACTIVE) */
+.sidebar-item.active {
+    background-color: #eff6ff;
+    /* Nền xanh dương nhạt (hoặc bạn có thể đổi mã màu cam nếu thích) */
+    color: #2563eb;
+    /* Chữ màu xanh dương đậm */
+    font-weight: 600;
+    /* Chữ in đậm hơn chút để nổi bật */
+}
+
+.sidebar-item.active .sidebar-icon {
+    color: #2563eb;
+}
+
+/* Riêng nút Đăng xuất (màu đỏ) */
+.sidebar-logout {
+    color: #ef4444;
+}
+
+.sidebar-logout .sidebar-icon {
+    color: #fca5a5;
+}
+
+.sidebar-logout:hover {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+.sidebar-logout:hover .sidebar-icon {
+    color: #dc2626;
+}

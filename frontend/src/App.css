@@ -1,0 +1,13 @@
+/* Xóa bỏ toàn bộ class rác của Vite cũ ở đây. */
+/* App.css này được giữ lại để dùng nếu bạn cần viết các class custom riêng lẻ về sau. */
+
+/* Các utility class phụ nếu Bootstrap thiếu */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Hiệu ứng nhòe nhẹ cho background Modal nếu trình duyệt hỗ trợ */
+.modal-backdrop {
+  backdrop-filter: blur(3px);
+  background-color: rgba(15, 23, 42, 0.4);
+}
