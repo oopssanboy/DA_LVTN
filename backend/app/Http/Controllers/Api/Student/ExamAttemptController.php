@@ -25,11 +25,11 @@ class ExamAttemptController extends Controller
                 $sq->where('student_id', $student->id);
             });
         })
-        ->where('start_time', '<=', $now)
-        ->where('end_time', '>=', $now)
-        ->where('is_active', true)
-        ->with('class.course')
-        ->get();
+            ->where('start_time', '<=', $now)
+            ->where('end_time', '>=', $now)
+            ->where('is_active', true)
+            ->with('class.course')
+            ->get();
 
         // Thêm trạng thái đã thi hay chưa
         foreach ($exams as $exam) {
@@ -287,6 +287,36 @@ class ExamAttemptController extends Controller
             'total_score' => $attempt->total_score,
             'is_passed' => $attempt->is_passed,
             'details' => $details,
+        ]);
+    }
+    public function getAttempt(ExamAttempt $attempt)
+    {
+        $this->authorize('view', $attempt);
+        $exam = $attempt->exam;
+        $examQuestions = $exam->questions()->with('choices')->get();
+        if ($exam->shuffle_questions)
+            $examQuestions = $examQuestions->shuffle();
+
+        $savedAnswers = StudentAnswer::where('attempt_id', $attempt->id)->get()->keyBy('question_id');
+
+        $remainingSeconds = max(0, ($exam->duration * 60) - now()->diffInSeconds($attempt->started_at));
+
+        return response()->json([
+            'attempt_id' => $attempt->id,
+            'exam' => [
+                'title' => $exam->title,
+                'duration' => $exam->duration,
+                'remaining_seconds' => $remainingSeconds,
+            ],
+            'questions' => $examQuestions->map(function ($q) use ($savedAnswers) {
+                return [
+                    'id' => $q->id,
+                    'content' => $q->content,
+                    'type' => $q->type,
+                    'choices' => $q->type != 'fill_blank' ? $q->choices->map(fn($c) => ['key' => $c->choice_key, 'text' => $c->choice_text]) : null,
+                    'saved_answer' => $savedAnswers[$q->id]->answer_text ?? null,
+                ];
+            }),
         ]);
     }
 }

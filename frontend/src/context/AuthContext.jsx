@@ -26,10 +26,13 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-  };
+  const logout = async () => {
+  try {
+    await api.post('/logout');
+  } catch (e) {}
+  localStorage.removeItem('token');
+  setUser(null);
+};
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>

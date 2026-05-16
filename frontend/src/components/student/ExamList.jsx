@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from '../services/axios'; // instance axios đã cấu hình
+import axios from '../../services/axios'; // instance axios đã cấu hình
 import { useNavigate } from 'react-router-dom';
 
 export default function ExamList() {

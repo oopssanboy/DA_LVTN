@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from '../services/axios';
+import axios from '../../services/axios';
 
 export default function ExamResult() {
   const { attemptId } = useParams();

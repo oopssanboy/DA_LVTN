@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from '../services/axios';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from '../../services/axios';
 
 export default function ExamRoom() {
   const { attemptId } = useParams();
+  const navigate = useNavigate();
   const [examData, setExamData] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
@@ -23,9 +24,12 @@ export default function ExamRoom() {
 
   const fetchExamData = async () => {
     try {
-      const res = await axios.post(`/student/exams/attempts/${attemptId}/start`); // thực tế nên có API GET để lấy state, nhưng ta dùng start để lấy lại
-      // Tuy nhiên, ta cần API lấy trạng thái hiện tại. Ở đây tôi giả sử có endpoint GET /student/exams/attempts/${attemptId}
-      // Thay bằng call thích hợp
+      // Giả sử có API GET để lấy thông tin attempt hiện tại (đã có start nhưng không nên dùng lại start)
+      // Tạm thời dùng start nhưng nếu attempt đã tồn tại thì nó trả về lỗi. Thay bằng API get attempt info.
+      // Ở đây tôi sẽ dùng endpoint /student/exams/attempts/{attemptId} (cần tạo thêm)
+      // Để nhanh, tôi gọi lại start với examId lấy từ attempt? Không ổn.
+      // Giải pháp: thêm route GET /student/exams/attempts/{attempt}
+      const res = await axios.get(`/student/exams/attempts/${attemptId}`);
       const data = res.data;
       setExamData(data.exam);
       setQuestions(data.questions);
@@ -37,9 +41,14 @@ export default function ExamRoom() {
       setTimeLeft(data.exam.remaining_seconds);
       startTimer(data.exam.remaining_seconds);
     } catch (err) {
+      console.error(err);
       alert('Không thể tải bài thi');
+      navigate('/student/home');
     }
   };
+
+  // Thêm API GET trong backend (ExamAttemptController)
+  // public function getAttempt(ExamAttempt $attempt) {...}
 
   const startTimer = (seconds) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -47,7 +56,7 @@ export default function ExamRoom() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          handleSubmit(true); // auto submit
+          handleSubmit(true);
           return 0;
         }
         return prev - 1;
@@ -57,7 +66,6 @@ export default function ExamRoom() {
 
   const handleAnswerChange = (questionId, value) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
-    // Auto-save
     axios.post(`/student/exams/attempts/${attemptId}/save-answer`, {
       question_id: questionId,
       answer_text: value
@@ -71,7 +79,7 @@ export default function ExamRoom() {
     try {
       const res = await axios.post(`/student/exams/attempts/${attemptId}/submit`);
       alert(`Nộp bài thành công! Điểm: ${res.data.score}`);
-      window.location.href = `/exam-result/${attemptId}`;
+      navigate(`/student/exam-result/${attemptId}`);
     } catch (err) {
       alert(err.response?.data?.message || 'Lỗi khi nộp bài');
       setSubmitting(false);
@@ -79,30 +87,31 @@ export default function ExamRoom() {
   };
 
   const attachAntiCheat = () => {
-    // Chặn chuột phải
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
-    // Chặn F12, Ctrl+Shift+I, Ctrl+U
+    const preventEvent = (e) => {
+      e.preventDefault();
+      logViolation('copy_paste');
+    };
+    document.addEventListener('contextmenu', preventEvent);
+    document.addEventListener('copy', preventEvent);
+    document.addEventListener('paste', preventEvent);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.key === 'U')) {
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
         e.preventDefault();
         logViolation('devtools');
       }
     });
-    // Chặn copy/paste
-    document.addEventListener('copy', (e) => { e.preventDefault(); logViolation('copy_paste'); });
-    document.addEventListener('paste', (e) => { e.preventDefault(); logViolation('copy_paste'); });
-    // Phát hiện chuyển tab
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        logViolation('tab_switch');
-      }
+      if (document.hidden) logViolation('tab_switch');
     });
+    window.__antiCheatHandlers = { preventEvent };
   };
 
   const detachAntiCheat = () => {
-    document.removeEventListener('contextmenu', () => {});
-    // ... remove other listeners (cần lưu handler để remove)
-    
+    if (window.__antiCheatHandlers) {
+      document.removeEventListener('contextmenu', window.__antiCheatHandlers.preventEvent);
+      document.removeEventListener('copy', window.__antiCheatHandlers.preventEvent);
+      document.removeEventListener('paste', window.__antiCheatHandlers.preventEvent);
+    }
   };
 
   const logViolation = async (type) => {
