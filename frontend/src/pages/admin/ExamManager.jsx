@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../../services/axios';
 import { Link } from 'react-router-dom';
 import { TrashIcon, PencilIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
-import ConfirmModal from '../../components/common/ConfirmModal';
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 
 export default function ExamManager() {
   const [exams, setExams] = useState([]);
@@ -111,7 +111,7 @@ export default function ExamManager() {
         </table>
       </div>
 
-      <ConfirmModal
+      <ConfirmDialog
         show={showConfirm}
         title="Xóa kỳ thi"
         message={`Bạn có chắc muốn xóa kỳ thi "${selectedExam?.title}"?`}

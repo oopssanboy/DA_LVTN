@@ -172,7 +172,7 @@ class ExamAttemptController extends Controller
         return $this->performSubmit($attempt);
     }
 
-    private function performSubmit(ExamAttempt $attempt)
+    public function performSubmit(ExamAttempt $attempt)
     {
         DB::beginTransaction();
         try {

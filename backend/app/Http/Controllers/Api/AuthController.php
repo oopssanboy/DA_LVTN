@@ -3,45 +3,34 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required|string',
+            'password' => 'required',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            if (!$user->is_active) {
+                return response()->json(['message' => 'Tài khoản đã bị khóa'], 403);
+            }
+            
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $user
+            ]);
         }
 
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Sai email hoặc mật khẩu'], 401);
-        }
-
-        if (!$user->is_active) {
-            return response()->json(['message' => 'Tài khoản đã bị khóa'], 403);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-            ]
-        ]);
+        return response()->json(['message' => 'Email hoặc mật khẩu không đúng'], 401);
     }
 
     public function logout(Request $request)

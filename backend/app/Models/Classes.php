@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Classes extends Model
 {
-    protected $table = 'classes';
+    use HasFactory;
+
     protected $fillable = ['course_id', 'name', 'start_date', 'end_date'];
 
     public function course()
@@ -16,11 +18,6 @@ class Classes extends Model
 
     public function enrollments()
     {
-        return $this->hasMany(ClassEnrollment::class, 'class_id');
-    }
-
-    public function exams()
-    {
-        return $this->hasMany(Exam::class);
+        return $this->belongsToMany(User::class, 'class_enrollments', 'class_id', 'student_id');
     }
 }

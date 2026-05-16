@@ -1,58 +1,60 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import { 
-  HomeIcon, QuestionMarkCircleIcon, 
-  FolderIcon, ArrowLeftOnRectangleIcon 
-} from '@heroicons/react/24/outline';
-import { useAuth } from '../../context/AuthContext';
-
-const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-  { name: 'Câu hỏi', href: '/admin/questions', icon: QuestionMarkCircleIcon },
-  { name: 'Kỳ thi', href: '/admin/exams', icon: FolderIcon },
-];
+import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { FaSignOutAlt, FaUserCircle, FaBook, FaUsers, FaChartBar } from 'react-icons/fa'
 
 export default function AdminLayout() {
-  const { logout, user } = useAuth();
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.clear()
+    navigate('/login')
+  }
+
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r flex flex-col">
-        <div className="p-6 border-b">
-          <h1 className="text-xl font-bold text-primary">ExamPro</h1>
+      <aside className="w-64 bg-slate-900 text-white flex flex-col">
+        <div className="h-16 flex items-center justify-center font-bold text-xl border-b border-slate-800 text-orange-500">
+          HỆ THỐNG THI
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-orange-50 text-orange-700 border-r-2 border-orange-600'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`
-              }
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.name}
-            </NavLink>
-          ))}
+        <nav className="flex-1 p-4 space-y-2">
+          <Link to={`/${user.role}/dashboard`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-300 hover:text-white">
+            <FaChartBar /> Tổng quan
+          </Link>
+          <Link to="/admin/exams" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-300 hover:text-white">
+            <FaBook /> Quản lý Kỳ thi
+          </Link>
+          {user.role === 'admin' && (
+            <Link to="#" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition text-slate-300 hover:text-white">
+              <FaUsers /> Quản lý Người dùng
+            </Link>
+          )}
         </nav>
-        <div className="p-4 border-t">
-          <div className="mb-2 text-sm text-gray-600">{user?.name}</div>
-          <button
-            onClick={logout}
-            className="flex items-center w-full text-red-500 hover:bg-red-50 p-2 rounded"
-          >
-            <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-2" />
-            Đăng xuất
-          </button>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="h-16 bg-white shadow-sm border-b px-6 flex items-center justify-between">
+          <h2 className="font-semibold text-slate-700 capitalize">Khu vực {user.role}</h2>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-slate-600 font-medium">
+              <FaUserCircle className="text-xl" /> {user.name}
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium flex items-center gap-2"
+            >
+              <FaSignOutAlt /> Đăng xuất
+            </button>
+          </div>
+        </header>
+
+        {/* Đổ các component con vào đây */}
+        <div className="p-6 overflow-auto">
+          <Outlet />
         </div>
-      </div>
-      {/* Main content */}
-      <div className="flex-1 overflow-auto p-6">
-        <Outlet />
-      </div>
+      </main>
     </div>
-  );
+  )
 }

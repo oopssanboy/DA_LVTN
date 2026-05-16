@@ -10,15 +10,13 @@ class ClassController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Classes::with('course');
-        if ($request->has('course_id')) {
-            $query->where('course_id', $request->course_id);
-        }
-        return response()->json($query->get());
+        $classes = Classes::with('course')->get();
+        return response()->json($classes);
     }
 
-    public function show(Classes $class)
+    public function show($id)
     {
-        return response()->json($class->load('course'));
+        $class = Classes::with(['course', 'enrollments'])->findOrFail($id);
+        return response()->json($class);
     }
 }
