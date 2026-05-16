@@ -5,27 +5,36 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 class ExamAttempt extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'exam_id', 'answers', 'started_at', 'submitted_at', 'status', 'score'];
-    
-    // Tự động ép kiểu chuỗi JSON trong CSDL thành Array trong PHP
+
+    protected $fillable = [
+        'user_id', 'exam_id', 'questions_snapshot', 'answers',
+        'started_at', 'submitted_at', 'status', 'score',
+        'is_passed', 'total_correct', 'total_questions', 'cheat_count',
+    ];
+
     protected $casts = [
+        'questions_snapshot' => 'array',
         'answers' => 'array',
         'started_at' => 'datetime',
+        'submitted_at' => 'datetime',
+        'is_passed' => 'boolean',
     ];
-    
-    public function exam()
+
+    public function user()
     {
-        return $this->belongsTo(Exam::class, 'exam_id');
+        return $this->belongsTo(User::class);
     }
 
-    public function user(): BelongsTo
+    public function exam()
     {
-        return $this->belongsTo(User::class, 'user_id'); 
-        // Đảm bảo cột trong bảng exam_attempts của bạn tên là 'user_id'
+        return $this->belongsTo(Exam::class);
+    }
+
+    public function violations()            // MỚI
+    {
+        return $this->hasMany(ViolationLog::class);
     }
 }

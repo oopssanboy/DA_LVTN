@@ -1,84 +1,128 @@
+/* src/index.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@source "../**/*.{js,jsx,ts,tsx}";
+@theme {
+  --color-primary: #d97706;
+  --color-primary-dark: #b45309;
+  --color-primary-light: #fef3c7;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-border: #e2e8f0;
+  --color-danger: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
 
-:root {
-  /* Thay đổi màu sắc chữ để dễ nhìn, đỡ mỏi mắt hơn */
-  --text: #475569;
-  /* Xám trung tính cho văn bản thường */
-  --text-h: #0f172a;
-  /* Đen xám đậm cho tiêu đề */
-  --bg: #ffffff;
-  --border: #e2e8f0;
-  --code-bg: #f1f5f9;
-  --accent: #2563eb;
-  /* Chuyển sang xanh dương chuyên nghiệp */
-  --accent-bg: #eff6ff;
-  --accent-border: #93c5fd;
-
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-
-  /* Cập nhật font chữ sang font hiện đại, tròn trịa, dễ đọc */
-  --sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --heading: 'Inter', system-ui, -apple-system, sans-serif;
-  --mono: 'Fira Code', ui-monospace, Consolas, monospace;
-
-  font: 16px/1.5 var(--sans);
-  /* Chữ 16px vừa vặn, line-height 1.5 tạo độ thoáng */
-  color: var(--text);
-  background: var(--bg);
-  text-rendering: optimizeLegibility;
+/* Body mặc định */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  margin: 0;
-  background-color: #f8fafc;
-  /* Nền body xám nhạt */
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--heading);
-  color: var(--text-h);
-  margin-top: 0;
-}
-
-h1 {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 24px;
-}
-
-h2 {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
-p {
-  margin: 0 0 1rem 0;
-}
-
-/* Áp dụng vào scrollbar cho đẹp */
+/* Tùy chỉnh scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+
+
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bs-primary: #d97706;
+  --bs-primary-rgb: 217, 119, 6;
+  --bs-body-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --bs-body-bg: #f8fafc;
+  --bs-border-color: #e2e8f0;
+}
+
+/* Ghi đè màu primary của Bootstrap */
+.btn-primary {
+  --bs-btn-bg: #d97706;
+  --bs-btn-border-color: #d97706;
+  --bs-btn-hover-bg: #b45309;
+  --bs-btn-hover-border-color: #b45309;
+}
+.btn-outline-primary {
+  --bs-btn-color: #d97706;
+  --bs-btn-border-color: #d97706;
+  --bs-btn-hover-bg: #d97706;
+  --bs-btn-hover-border-color: #d97706;
+}
+
+/* Sidebar custom */
+.admin-sidebar {
+  min-height: 100vh;
+  background-color: #ffffff;
+  border-right: 1px solid var(--bs-border-color);
+  box-shadow: 2px 0 12px rgba(0,0,0,0.03);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin: 4px 16px;
+  color: #475569;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.sidebar-link:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+.sidebar-link.active {
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+.sidebar-link .icon {
+  font-size: 18px;
+  margin-right: 14px;
+  color: #94a3b8;
+}
+.sidebar-link.active .icon {
+  color: #2563eb;
+}
+.sidebar-logout {
+  color: #ef4444;
+}
+.sidebar-logout:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+/* Card, bảng */
+.card-custom {
+  border-radius: 16px;
+  border: 1px solid var(--bs-border-color);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

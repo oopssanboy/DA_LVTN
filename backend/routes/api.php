@@ -1,55 +1,50 @@
 <?php
 
+use App\Http\Controllers\Api\QuestionController;
+use App\Http\Controllers\Api\ExamController;
+use App\Http\Controllers\Api\Student\ExamAttemptController;
+use App\Http\Controllers\Api\Proctor\ProctorController;
+use App\Http\Controllers\Api\Teacher\StatisticsController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\QuestionController;
-use App\Http\Controllers\ExamController;
-use App\Http\Controllers\StudentExamController;
-use App\Http\Controllers\NotificationController; 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\SystemSettingController;
 
-
-Route::middleware('throttle:20,1')->post('/login', [AuthController::class, 'login']);
-
-Route::get('/notifications', [NotificationController::class, 'getActiveNotifications']); 
-
+// Các route yêu cầu xác thực
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/profile', [AuthController::class, 'profile']);
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/update-profile', [AuthController::class, 'updateProfile']);
-    Route::prefix('admin')->group(function () {
-        Route::apiResource('notifications', NotificationController::class);
-        
-        Route::get('/exams/{id}/active-attempts', [ExamController::class, 'getActiveAttempts']);
-        Route::post('/exam-attempts/{id}/force-submit', [ExamController::class, 'forceSubmit']);
 
-        Route::get('/dashboard/statistics', [DashboardController::class, 'getStatistics']);
-        Route::get('/settings', [SystemSettingController::class, 'getSettings']);
-        Route::post('/settings', [SystemSettingController::class, 'updateSettings']);
-        
+    // Route cho câu hỏi – chỉ teacher/admin mới được phép
+    Route::middleware('role:teacher,admin')->group(function () {
+        Route::apiResource('questions', QuestionController::class);
+        Route::apiResource('exams', ExamController::class);
+        Route::post('exams/{exam}/generate', [ExamController::class, 'generate']);
+        Route::get('/exams/{exam}/statistics/overview', [StatisticsController::class, 'overview']);
+        Route::get('/exams/{exam}/statistics/distribution', [StatisticsController::class, 'scoreDistribution']);
+        Route::get('/exams/{exam}/statistics/questions', [StatisticsController::class, 'questionStatistics']);
+        Route::get('/exams/{exam}/statistics/skill', [StatisticsController::class, 'studentSkillAnalysis']);
+        Route::get('/exams/{exam}/export-pdf', [StatisticsController::class, 'exportPdf']);
+        Route::get('/exams/{exam}/export-excel', [StatisticsController::class, 'exportExcel']);
     });
-  
-    Route::post('/users/import', [UserController::class, 'import']);
-    Route::apiResource('users', UserController::class); 
-
-    Route::post('/questions/import', [QuestionController::class, 'import']);
-    Route::apiResource('questions', QuestionController::class);
-
-    Route::post('/exams/{id}/toggle-status', [ExamController::class, 'toggleStatus']);
-    Route::post('/exams/{id}/generate-questions', [ExamController::class, 'generateQuestions']);
-    Route::apiResource('exams', ExamController::class);
-
-    Route::get('/student/exams/{id}/do', [StudentExamController::class, 'getExam']);
-    Route::post('/student/exams/{id}/save-progress', [StudentExamController::class, 'saveProgress']);
-    Route::get('/student/exams', [StudentExamController::class, 'getAvailableExams']);
-    Route::post('/student/exams/{id}/check-password', [StudentExamController::class, 'checkPassword']);
-    Route::get('/student/exams/history', [StudentExamController::class, 'getHistory']);
-
-    Route::post('/exams/{id}/log-violation', [StudentExamController::class, 'logViolation']);
-    Route::middleware('throttle:60,1')->post('/exams/{exam}/submit', [StudentExamController::class, 'submit']);
-    Route::get('/exams/{exam}/statistics', [ExamController::class, 'statistics']);
-    Route::get('/exams/{exam}/export', [ExamController::class, 'export']);
+    Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(function () {
+        // Danh sách kỳ thi có thể tham gia (dựa trên lớp học của học viên)
+        Route::get('/exams', [ExamAttemptController::class, 'availableExams']);
+        // Bắt đầu thi
+        Route::post('/exams/{exam}/start', [ExamAttemptController::class, 'start']);
+        // Auto-save câu trả lời
+        Route::post('/exams/attempts/{attempt}/save-answer', [ExamAttemptController::class, 'saveAnswer']);
+        // Ghi nhận vi phạm
+        Route::post('/exams/attempts/{attempt}/log-violation', [ExamAttemptController::class, 'logViolation']);
+        // Nộp bài
+        Route::post('/exams/attempts/{attempt}/submit', [ExamAttemptController::class, 'submit']);
+        // Xem kết quả chi tiết
+        Route::get('/exams/attempts/{attempt}/result', [ExamAttemptController::class, 'result']);
+    });
+    Route::middleware(['auth:sanctum', 'role:proctor,admin,teacher'])->prefix('proctor')->group(function () {
+        // Danh sách kỳ thi đang diễn ra (có thể giám sát)
+        Route::get('/active-exams', [ProctorController::class, 'activeExams']);
+        // Danh sách thí sinh của một kỳ thi (có filter)
+        Route::get('/exams/{exam}/attempts', [ProctorController::class, 'examAttempts']);
+        // Force submit một attempt
+        Route::post('/attempts/{attempt}/force-submit', [ProctorController::class, 'forceSubmit']);
+        // Gửi cảnh báo tới thí sinh (tùy chọn)
+        Route::post('/attempts/{attempt}/warn', [ProctorController::class, 'sendWarning']);
+    });
+    // ... các route khác (exams, classes...) sẽ thêm sau
 });
