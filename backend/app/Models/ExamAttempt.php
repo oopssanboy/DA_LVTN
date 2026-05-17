@@ -9,23 +9,28 @@ class ExamAttempt extends Model
 {
     use HasFactory;
 
+    // Các trường này đã được sửa lại KHỚP HOÀN TOÀN với file migration
     protected $fillable = [
-        'user_id', 'exam_id', 'questions_snapshot', 'answers',
-        'started_at', 'submitted_at', 'status', 'score',
-        'is_passed', 'total_correct', 'total_questions', 'cheat_count',
+        'exam_id',
+        'student_id',
+        'started_at',
+        'ended_at',
+        'total_score',
+        'is_passed',
+        'status',
+        'violation_count',
     ];
 
     protected $casts = [
-        'questions_snapshot' => 'array',
-        'answers' => 'array',
         'started_at' => 'datetime',
-        'submitted_at' => 'datetime',
+        'ended_at' => 'datetime',
         'is_passed' => 'boolean',
     ];
 
-    public function user()
+    // Khai báo rõ foreign_key là student_id trỏ tới bảng users
+    public function student()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'student_id');
     }
 
     public function exam()
@@ -33,8 +38,9 @@ class ExamAttempt extends Model
         return $this->belongsTo(Exam::class);
     }
 
-    public function violations()            // MỚI
+    // Khai báo rõ foreign_key cho ViolationLog (nếu bảng kia dùng attempt_id)
+    public function violations()            
     {
-        return $this->hasMany(ViolationLog::class);
+        return $this->hasMany(ViolationLog::class, 'attempt_id');
     }
 }

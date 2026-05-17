@@ -111,37 +111,33 @@ class ExamController extends Controller
     // Sinh đề (lấy câu hỏi từ ngân hàng theo ma trận, lưu vào exam_questions)
     public function generate(Exam $exam)
     {
-        // Kiểm tra đã có đề chưa? Nếu có thì hỏi xác nhận (có thể xóa cũ)
-        // Ta sẽ xóa cũ và tạo mới
         DB::beginTransaction();
         try {
-            // Xóa các câu hỏi cũ
             $exam->questions()->detach();
 
             $selectedQuestions = collect();
             $matrices = $exam->matrices;
 
             foreach ($matrices as $matrix) {
-                // Lấy danh sách câu hỏi đáp ứng topic, difficulty, chưa được chọn
                 $query = Question::where('subject', $exam->subject)
                     ->where('topic', $matrix->topic)
                     ->where('difficulty', $matrix->difficulty);
 
-                // Loại trừ những câu đã được chọn trong các lần lấy trước
                 if ($selectedQuestions->isNotEmpty()) {
                     $query->whereNotIn('id', $selectedQuestions->pluck('id'));
                 }
 
-                $questions = $query->inRandomOrder()->limit($matrix->quantity)->get();
+                $availableCount = clone $query; // Clone để đếm số lượng thực tế
+                $count = $availableCount->count();
 
-                if ($questions->count() < $matrix->quantity) {
-                    throw new \Exception("Không đủ câu hỏi cho ma trận: topic={$matrix->topic}, difficulty={$matrix->difficulty}");
+                if ($count < $matrix->quantity) {
+                    throw new \Exception("Ngân hàng thiếu câu hỏi. Ma trận yêu cầu {$matrix->quantity} câu (Chủ đề: {$matrix->topic}, Độ khó: {$matrix->difficulty}) nhưng chỉ còn {$count} câu.");
                 }
 
+                $questions = $query->inRandomOrder()->limit($matrix->quantity)->get();
                 $selectedQuestions = $selectedQuestions->merge($questions);
             }
 
-            // Gắn các câu hỏi vào exam_questions, có thể xáo trộn thứ tự
             $order = 1;
             $syncData = [];
             foreach ($selectedQuestions->shuffle() as $question) {
@@ -156,7 +152,8 @@ class ExamController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => $e->getMessage()], 400);
+            // Trả về 422 để frontend hiển thị đúng thông báo lỗi
+            return response()->json(['message' => $e->getMessage()], 422); 
         }
     }
 

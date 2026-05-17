@@ -28,8 +28,14 @@ export default function ExamManager() {
 
   const handleGenerate = async (examId) => {
     if (window.confirm('Sinh đề sẽ xóa đề cũ. Bạn có chắc?')) {
-      await api.post(`/exams/${examId}/generate`);
-      alert('Sinh đề thành công');
+      try {
+        await api.post(`/exams/${examId}/generate`);
+        alert('Sinh đề thành công');
+      } catch (err) {
+        // Lấy chính xác thông báo lỗi từ backend ("Ngân hàng thiếu câu hỏi...")
+        const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra khi sinh đề';
+        alert(`Lỗi sinh đề:\n${errorMessage}`);
+      }
     }
   };
   const handleToggleStatus = async (exam) => {
