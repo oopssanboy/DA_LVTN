@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from '../../services/axios';
+import api from '../../services/api';
 import MatrixRows from '../../components/admin/MatrixRows';
 
 export default function ExamForm() {
@@ -29,9 +29,9 @@ export default function ExamForm() {
 
   useEffect(() => {
     // Fetch danh sách lớp (cần API /classes)
-    axios.get('/classes').then(res => setClasses(res.data.data || []));
+    api.get('/classes').then(res => setClasses(res.data.data || []));
     if (isEdit) {
-      axios.get(`/exams/${id}`).then(res => {
+      api.get(`/exams/${id}`).then(res => {
         const exam = res.data.data;
         setFormData({
           class_id: exam.class_id,
@@ -77,9 +77,9 @@ export default function ExamForm() {
     setLoading(true);
     try {
       if (isEdit) {
-        await axios.put(`/exams/${id}`, formData);
+        await api.put(`/exams/${id}`, formData);
       } else {
-        await axios.post('/exams', formData);
+        await api.post('/exams', formData);
       }
       navigate('/admin/exams');
     } catch (error) {

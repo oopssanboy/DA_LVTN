@@ -1,44 +1,48 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import { createContext, useContext, useState, useEffect } from 'react'
+import api from '../services/api'
 
-const AuthContext = createContext();
+const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     if (token) {
       api.get('/user')
         .then(res => setUser(res.data))
         .catch(() => logout())
-        .finally(() => setLoading(false));
+        .finally(() => setLoading(false))
     } else {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   const login = async (email, password) => {
-    const res = await api.post('/login', { email, password });
-    localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
-    return res.data;
-  };
+    const res = await api.post('/login', { email, password })
+    localStorage.setItem('token', res.data.access_token)
+    setUser(res.data.user)
+    return res.data
+  }
 
   const logout = async () => {
-  try {
-    await api.post('/logout');
-  } catch (e) {}
-  localStorage.removeItem('token');
-  setUser(null);
-};
+    try {
+      await api.post('/logout')
+    } catch (e) {}
+    localStorage.removeItem('token')
+    setUser(null)
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuth must be used within AuthProvider')
+  return context
+}

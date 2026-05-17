@@ -37,6 +37,15 @@ class DatabaseSeeder extends Seeder
                 'is_active' => 1,
             ]
         );
+        $proctor = User::updateOrCreate(
+            ['email' => 'proctor@gmail.com'],
+            [
+                'name' => 'Giám thị 1',
+                'password' => Hash::make('123456'), 
+                'role' => 'proctor',
+                'is_active' => 1,
+            ]
+        );
 
         // 3. Tạo 1 Khóa học (Course) mẫu cho Giáo viên
         $courseId = DB::table('courses')->insertGetId([

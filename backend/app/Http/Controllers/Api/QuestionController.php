@@ -7,6 +7,8 @@ use App\Models\Question;
 use App\Models\Choice;
 use App\Http\Requests\QuestionRequest;
 use App\Http\Resources\QuestionResource;
+use App\Exports\QuestionsExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -124,5 +126,9 @@ class QuestionController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Xoá thất bại', 'error' => $e->getMessage()], 500);
         }
+    }
+    public function export()
+    {
+        return Excel::download(new QuestionsExport, 'questions.xlsx');
     }
 }

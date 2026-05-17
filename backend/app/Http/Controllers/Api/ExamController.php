@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamMatrix;
+use App\Models\ExamAttempt;
 use App\Models\Question;
+use App\Models\StudentAnswer;
 use App\Http\Requests\ExamRequest;
 use App\Http\Resources\ExamResource;
 use Illuminate\Http\Request;
@@ -156,5 +158,92 @@ class ExamController extends Controller
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 400);
         }
+    }
+
+    // Xem danh sách kết quả bài thi của học viên trong kỳ thi này
+    public function attempts(Request $request, Exam $exam)
+    {
+        $attempts = ExamAttempt::with(['student'])
+            ->where('exam_id', $exam->id)
+            ->when($request->status, function($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->orderByDesc('total_score') // Xếp điểm cao nhất lên đầu
+            ->paginate(15);
+
+        return response()->json($attempts);
+    }
+
+    // Bật/Tắt kỳ thi nhanh chóng
+    public function updateStatus(Request $request, Exam $exam)
+    {
+        $request->validate([
+            'is_active' => 'required|boolean'
+        ]);
+
+        $exam->update(['is_active' => $request->is_active]);
+
+        return response()->json([
+            'message' => 'Cập nhật trạng thái kỳ thi thành công',
+            'is_active' => $exam->is_active
+        ]);
+    }
+
+    // Xem thống kê tổng quan của kỳ thi
+    public function statistics(Exam $exam)
+    {
+        $totalAttempts = ExamAttempt::where('exam_id', $exam->id)->count();
+        $submittedAttempts = ExamAttempt::where('exam_id', $exam->id)->where('status', 'submitted');
+
+        $totalSubmitted = $submittedAttempts->count();
+        $passed = (clone $submittedAttempts)->where('is_passed', true)->count();
+        $failed = $totalSubmitted - $passed;
+
+        $averageScore = $totalSubmitted > 0 ? $submittedAttempts->avg('total_score') : 0;
+        $maxScore = $totalSubmitted > 0 ? $submittedAttempts->max('total_score') : 0;
+        $minScore = $totalSubmitted > 0 ? $submittedAttempts->min('total_score') : 0;
+
+        return response()->json([
+            'total_attempts' => $totalAttempts,
+            'total_submitted' => $totalSubmitted,
+            'passed' => $passed,
+            'failed' => $failed,
+            'pass_rate' => $totalSubmitted > 0 ? round(($passed / $totalSubmitted) * 100, 2) : 0,
+            'average_score' => round($averageScore, 2),
+            'max_score' => round($maxScore, 2),
+            'min_score' => round($minScore, 2),
+        ]);
+    }
+
+    // Xem chi tiết bài làm của một học viên (dành cho Admin/Giáo viên)
+    public function attemptDetail(Exam $exam, ExamAttempt $attempt)
+    {
+        // Đảm bảo bài thi thuộc về đúng kỳ thi
+        if ($attempt->exam_id !== $exam->id) {
+            return response()->json(['message' => 'Bài làm không thuộc kỳ thi này'], 400);
+        }
+
+        $attempt->load(['student', 'violationLogs']); // Lấy thêm log vi phạm quy chế
+        $questions = $exam->questions()->with('choices')->get();
+        $answers = StudentAnswer::where('attempt_id', $attempt->id)->get()->keyBy('question_id');
+
+        $details = $questions->map(function ($q) use ($answers) {
+            $ans = $answers->get($q->id);
+            return [
+                'question_id' => $q->id,
+                'content' => $q->content,
+                'type' => $q->type,
+                'choices' => $q->type != 'fill_blank' ? $q->choices : null,
+                'user_answer' => $ans ? $ans->answer_text : '',
+                'correct_answer' => $q->correct_answer,
+                'is_correct' => $ans ? $ans->is_correct : false,
+                'score_earned' => $ans ? $ans->score_earned : 0,
+            ];
+        });
+
+        return response()->json([
+            'attempt' => $attempt,
+            'details' => $details,
+        ]);
     }
 }
