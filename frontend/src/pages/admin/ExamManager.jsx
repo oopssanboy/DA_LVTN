@@ -32,6 +32,17 @@ export default function ExamManager() {
       alert('Sinh đề thành công');
     }
   };
+  const handleToggleStatus = async (exam) => {
+    try {
+      const newStatus = !exam.is_active;
+      await api.patch(`/exams/${exam.id}/status`, { is_active: newStatus });
+      // Cập nhật state trực tiếp để UI phản hồi nhanh mà không cần gọi lại fetchExams()
+      setExams(exams.map(e => e.id === exam.id ? { ...e, is_active: newStatus } : e));
+    } catch (err) {
+      alert('Lỗi cập nhật trạng thái kỳ thi');
+      console.error(err);
+    }
+  };
 
   return (
     <div className="animate-fadeIn">
@@ -66,15 +77,21 @@ export default function ExamManager() {
                     <td className="px-6 py-4">{exam.total_questions}</td>
                     <td className="px-6 py-4">{exam.duration} phút</td>
                     <td className="px-6 py-4">
-                      {exam.is_active ? (
-                        <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full w-fit text-xs">
-                          <CheckCircle size={12} /> Đang mở
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full w-fit text-xs">
-                          <XCircle size={12} /> Đóng
-                        </span>
-                      )}
+                      <button
+                        onClick={() => handleToggleStatus(exam)}
+                        className="hover:opacity-80 transition"
+                        title="Nhấn để thay đổi trạng thái"
+                      >
+                        {exam.is_active ? (
+                          <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full w-fit text-xs cursor-pointer">
+                            <CheckCircle size={12} /> Đang mở
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full w-fit text-xs cursor-pointer">
+                            <XCircle size={12} /> Đóng
+                          </span>
+                        )}
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-right space-x-3">
                       <button onClick={() => handleGenerate(exam.id)} className="text-blue-500 hover:text-blue-700" title="Sinh đề">

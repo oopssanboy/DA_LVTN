@@ -18,27 +18,19 @@ class QuestionRequest extends FormRequest
         $rules = [
             'subject' => 'required|string|max:255',
             'topic' => 'required|string|max:255',
+            'difficulty' => 'required|in:easy,medium,hard',
             'content' => 'required|string',
-            'type' => ['required', Rule::in(['single', 'multiple', 'fill_blank'])],
-            'difficulty' => ['required', Rule::in(['easy', 'medium', 'hard'])],
-            'score' => 'nullable|numeric|min:0.1|max:10',
-            'explanation' => 'nullable|string',
+            'type' => 'required|in:multiple_choice,true_false,fill_blank',
         ];
 
-        // Tuỳ theo loại câu hỏi mà quy tắc correct_answer khác nhau
-        if ($this->type == 'single') {
-            $rules['correct_answer'] = 'required|string|in:A,B,C,D';
-        } elseif ($this->type == 'multiple') {
-            $rules['correct_answer'] = 'required|regex:/^[A-D](,[A-D])*$/'; // ví dụ: A,C
-        } elseif ($this->type == 'fill_blank') {
-            $rules['correct_answer'] = 'required|string|max:500'; // có thể nhiều đáp án cách nhau bởi |
-        }
-
-        // Nếu là single/multiple thì cần danh sách choices
-        if (in_array($this->type, ['single', 'multiple'])) {
-            $rules['choices'] = 'required|array|min:2|max:4';
-            $rules['choices.*.key'] = 'required|string|in:A,B,C,D';
-            $rules['choices.*.text'] = 'required|string|max:1000';
+        // Chỉ yêu cầu choices nếu không phải là câu hỏi điền khuyết
+        if ($this->type !== 'fill_blank') {
+            $rules['choices'] = 'required|array|min:2'; // Ít nhất 2 đáp án
+            $rules['choices.*.content'] = 'required|string';
+            $rules['choices.*.is_correct'] = 'required|boolean';
+        } else {
+            // Đối với điền khuyết, lưu trực tiếp correct_answer vào bảng questions
+            $rules['correct_answer'] = 'required|string';
         }
 
         return $rules;

@@ -73,7 +73,14 @@ export default function QuestionList() {
       link.parentNode.removeChild(link);
       toast.success('Xuất file thành công', { id: loadingToast });
     } catch (error) {
-      toast.error('Lỗi khi xuất file', { id: loadingToast });
+      // ĐỌC LỖI TỪ BLOB NẾU BACKEND TRẢ VỀ LỖI
+      if (error.response && error.response.data instanceof Blob) {
+        const textError = await error.response.data.text();
+        console.error("Lỗi từ backend trả về:", textError); // Bật F12 (Console) để xem dòng này
+        toast.error('Lỗi Server: Vui lòng xem Console (F12)', { id: loadingToast });
+      } else {
+        toast.error('Lỗi mạng hoặc không thể xuất file', { id: loadingToast });
+      }
     }
   };
 

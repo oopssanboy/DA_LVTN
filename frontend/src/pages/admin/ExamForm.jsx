@@ -28,29 +28,40 @@ export default function ExamForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch danh sách lớp (cần API /classes)
-    api.get('/classes').then(res => setClasses(res.data.data || []));
-    if (isEdit) {
-      api.get(`/exams/${id}`).then(res => {
-        const exam = res.data.data;
-        setFormData({
-          class_id: exam.class_id,
-          title: exam.title,
-          subject: exam.subject,
-          duration: exam.duration,
-          total_questions: exam.total_questions,
-          start_time: exam.start_time ? exam.start_time.slice(0, 16) : '',
-          end_time: exam.end_time ? exam.end_time.slice(0, 16) : '',
-          password: exam.password || '',
-          is_active: exam.is_active,
-          shuffle_questions: exam.shuffle_questions,
-          shuffle_options: exam.shuffle_options,
-          passing_score: exam.passing_score,
-          matrices: exam.matrices || [{ topic: '', difficulty: 'easy', quantity: 1 }],
-        });
+  // Fetch danh sách lớp
+  api.get('/classes')
+    .then(res => {
+      // Ưu tiên res.data.data (nếu dùng Resource/Pagination), nếu không có thì lấy trực tiếp res.data
+      const classList = res.data.data || res.data || [];
+      setClasses(classList);
+    })
+    .catch(err => {
+      console.error('Lỗi khi tải danh sách lớp:', err);
+    });
+
+  if (isEdit) {
+    api.get(`/exams/${id}`).then(res => {
+      const exam = res.data.data;
+      setFormData({
+        class_id: exam.class_id,
+        title: exam.title,
+        subject: exam.subject,
+        duration: exam.duration,
+        total_questions: exam.total_questions,
+        start_time: exam.start_time ? exam.start_time.slice(0, 16) : '',
+        end_time: exam.end_time ? exam.end_time.slice(0, 16) : '',
+        password: exam.password || '',
+        is_active: exam.is_active,
+        shuffle_questions: exam.shuffle_questions,
+        shuffle_options: exam.shuffle_options,
+        passing_score: exam.passing_score,
+        matrices: exam.matrices && exam.matrices.length > 0 ? exam.matrices : [{ topic: '', difficulty: 'easy', quantity: 1 }],
       });
-    }
-  }, [id, isEdit]);
+    }).catch(err => {
+       console.error('Lỗi khi tải chi tiết kỳ thi:', err);
+    });
+  }
+}, [id, isEdit]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -67,9 +78,8 @@ export default function ExamForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Tính tổng quantity từ matrices
-    const totalQ = formData.matrices.reduce((sum, m) => sum + m.quantity, 0);
-    if (totalQ !== formData.total_questions) {
+    const totalQ = formData.matrices.reduce((sum, m) => sum + (Number(m.quantity) || 0), 0);
+    if (totalQ !== parseInt(formData.total_questions)) {
       alert(`Tổng số câu hỏi (${totalQ}) không khớp với tổng số câu bạn nhập (${formData.total_questions})`);
       return;
     }
@@ -83,7 +93,14 @@ export default function ExamForm() {
       }
       navigate('/admin/exams');
     } catch (error) {
-      alert(error.response?.data?.message || 'Lỗi lưu kỳ thi');
+      if (error.response?.status === 422) {
+        // Trích xuất các lỗi validation chi tiết từ Laravel
+        const validationErrors = error.response.data.errors;
+        const errorMessages = Object.values(validationErrors).flat().join('\n');
+        alert(`Vui lòng kiểm tra lại thông tin:\n${errorMessages}`);
+      } else {
+        alert(error.response?.data?.message || 'Lỗi lưu kỳ thi');
+      }
     } finally {
       setLoading(false);
     }

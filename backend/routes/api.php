@@ -28,14 +28,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Role teacher/admin
     Route::middleware('role:teacher,admin')->group(function () {
-        Route::apiResource('questions', QuestionController::class);
         Route::get('/questions/export', [QuestionController::class, 'export']);
-        Route::apiResource('exams', ExamController::class);
+        Route::post('/questions/import', [QuestionController::class, 'import']);
+        Route::apiResource('questions', QuestionController::class);
+        
         Route::post('exams/{exam}/generate', [ExamController::class, 'generate']);
         Route::get('exams/{exam}/attempts', [ExamController::class, 'attempts']);
         Route::patch('exams/{exam}/status', [ExamController::class, 'updateStatus']);
         Route::get('exams/{exam}/statistics', [ExamController::class, 'statistics']);
         Route::get('exams/{exam}/attempts/{attempt}', [ExamController::class, 'attemptDetail']);
+        Route::apiResource('exams', ExamController::class);
 
         Route::prefix('teacher')->group(function () {
             Route::get('/exams/{exam}/statistics/overview', [StatisticsController::class, 'overview']);

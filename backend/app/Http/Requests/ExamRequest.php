@@ -25,7 +25,7 @@ class ExamRequest extends FormRequest
             'is_active' => 'boolean',
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
-            'passing_score' => 'required|integer|min:0|max:10',
+            'passing_score' => 'required|numeric|min:0|max:10',
             // matrices là một mảng các dòng, mỗi dòng có topic, difficulty, quantity
             'matrices' => 'required|array|min:1',
             'matrices.*.topic' => 'required|string|max:255',

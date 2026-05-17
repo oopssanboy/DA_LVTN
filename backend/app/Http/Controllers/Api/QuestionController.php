@@ -8,6 +8,7 @@ use App\Models\Choice;
 use App\Http\Requests\QuestionRequest;
 use App\Http\Resources\QuestionResource;
 use App\Exports\QuestionsExport;
+use App\Imports\QuestionsImport; // Thêm class Import
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,11 +54,15 @@ class QuestionController extends Controller
             $data = $request->validated();
             $data['created_by'] = auth()->id();
 
+            // Tách choices ra khỏi data để xử lý riêng
+            $choices = $data['choices'] ?? [];
+            unset($data['choices']);
+
             $question = Question::create($data);
 
             // Nếu là single/multiple thì tạo choices
-            if (in_array($question->type, ['single', 'multiple']) && isset($data['choices'])) {
-                foreach ($data['choices'] as $choice) {
+            if (in_array($question->type, ['single', 'multiple']) && !empty($choices)) {
+                foreach ($choices as $choice) {
                     Choice::create([
                         'question_id' => $question->id,
                         'choice_key' => $choice['key'],
@@ -84,14 +89,20 @@ class QuestionController extends Controller
             DB::beginTransaction();
 
             $data = $request->validated();
+            
+            // Tách choices ra khỏi data
+            $choices = $data['choices'] ?? [];
+            unset($data['choices']);
+
+            // Cập nhật thông tin cơ bản
             $question->update($data);
 
             // Nếu là single/multiple, cập nhật lại choices
-            if (in_array($question->type, ['single', 'multiple']) && isset($data['choices'])) {
+            if (in_array($question->type, ['single', 'multiple']) && !empty($choices)) {
                 // Xoá choices cũ
                 $question->choices()->delete();
                 // Tạo mới
-                foreach ($data['choices'] as $choice) {
+                foreach ($choices as $choice) {
                     Choice::create([
                         'question_id' => $question->id,
                         'choice_key' => $choice['key'],
@@ -127,8 +138,32 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Xoá thất bại', 'error' => $e->getMessage()], 500);
         }
     }
+
+    // Xuất Excel
     public function export()
     {
         return Excel::download(new QuestionsExport, 'questions.xlsx');
+    }
+
+    // Nhập Excel
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            DB::beginTransaction();
+            Excel::import(new QuestionsImport, $request->file('file'));
+            DB::commit();
+
+            return response()->json(['message' => 'Import ngân hàng câu hỏi thành công'], 200);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Dữ liệu Excel không hợp lệ', 'errors' => $e->failures()], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Import thất bại', 'error' => $e->getMessage()], 500);
+        }
     }
 }

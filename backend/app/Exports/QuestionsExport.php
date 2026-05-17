@@ -31,16 +31,17 @@ class QuestionsExport implements FromCollection, WithHeadings, WithMapping
         return [
             $question->subject,
             $question->topic,
-            strip_tags($question->content), // Loại bỏ thẻ HTML nếu có
+            strip_tags($question->content),
             $question->type,
             $question->difficulty,
             $question->correct_answer,
             $question->score,
             $question->explanation,
-            $choices->get('A')->choice_text ?? '',
-            $choices->get('B')->choice_text ?? '',
-            $choices->get('C')->choice_text ?? '',
-            $choices->get('D')->choice_text ?? '',
+            // Dùng hàm optional() thay cho ?-> để không bị lỗi trên các bản PHP cũ
+            optional($choices->get('A'))->choice_text ?? '',
+            optional($choices->get('B'))->choice_text ?? '',
+            optional($choices->get('C'))->choice_text ?? '',
+            optional($choices->get('D'))->choice_text ?? '',
         ];
     }
 }
