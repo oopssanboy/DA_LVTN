@@ -6,12 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Events\ViolationUpdated; // sẽ tạo event
+use Illuminate\Support5\Facades\DB;
+use App\Events\ViolationUpdated;
 
 class ProctorController extends Controller
 {
-    // Lấy danh sách kỳ thi đang diễn ra (có attempt in_progress)
     public function activeExams()
     {
         $exams = Exam::where('is_active', true)
@@ -24,7 +23,6 @@ class ProctorController extends Controller
         return response()->json($exams);
     }
 
-    // Lấy danh sách attempt của một kỳ thi (kèm thông tin student, violation_count)
     public function examAttempts(Exam $exam)
     {
         $attempts = ExamAttempt::where('exam_id', $exam->id)
@@ -32,7 +30,6 @@ class ProctorController extends Controller
             ->orderBy('started_at')
             ->get(['id', 'student_id', 'started_at', 'ended_at', 'status', 'violation_count', 'total_score']);
         
-        // Thêm thời gian còn lại (nếu đang làm)
         foreach ($attempts as $attempt) {
             if ($attempt->status === 'in_progress') {
                 $examDuration = $exam->duration * 60;
@@ -45,28 +42,31 @@ class ProctorController extends Controller
         return response()->json($attempts);
     }
 
-    // Force submit một attempt
+    // Force submit một attempt khẩn cấp từ giám thị
     public function forceSubmit(ExamAttempt $attempt)
     {
         if ($attempt->status !== 'in_progress') {
             return response()->json(['message' => 'Bài thi không ở trạng thái đang tiến hành'], 400);
         }
 
-        // Gọi lại logic submit (có thể tái sử dụng từ ExamAttemptController)
+        // Thực hiện logic tự động thu bài chấm điểm
         $submitController = new \App\Http\Controllers\Api\Student\ExamAttemptController();
-        $result = $submitController->performSubmit($attempt); // cần làm method public hoặc copy logic
+        $submitController->performSubmit($attempt); 
 
-        // Broadcast sự kiện cập nhật
-        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit'))->toOthers();
+        // 👉 ĐỒNG BỘ: Phát hành động 'force_submit' qua Event
+        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit', 'Bài thi của bạn đã bị thu bởi giám thị!'))->toOthers();
 
         return response()->json(['message' => 'Đã force submit thành công', 'score' => $attempt->fresh()->total_score]);
     }
 
-    // Gửi cảnh báo (ghi log và broadcast)
+    // Gửi cảnh báo thủ công từ ô nhập liệu văn bản
     public function sendWarning(Request $request, ExamAttempt $attempt)
     {
         $request->validate(['message' => 'required|string']);
+        
+        // 👉 ĐỒNG BỘ: Truyền chuẩn biến hành động 'warning' và text thông điệp $request->message
         broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'warning', $request->message))->toOthers();
-        return response()->json(['message' => 'Đã gửi cảnh báo']);
+        
+        return response()->json(['message' => 'Đã gửi cảnh báo thành công']);
     }
 }

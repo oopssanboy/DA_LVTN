@@ -1,21 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from './context/AuthContext'  // ← phải có
-import Login from './pages/auth/Login'
+import { AuthProvider } from './context/AuthContext'
+
+// Layouts (Vẫn giữ trong components)
 import AdminLayout from './components/layout/AdminLayout'
 import StudentLayout from './components/layout/StudentLayout'
 import ProctorLayout from './components/layout/ProctorLayout'
+
+// Pages - Auth
+import Login from './pages/auth/Login'
+
+// Pages - Admin & Teacher
 import AdminDashboard from './pages/admin/AdminDashboard'
 import QuestionList from './pages/admin/QuestionList'
 import QuestionForm from './pages/admin/QuestionForm'
 import ExamManager from './pages/admin/ExamManager'
 import ExamForm from './pages/admin/ExamForm'
-import ExamStatistics from './components/teacher/ExamStatistics'
+import ExamStatistics from './pages/teacher/ExamStatistics' // Đã sửa đường dẫn
+
+// Pages - Proctor
+import ProctorDashboard from './pages/proctor/ProctorDashboard' // Đã sửa đường dẫn
+
+// Pages - Student
 import StudentHome from './pages/student/StudentHome'
 import ExamRoom from './pages/student/ExamRoom'
-import ExamResult from './components/student/ExamResult'
+import ExamResult from './pages/student/ExamResult' // Đã sửa đường dẫn
 import StudentProfile from './pages/student/StudentProfile'
-import ProctorDashboard from './components/proctor/ProctorDashboard'
 
 const getRole = () => {
   const userStr = localStorage.getItem('user')

@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Student routes
     Route::middleware('role:student')->prefix('student')->group(function () {
         Route::get('/exams', [ExamAttemptController::class, 'availableExams']);
+        Route::get('/exams/history', [ExamAttemptController::class, 'history']);
         Route::post('/exams/{exam}/start', [ExamAttemptController::class, 'start']);
         Route::post('/exams/attempts/{attempt}/save-answer', [ExamAttemptController::class, 'saveAnswer']);
         Route::post('/exams/attempts/{attempt}/log-violation', [ExamAttemptController::class, 'logViolation']);

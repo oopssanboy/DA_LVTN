@@ -14,8 +14,8 @@ class ViolationUpdated implements ShouldBroadcast
 
     public $examId;
     public $attemptId;
-    public $type;
-    public $message;
+    public $type;       // 'warning' hoặc 'force_submit' hoặc 'tab_switch'...
+    public $message;    // Nội dung text lời nhắn gửi sinh viên
 
     public function __construct($examId, $attemptId, $type, $message = null)
     {
@@ -27,7 +27,8 @@ class ViolationUpdated implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        return new Channel('proctor.exam.' . $this->examId);
+        // 👉 ĐỔI THÀNH KÊNH CHUNG: Đồng bộ chuẩn hóa thống nhất giữa Client và Server
+        return new Channel('exam.' . $this->examId);
     }
 
     public function broadcastAs()

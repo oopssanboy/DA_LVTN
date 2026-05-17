@@ -44,7 +44,7 @@ class ExamAttemptController extends Controller
     }
 
     // 2. Bắt đầu thi: tạo exam_attempt, sinh đề riêng cho học viên (dựa trên exam_questions đã được tạo sẵn từ ma trận)
-    public function start(Exam $exam)
+    public function start(Request $request, Exam $exam) // 👉 Thêm Request $request vào tham số đầu vào
     {
         $student = auth()->user();
 
@@ -54,7 +54,7 @@ class ExamAttemptController extends Controller
             return response()->json(['message' => 'Kỳ thi chưa bắt đầu hoặc đã kết thúc'], 400);
         }
 
-        // Kiểm tra đã có attempt chưa (chỉ cho phép thi một lần)
+        // Kiểm tra đã có attempt chưa
         $existing = ExamAttempt::where('exam_id', $exam->id)
             ->where('student_id', $student->id)
             ->first();
@@ -65,6 +65,17 @@ class ExamAttemptController extends Controller
             return response()->json(['message' => 'Bạn đã nộp bài thi này rồi'], 400);
         }
 
+        // 👉 THÊM LOGIC KIỂM TRA MẬT KHẨU KỲ THI TẠI ĐÂY
+        // Nếu kỳ thi có đặt password (trường password trong db khác null hoặc rỗng)
+        if (!empty($exam->password)) {
+            // Kiểm tra xem phía frontend có gửi password lên không, hoặc password gửi lên có trùng khớp không
+            if (!$request->has('password') || $request->password !== $exam->password) {
+                return response()->json(['message' => 'Mật khẩu phòng thi không chính xác!'], 403);
+            }
+        }
+
+        // Lấy danh sách câu hỏi của kỳ thi (giữ nguyên logic cũ phía dưới...)
+        $examQuestions = $exam->questions()->with('choices')->get();
         // Lấy danh sách câu hỏi của kỳ thi (đã được tạo sẵn trong bảng exam_questions)
         $examQuestions = $exam->questions()->with('choices')->get();
         if ($examQuestions->isEmpty()) {
@@ -117,7 +128,10 @@ class ExamAttemptController extends Controller
     // 3. Auto-save đáp án
     public function saveAnswer(Request $request, ExamAttempt $attempt)
     {
-        $this->authorize('update', $attempt); // cần Policy đảm bảo học viên sở hữu attempt
+        // Đảm bảo sinh viên đăng nhập chỉ được phép xem lượt thi của chính họ
+        if ($attempt->student_id !== auth()->id()) {
+            return response()->json(['message' => 'Bạn không có quyền truy cập lượt thi này!1111111'], 0.53);
+        } // cần Policy đảm bảo học viên sở hữu attempt
 
         $request->validate([
             'question_id' => 'required|exists:questions,id',
@@ -146,21 +160,34 @@ class ExamAttemptController extends Controller
         ]);
 
         ViolationLog::create([
-            'attempt_id' => $attempt->id,
+            'attempt_id' => $attempt->id, // Đảm bảo $attempt->id lấy đúng giá trị số nguyên (ví dụ: 2)
             'type' => $request->type,
             'detail' => $request->detail,
         ]);
 
         // Tăng số lần vi phạm
         $attempt->increment('violation_count');
-        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', $request->type))->toOthers();
-        // Nếu vi phạm quá 3 lần, tự động nộp bài
-        if ($attempt->violation_count >= 3 && $attempt->status == 'in_progress') {
-            $this->performSubmit($attempt);
-            return response()->json(['message' => 'Bạn đã vi phạm quá 3 lần, bài thi bị khoá và nộp tự động'], 403);
+
+        // Bọc lệnh broadcast trong try-catch để tránh lỗi 500 sập API khi chưa bật server realtime
+        try {
+            broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', $request->type))->toOthers();
+        } catch (\Exception $e) {
+            Log::warning("Realtime broadcast lỗi nhưng bỏ qua để duy trì kiểm tra vi phạm: " . $e->getMessage());
         }
 
-        return response()->json(['message' => 'Đã ghi nhận']);
+        // Nếu vi phạm quá hoặc bằng 3 lần, thực hiện khóa đề và tự động thu bài lập tức
+        if ($attempt->violation_count >= 3 && $attempt->status == 'in_progress') {
+            $this->performSubmit($attempt);
+            return response()->json([
+                'message' => 'Bạn đã vi phạm quy chế thi quá 3 lần. Hệ thống tự động thu bài khóa lượt thi!',
+                'violation_count' => $attempt->violation_count
+            ], 403); // Trả về mã lỗi 403 Forbidden để chặn làm bài tiếp
+        }
+
+        return response()->json([
+            'message' => 'Đã ghi nhận vi phạm thành công',
+            'violation_count' => $attempt->violation_count
+        ]);
     }
 
     // 5. Nộp bài và chấm điểm
@@ -188,7 +215,7 @@ class ExamAttemptController extends Controller
                     ->where('question_id', $question->id)
                     ->first();
 
-                $answerText = $studentAnswer ? $studentAnswer->answer_text : '';
+                $answerText = ($studentAnswer && !is_null($studentAnswer->answer_text)) ? $studentAnswer->answer_text : '';
                 $isCorrect = false;
                 $scoreEarned = 0;
 
@@ -223,7 +250,8 @@ class ExamAttemptController extends Controller
                     StudentAnswer::create([
                         'attempt_id' => $attempt->id,
                         'question_id' => $question->id,
-                        'answer_text' => $answerText,
+                        // Ép kiểu hoặc ghi nhận chuỗi cố định tránh lỗi ép buộc cấu trúc Not Null của Database
+                        'answer_text' => $answerText !== '' ? $answerText : 'Không có câu trả lời',
                         'is_correct' => $isCorrect,
                         'score_earned' => $scoreEarned,
                     ]);
@@ -291,7 +319,10 @@ class ExamAttemptController extends Controller
     }
     public function getAttempt(ExamAttempt $attempt)
     {
-        $this->authorize('view', $attempt);
+        // Đảm bảo sinh viên đăng nhập chỉ được phép xem lượt thi của chính họ
+        if ($attempt->student_id !== auth()->id()) {
+            return response()->json(['message' => 'Bạn không có quyền truy cập lượt thi này!'], 0.53);
+        }
         $exam = $attempt->exam;
         $examQuestions = $exam->questions()->with('choices')->get();
         if ($exam->shuffle_questions)
@@ -309,14 +340,38 @@ class ExamAttemptController extends Controller
                 'remaining_seconds' => $remainingSeconds,
             ],
             'questions' => $examQuestions->map(function ($q) use ($savedAnswers) {
+                // Sử dụng ->get($id) của Laravel Collection để tránh bị báo lỗi sập trang nếu key chưa tồn tại
+                $saved = $savedAnswers->get($q->id);
                 return [
                     'id' => $q->id,
                     'content' => $q->content,
                     'type' => $q->type,
                     'choices' => $q->type != 'fill_blank' ? $q->choices->map(fn($c) => ['key' => $c->choice_key, 'text' => $c->choice_text]) : null,
-                    'saved_answer' => $savedAnswers[$q->id]->answer_text ?? null,
+                    'saved_answer' => $saved ? $saved->answer_text : null,
                 ];
             }),
         ]);
+    }
+    // Lấy lịch sử thi của sinh viên
+    public function history()
+    {
+        $student = auth()->user();
+
+        $history = ExamAttempt::where('student_id', $student->id)
+            ->where('status', 'submitted')
+            ->with('exam:id,title') // Lấy thêm thông tin bài thi
+            ->orderBy('ended_at', 'desc')
+            ->get()
+            ->map(function ($attempt) {
+                return [
+                    'id' => $attempt->id,
+                    'exam_title' => $attempt->exam->title ?? 'Không xác định',
+                    'score' => $attempt->total_score,
+                    'is_passed' => $attempt->is_passed,
+                    'completed_at' => $attempt->ended_at,
+                ];
+            });
+
+        return response()->json($history);
     }
 }
