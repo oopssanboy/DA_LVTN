@@ -96,6 +96,11 @@ class ExamAttemptController extends Controller
             'violation_count' => 0,
         ]);
 
+        // 👉 THÊM: Phát tín hiệu có sinh viên mới tham gia để Giám thị load lại bảng ngay
+        try {
+            broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'joined', 'Sinh viên vừa vào phòng thi'));
+        } catch (\Exception $e) {}
+
         // Lưu danh sách câu hỏi kèm thứ tự (có thể lưu vào bảng riêng nếu cần, nhưng ta sẽ dùng student_answers để lưu câu trả lời)
         // Không cần lưu lại danh sách câu hỏi vì đã có exam_questions. Nhưng để phòng khi giảng viên thay đổi đề sau khi thi,
         // nên clone danh sách câu hỏi vào bảng `attempt_questions` (tuỳ chọn). Ở đây tôi tạm thời dùng exam_questions làm gốc.
@@ -152,6 +157,7 @@ class ExamAttemptController extends Controller
     }
 
     // 4. Ghi nhận vi phạm
+    // Ghi nhận vi phạm
     public function logViolation(Request $request, ExamAttempt $attempt)
     {
         $request->validate([
@@ -160,28 +166,28 @@ class ExamAttemptController extends Controller
         ]);
 
         ViolationLog::create([
-            'attempt_id' => $attempt->id, // Đảm bảo $attempt->id lấy đúng giá trị số nguyên (ví dụ: 2)
+            'attempt_id' => $attempt->id, 
             'type' => $request->type,
             'detail' => $request->detail,
         ]);
 
-        // Tăng số lần vi phạm
         $attempt->increment('violation_count');
 
-        // Bọc lệnh broadcast trong try-catch để tránh lỗi 500 sập API khi chưa bật server realtime
         try {
-            broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', $request->type))->toOthers();
-        } catch (\Exception $e) {
-            Log::warning("Realtime broadcast lỗi nhưng bỏ qua để duy trì kiểm tra vi phạm: " . $e->getMessage());
-        }
+            broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', $request->type));
+        } catch (\Exception $e) {}
 
-        // Nếu vi phạm quá hoặc bằng 3 lần, thực hiện khóa đề và tự động thu bài lập tức
+        // 👉 ĐÃ THÊM: Nếu quá 3 lần, ép thu bài đồng thời bắn tín hiệu bắt Frontend kích hoạt popup đuổi khỏi phòng thi
         if ($attempt->violation_count >= 3 && $attempt->status == 'in_progress') {
             $this->performSubmit($attempt);
+            try {
+                broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit', 'Vi phạm quá 3 lần'));
+            } catch (\Exception $e) {}
+
             return response()->json([
                 'message' => 'Bạn đã vi phạm quy chế thi quá 3 lần. Hệ thống tự động thu bài khóa lượt thi!',
                 'violation_count' => $attempt->violation_count
-            ], 403); // Trả về mã lỗi 403 Forbidden để chặn làm bài tiếp
+            ], 403);
         }
 
         return response()->json([
@@ -199,6 +205,7 @@ class ExamAttemptController extends Controller
         return $this->performSubmit($attempt);
     }
 
+    // Logic nộp bài và chấm điểm
     public function performSubmit(ExamAttempt $attempt)
     {
         DB::beginTransaction();
@@ -207,7 +214,6 @@ class ExamAttemptController extends Controller
             $totalScore = 0;
             $maxTotal = 0;
 
-            // Lấy tất cả câu hỏi của kỳ thi
             $questions = $exam->questions()->get();
 
             foreach ($questions as $question) {
@@ -219,7 +225,6 @@ class ExamAttemptController extends Controller
                 $isCorrect = false;
                 $scoreEarned = 0;
 
-                // Chấm điểm theo từng loại
                 switch ($question->type) {
                     case 'single':
                         $isCorrect = ($answerText == $question->correct_answer);
@@ -230,7 +235,6 @@ class ExamAttemptController extends Controller
                         $userSet = $answerText ? explode(',', $answerText) : [];
                         $isCorrect = (count(array_diff($correctSet, $userSet)) == 0 && count(array_diff($userSet, $correctSet)) == 0);
                         $scoreEarned = $isCorrect ? $question->score : 0;
-                        // Có thể tính điểm từng phần (mỗi đáp án đúng được n% điểm) nhưng tạm thời full hoặc 0
                         break;
                     case 'fill_blank':
                         $correctAnswers = explode('|', strtolower($question->correct_answer));
@@ -240,7 +244,6 @@ class ExamAttemptController extends Controller
                         break;
                 }
 
-                // Cập nhật student_answer
                 if ($studentAnswer) {
                     $studentAnswer->update([
                         'is_correct' => $isCorrect,
@@ -250,7 +253,6 @@ class ExamAttemptController extends Controller
                     StudentAnswer::create([
                         'attempt_id' => $attempt->id,
                         'question_id' => $question->id,
-                        // Ép kiểu hoặc ghi nhận chuỗi cố định tránh lỗi ép buộc cấu trúc Not Null của Database
                         'answer_text' => $answerText !== '' ? $answerText : 'Không có câu trả lời',
                         'is_correct' => $isCorrect,
                         'score_earned' => $scoreEarned,
@@ -261,7 +263,6 @@ class ExamAttemptController extends Controller
                 $maxTotal += $question->score;
             }
 
-            // Tính điểm tổng (thang 10)
             $finalScore = $maxTotal > 0 ? round(($totalScore / $maxTotal) * 10, 2) : 0;
             $isPassed = $finalScore >= $exam->passing_score;
 
@@ -273,6 +274,11 @@ class ExamAttemptController extends Controller
             ]);
 
             DB::commit();
+
+            // 👉 ĐÃ THÊM: Phát realtime báo cho Giám thị biết sinh viên đã nộp xong để đổi trạng thái trên bảng
+            try {
+                broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'submitted', 'Sinh viên đã nộp bài'));
+            } catch (\Exception $e) {}
 
             return response()->json([
                 'message' => 'Nộp bài thành công',

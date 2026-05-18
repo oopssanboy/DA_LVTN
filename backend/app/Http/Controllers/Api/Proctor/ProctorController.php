@@ -54,7 +54,7 @@ class ProctorController extends Controller
         $submitController->performSubmit($attempt); 
 
         // 👉 ĐỒNG BỘ: Phát hành động 'force_submit' qua Event
-        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit', 'Bài thi của bạn đã bị thu bởi giám thị!'))->toOthers();
+        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit', 'Bài thi của bạn đã bị thu bởi giám thị!'));
 
         return response()->json(['message' => 'Đã force submit thành công', 'score' => $attempt->fresh()->total_score]);
     }
@@ -65,7 +65,7 @@ class ProctorController extends Controller
         $request->validate(['message' => 'required|string']);
         
         // 👉 ĐỒNG BỘ: Truyền chuẩn biến hành động 'warning' và text thông điệp $request->message
-        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'warning', $request->message))->toOthers();
+        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'warning', $request->message));
         
         return response()->json(['message' => 'Đã gửi cảnh báo thành công']);
     }

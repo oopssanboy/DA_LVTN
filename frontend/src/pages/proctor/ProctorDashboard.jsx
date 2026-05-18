@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { EyeIcon, ExclamationTriangleIcon, NoSymbolIcon } from '@heroicons/react/24/outline'
 import api from '../../services/axios'
 import Echo from 'laravel-echo'
@@ -11,10 +11,13 @@ export default function ProctorDashboard() {
   const [exams, setExams] = useState([])
   const [selectedExam, setSelectedExam] = useState(null)
   const [attempts, setAttempts] = useState([])
+  const echoRef = useRef(null)
 
+  // 1. CHỈ KHỞI TẠO REVERB DUY NHẤT 1 LẦN KHI VÀO TRANG GIÁM THỊ
   useEffect(() => {
-    fetchActiveExams()
-    const echo = new Echo({
+    fetchActiveExams();
+
+    echoRef.current = new Echo({
       broadcaster: 'reverb',
       key: import.meta.env.VITE_REVERB_APP_KEY,
       wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
@@ -22,10 +25,18 @@ export default function ProctorDashboard() {
       wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
       forceTLS: false,
       enabledTransports: ['ws', 'wss'],
-    })
-    window.echo = echo
-    return () => echo.disconnect()
-  }, [])
+    });
+
+    echoRef.current.connector.pusher.connection.bind('connected', () => {
+      console.log('✅ GIÁM THỊ ĐÃ KẾT NỐI REVERB THÀNH CÔNG!');
+    });
+
+    return () => {
+      if (echoRef.current) {
+        echoRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const fetchActiveExams = async () => {
     try {
@@ -41,71 +52,79 @@ export default function ProctorDashboard() {
     } catch (err) { console.error(err) }
   }
 
-  const handleSelectExam = (exam) => {
-    setSelectedExam(exam)
-    fetchAttempts(exam.id)
-    
-    // Đồng bộ kênh lắng nghe công khai của kỳ thi chỉ định
-    if (window.echo) {
-      window.echo.leaveChannel(`exam.${exam.id}`);
-    }
+  // 2. TỰ ĐỘNG THAY ĐỔI KÊNH LẮNG NGHE MỖI KHI CLICK CHỌN BÀI THI KHÁC
+  useEffect(() => {
+    if (!selectedExam || !echoRef.current) return;
 
-    window.echo.channel(`exam.${exam.id}`)
-      .listen('.violation.updated', (e) => {
-        console.log("📡 Realtime cập nhật biến động danh sách phòng thi:", e);
-        fetchAttempts(exam.id); // Tự động load lại bảng khi sinh viên vi phạm hoặc có tương tác
-      });
-  }
+    fetchAttempts(selectedExam.id);
+    const channelName = `exam.${selectedExam.id}`;
+    
+    const channel = echoRef.current.channel(channelName);
+    
+    channel.listen('.violation.updated', (e) => {
+      console.log("📡 [Giám thị] Có biến động từ sinh viên:", e);
+      
+      // Luôn F5 lại bảng ngầm định
+      fetchAttempts(selectedExam.id); 
+
+      // Bật Toast thông báo cho các hành vi
+      if (e.type === 'joined') {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Học viên mới', text: `Có sinh viên vừa truy cập phòng thi`, showConfirmButton: false, timer: 3000 });
+      } 
+      else if (e.type === 'violation') {
+        const actionName = e.message === 'tab_switch' ? 'Chuyển tab / Rời màn hình' 
+                         : e.message === 'copy_paste' ? 'Sao chép / Dán dữ liệu' 
+                         : e.message === 'right_click' ? 'Sử dụng chuột phải' : 'Gian lận';
+                         
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Phát hiện vi phạm!', text: `Lượt thi #${e.attemptId} vừa: ${actionName}`, showConfirmButton: false, timer: 6000, timerProgressBar: true });
+      }
+      else if (e.type === 'submitted') {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã nộp bài', text: `Lượt thi #${e.attemptId} vừa nộp bài thành công`, showConfirmButton: false, timer: 3000 });
+      }
+    });
+
+    return () => {
+      echoRef.current.leaveChannel(channelName);
+    };
+  }, [selectedExam]);
+
 
   const forceSubmit = async (attemptId) => {
     const confirm = await Swal.fire({
       title: 'Thu bài khẩn cấp?',
       text: 'Hệ thống sẽ ép khóa đề thi và tính điểm sinh viên tại thời điểm hiện tại!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      confirmButtonText: 'Đình chỉ & Thu bài',
-      cancelButtonText: 'Hủy'
+      icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444',
+      confirmButtonText: 'Đình chỉ & Thu bài', cancelButtonText: 'Hủy'
     });
     if (!confirm.isConfirmed) return;
 
     try {
       await api.post(`/proctor/attempts/${attemptId}/force-submit`)
-      Swal.fire('Thành công', 'Đã thực hiện ép thu bài lượt thi này.', 'success')
+      Swal.fire('Thành công', 'Đã thực hiện ép thu bài.', 'success')
       fetchAttempts(selectedExam.id)
     } catch (err) {
       Swal.fire('Lỗi', 'Thao tác thất bại!', 'error')
     }
   }
 
-  // 👉 CẢI TIẾN: Bổ sung ô nhập nội dung cảnh báo thời gian thực gửi trực tiếp xuống sinh viên
   const sendWarning = async (attemptId) => {
     const { value: warningText } = await Swal.fire({
-      title: 'Nội dung nhắc nhở',
-      input: 'text',
-      inputLabel: 'Nhập lời nhắn gửi trực tiếp đến màn hình làm bài sinh viên:',
-      inputPlaceholder: 'Ví dụ: Nghiêm túc làm bài / Không bật tab khác...',
-      showCancelButton: true,
-      confirmButtonText: 'Phát tín hiệu',
-      cancelButtonText: 'Hủy bỏ',
+      title: 'Nội dung nhắc nhở', input: 'text',
+      inputLabel: 'Nhập lời nhắn trực tiếp đến sinh viên:',
+      inputPlaceholder: 'Ví dụ: Yêu cầu bật camera...',
+      showCancelButton: true, confirmButtonText: 'Phát tín hiệu', cancelButtonText: 'Hủy bỏ',
       confirmButtonColor: '#eab308',
-      inputValidator: (value) => {
-        if (!value) {
-          return 'Bạn không thể phát cảnh báo rỗng!';
-        }
-      }
+      inputValidator: (value) => { if (!value) return 'Bạn không thể gửi tin nhắn rỗng!'; }
     });
 
     if (!warningText) return;
 
     try {
-      await api.post(`/proctor/attempts/${attemptId}/warn`, {
-        message: warningText
-      });
-      Swal.fire({ title: 'Đã gửi!', text: 'Thông điệp cảnh báo đã đẩy tới màn hình sinh viên.', icon: 'success', timer: 1500, showConfirmButton: false });
+      await api.post(`/proctor/attempts/${attemptId}/warn`, { message: warningText });
+      Swal.fire({ title: 'Đã gửi!', text: 'Cảnh báo đã đẩy tới màn hình sinh viên.', icon: 'success', timer: 1500, showConfirmButton: false });
       fetchAttempts(selectedExam.id);
     } catch (err) {
-      Swal.fire('Lỗi truyền tin', 'Không thể kết nối websocket tới sinh viên!', 'error');
+      Swal.fire('Lỗi', 'Không thể kết nối websocket!', 'error');
     }
   }
 
@@ -122,7 +141,7 @@ export default function ProctorDashboard() {
           {exams.map(e => (
             <div
               key={e.id}
-              onClick={() => handleSelectExam(e)}
+              onClick={() => setSelectedExam(e)}
               className={`p-3 rounded-xl cursor-pointer transition border text-sm ${
                 selectedExam?.id === e.id 
                   ? 'bg-blue-50 border-blue-200 font-semibold text-blue-700' 
@@ -158,7 +177,7 @@ export default function ProctorDashboard() {
                           {att.status === 'in_progress' ? (
                             <span className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-xs">Đang làm bài</span>
                           ) : (
-                            <span className="text-gray-500 font-semibold bg-gray-50 px-2 py-0.5 rounded border border-gray-200 text-xs">Đã nộp bài ({att.total_score}đ)</span>
+                            <span className="text-gray-500 font-semibold bg-gray-50 px-2 py-0.5 rounded border border-gray-200 text-xs">Đã nộp ({att.total_score}đ)</span>
                           )}
                         </td>
                         <td className="px-4 py-3 font-mono text-gray-600 text-xs">

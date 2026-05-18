@@ -4,18 +4,18 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow; 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ViolationUpdated implements ShouldBroadcast
+class ViolationUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $examId;
     public $attemptId;
-    public $type;       // 'warning' hoặc 'force_submit' hoặc 'tab_switch'...
-    public $message;    // Nội dung text lời nhắn gửi sinh viên
+    public $type;
+    public $message;
 
     public function __construct($examId, $attemptId, $type, $message = null)
     {
@@ -27,7 +27,6 @@ class ViolationUpdated implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        // 👉 ĐỔI THÀNH KÊNH CHUNG: Đồng bộ chuẩn hóa thống nhất giữa Client và Server
         return new Channel('exam.' . $this->examId);
     }
 

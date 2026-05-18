@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaClock, FaCheckCircle, FaExclamationCircle, FaTimesCircle, FaShieldAlt } from 'react-icons/fa';
+import { FaClock, FaShieldAlt } from 'react-icons/fa';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
 
 export default function DoingExam() {
   const { attemptId } = useParams();
@@ -18,50 +22,72 @@ export default function DoingExam() {
   const API_URL = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem('token');
   const timerRef = useRef(null);
-
+  
+  // Dùng useRef để quản lý vòng đời bộ đàm giống hệt như bên Giám thị
+  const echoRef = useRef(null); 
   const examId = exam?.id;
 
-  // 👉 BỘ LẮNG NGHE ĐỒNG BỘ TIN NHẮN REALTIME TỪ GIÁM THỊ PHÒNG THI
+  // 👉 BỘ LẮNG NGHE ĐỒNG BỘ TIN NHẮN REALTIME TỪ GIÁM THỊ (CỰC KỲ ỔN ĐỊNH)
   useEffect(() => {
-    if (!examId || !window.echo) return;
+    if (!examId) return;
 
-    console.log(`📡 Sinh viên kết nối thành công phòng bộ đàm: exam.${examId}`);
+    // 1. Khởi tạo Echo kết nối thẳng vào bên trong Hook để đảm bảo 100% kết nối
+    echoRef.current = new Echo({
+        broadcaster: 'reverb',
+        key: import.meta.env.VITE_REVERB_APP_KEY,
+        wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
+        wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
+        wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
+        forceTLS: false,
+        enabledTransports: ['ws', 'wss'],
+    });
 
-    const channel = window.echo.channel(`exam.${examId}`)
-      .listen('.violation.updated', (data) => {
-        console.log("📩 Nhận gói dữ liệu Realtime chỉ thị từ Giám thị:", data);
+    // 2. Bật Popup nhỏ xíu góc dưới để chứng minh đã nối cáp thành công (Vì F12 bị khóa)
+    echoRef.current.connector.pusher.connection.bind('connected', () => {
+        Swal.fire({
+            toast: true, position: 'bottom-end', icon: 'success', 
+            title: 'Hệ thống an ninh đã kết nối', showConfirmButton: false, timer: 3000
+        });
+    });
 
-        // Khớp chính xác ID lượt thi của sinh viên hiện tại
+    // 3. Đăng ký nghe kênh và nhận lệnh
+    const channel = echoRef.current.channel(`exam.${examId}`);
+
+    channel.listen('.violation.updated', (data) => {
+        // Khớp ID lượt thi
         if (parseInt(data.attemptId) === parseInt(attemptId)) {
-          
-          // Trường hợp 1: Nhận lời nhắn nhắc nhở thủ công từ giám thị
+            
+          // Nhận cảnh báo thủ công từ giám thị
           if (data.type === 'warning') {
             Swal.fire({
               title: 'CẢNH BÁO TỪ GIÁM THỊ!',
-              text: data.message || 'Chú ý: Giám thị yêu cầu bạn tập trung làm bài, nghiêm túc thi!',
+              text: data.message || 'Yêu cầu bạn tập trung làm bài, nghiêm túc thi!',
               icon: 'warning',
               confirmButtonColor: '#f59e0b',
-              allowOutsideClick: false // Bắt sinh viên bấm OK mới tắt được để tăng tính răn đe
+              allowOutsideClick: false 
             });
           } 
           
-          // Trường hợp 2: Nhận lệnh cưỡng chế thu bài khẩn cấp
+          // Nhận lệnh ép thu bài khẩn cấp từ giám thị
           else if (data.type === 'force_submit') {
             Swal.fire({
               title: 'ĐÌNH CHỈ THI!',
-              text: 'Bài thi của bạn đã bị cưỡng chế thu và khóa lại bởi hội đồng giám thị.',
+              text: data.message || 'Bài thi của bạn đã bị cưỡng chế thu và khóa lại!',
               icon: 'error',
               confirmButtonColor: '#ef4444',
               allowOutsideClick: false
             }).then(() => {
-              navigate('/student/home'); // Trục xuất sinh viên thẳng ra màn hình chính
+              navigate('/student/home'); // Trục xuất thẳng tay
             });
           }
         }
-      });
+    });
 
+    // 4. Ngắt kết nối an toàn khi chuyển trang
     return () => {
-      window.echo.leaveChannel(`exam.${examId}`);
+      if (echoRef.current) {
+        echoRef.current.disconnect();
+      }
     };
   }, [examId, attemptId, navigate]);
 
@@ -79,6 +105,7 @@ export default function DoingExam() {
         if (data.status === 'submitted') {
           setResult(data);
           setIsLoading(false);
+          navigate('/student/home');
           return;
         }
         setExam(data.exam);
@@ -94,8 +121,7 @@ export default function DoingExam() {
         setIsLoading(false);
       })
       .catch(err => {
-        Swal.fire('Lỗi truy cập', err.message, 'error');
-        navigate('/student/home');
+        Swal.fire('Lỗi truy cập', err.message, 'error').then(()=> navigate('/student/home'));
       });
   }, [attemptId, token, API_URL, navigate]);
 
@@ -103,7 +129,7 @@ export default function DoingExam() {
   useEffect(() => {
     if (timeLeft === null || result) return;
     if (timeLeft <= 0) {
-      handleSubmit(true);
+      handleSubmit(true); 
       return;
     }
     timerRef.current = setInterval(() => {
@@ -112,23 +138,20 @@ export default function DoingExam() {
     return () => clearInterval(timerRef.current);
   }, [timeLeft, result]);
 
-  // Bộ gian lận tự động cục bộ ở client tab-switch
+  // Bộ lắng nghe gian lận cục bộ ở Client 
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden && !result && !isLoading) {
         try {
           const res = await axios.post(`${API_URL}/student/exams/attempts/${attemptId}/log-violation`, {
-            type: 'tab_switch',
-            detail: 'Sinh viên chuyển tab hoặc thu nhỏ trình duyệt'
-          }, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-          });
+            type: 'tab_switch', detail: 'Sinh viên chuyển tab hoặc thu nhỏ trình duyệt'
+          }, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }});
+          
           setCheatCount(res.data.violation_count);
           Swal.fire({
             title: 'CẢNH BÁO!',
             text: `Bạn vừa rời khỏi màn hình làm bài! Số lần vi phạm: ${res.data.violation_count}/3`,
-            icon: 'warning',
-            confirmButtonColor: '#f59e0b'
+            icon: 'warning', confirmButtonColor: '#f59e0b'
           });
         } catch (error) {
           if (error.response && error.response.status === 403) {
@@ -136,9 +159,8 @@ export default function DoingExam() {
             Swal.fire({
               title: 'ĐÌNH CHỈ THI!',
               text: error.response.data.message || 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
-              icon: 'error',
-              confirmButtonColor: '#ef4444'
-            }).then(() => navigate('/student/home'));
+              icon: 'error', confirmButtonColor: '#ef4444', allowOutsideClick: false
+            }).then(() => navigate('/student/home')); 
           }
         }
       }
@@ -152,20 +174,14 @@ export default function DoingExam() {
 
         try {
           const res = await axios.post(`${API_URL}/student/exams/attempts/${attemptId}/log-violation`, {
-            type: violationType,
-            detail: `Sinh viên lận nền hành vi: ${e.type}`
-          }, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-          });
+            type: violationType, detail: `Thực hiện hành vi: ${e.type}`
+          }, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }});
+          
           setCheatCount(res.data.violation_count);
           Swal.fire({
             title: 'CẢNH BÁO!',
             text: 'Hành động sao chép tài liệu hoặc mở chuột phải bị cấm trong phòng thi!',
-            icon: 'warning',
-            toast: true,
-            position: 'top-end',
-            timer: 3000,
-            showConfirmButton: false
+            icon: 'warning', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
           });
         } catch (error) {
           if (error.response && error.response.status === 403) {
@@ -173,9 +189,8 @@ export default function DoingExam() {
             Swal.fire({
               title: 'ĐÌNH CHỈ THI!',
               text: error.response.data.message || 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
-              icon: 'error',
-              confirmButtonColor: '#ef4444'
-            }).then(() => navigate('/student/home'));
+              icon: 'error', confirmButtonColor: '#ef4444', allowOutsideClick: false
+            }).then(() => navigate('/student/home')); 
           }
         }
       }
@@ -203,9 +218,7 @@ export default function DoingExam() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ question_id: questionId, answer_text: option })
       });
-    } catch (err) {
-      console.error("Lỗi tự động lưu tiến độ:", err);
-    }
+    } catch (err) {}
   };
 
   const handleSubmit = async (isAuto = false) => {
@@ -214,12 +227,9 @@ export default function DoingExam() {
       const confirm = await Swal.fire({
         title: 'Xác nhận nộp bài?',
         text: 'Bạn chắc chắn muốn kết thúc kỳ thi để tính điểm?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Vâng, nộp bài',
-        cancelButtonText: 'Làm tiếp'
+        icon: 'question', showCancelButton: true,
+        confirmButtonColor: '#10b981', cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Vâng, nộp bài', cancelButtonText: 'Làm tiếp'
       });
       if (!confirm.isConfirmed) return;
     }
@@ -233,9 +243,13 @@ export default function DoingExam() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setResult(data);
-      Swal.fire('Thành công', 'Bài thi của bạn đã được lưu chấm điểm.', 'success');
+      
+      Swal.fire({
+        title: 'Đã nộp bài!', text: 'Bài thi của bạn đã được ghi nhận chấm điểm.',
+        icon: 'success', confirmButtonColor: '#10b981'
+      }).then(() => { navigate('/student/home'); });
     } catch (err) {
-      Swal.fire('Lỗi nộp bài', err.message, 'error');
+      Swal.fire('Lỗi nộp bài', err.message, 'error').then(() => navigate('/student/home'));
     } finally {
       setIsLoading(false);
     }
@@ -248,9 +262,7 @@ export default function DoingExam() {
     return `${m}:${s}`;
   };
 
-  if (isLoading) {
-    return <div className="text-center py-20 text-gray-500 font-medium">Đang mở khóa niêm phong cấu trúc đề thi ma trận...</div>;
-  }
+  if (isLoading) return <div className="text-center py-20 font-medium">Đang mở khóa niêm phong cấu trúc đề thi...</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -314,26 +326,14 @@ export default function DoingExam() {
                 <FaShieldAlt /> Vi phạm: {cheatCount}/3
               </div>
             </div>
-
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, index) => (
-                <div
-                  key={q.id}
-                  className={`h-9 w-9 flex items-center justify-center font-bold text-xs rounded-lg transition border ${
-                    answers[q.id] 
-                      ? 'bg-blue-600 border-blue-600 text-white' 
-                      : 'bg-gray-50 border-gray-200 text-gray-400'
-                  }`}
-                >
+                <div key={q.id} className={`h-9 w-9 flex items-center justify-center font-bold text-xs rounded-lg transition border ${answers[q.id] ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
                   {index + 1}
                 </div>
               ))}
             </div>
-
-            <button
-              onClick={() => handleSubmit(false)}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-emerald-500/10 active:scale-[0.98]"
-            >
+            <button onClick={() => handleSubmit(false)} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-emerald-500/10 active:scale-[0.98]">
               NỘP BÀI THI NGAY
             </button>
           </div>
