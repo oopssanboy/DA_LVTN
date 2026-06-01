@@ -1,23 +1,13 @@
 <?php
-
 namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Classes extends Model
 {
-    use HasFactory;
-
+    protected $table = 'classes';
     protected $fillable = ['course_id', 'name', 'start_date', 'end_date'];
 
-    public function course()
-    {
-        return $this->belongsTo(Course::class);
-    }
-
-    public function enrollments()
-    {
-        return $this->belongsToMany(User::class, 'class_enrollments', 'class_id', 'student_id');
-    }
+    public function course() { return $this->belongsTo(Course::class, 'course_id'); }
+    public function enrollments() { return $this->hasMany(ClassEnrollment::class, 'class_id'); }
+    public function exams() { return $this->hasMany(Exam::class, 'class_id'); }
 }

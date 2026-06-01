@@ -2,96 +2,85 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // 1. Tạo tài khoản Admin
-        User::updateOrCreate(
-            ['email' => 'admin@gmail.com'],
-            [
-                'name' => 'Quản trị viên',
-                'password' => Hash::make('123456'), 
-                'role' => 'admin', // Sử dụng giá trị ENUM từ CSDL mới
-                'is_active' => 1,
-            ]
-        );
+        $now = Carbon::now();
+        $password = Hash::make('123456'); // Mật khẩu chung là: password
 
-        // 2. Tạo tài khoản Teacher (Giáo viên) để có thể tạo Khóa học
-        $teacher = User::updateOrCreate(
-            ['email' => 'teacher@gmail.com'],
-            [
-                'name' => 'Giáo viên Chủ nhiệm',
-                'password' => Hash::make('123456'), 
-                'role' => 'teacher',
-                'is_active' => 1,
-            ]
-        );
-        $proctor = User::updateOrCreate(
-            ['email' => 'proctor@gmail.com'],
-            [
-                'name' => 'Giám thị 1',
-                'password' => Hash::make('123456'), 
-                'role' => 'proctor',
-                'is_active' => 1,
-            ]
-        );
-
-        // 3. Tạo 1 Khóa học (Course) mẫu cho Giáo viên
-        $courseId = DB::table('courses')->insertGetId([
-            'title' => 'Khóa học Đại cương',
-            'description' => 'Khóa học dành cho sinh viên các lớp',
-            'teacher_id' => $teacher->id,
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
+        // 1. TÀI KHOẢN NGƯỜI DÙNG (USERS)
+        DB::table('users')->insert([
+            ['id' => 1, 'email' => 'admin@gmail.com', 'role' => 'admin', 'password' => $password, 'is_active' => true, 'created_at' => $now],
+            ['id' => 2, 'email' => 'teacher@gmail.com', 'role' => 'teacher', 'password' => $password, 'is_active' => true, 'created_at' => $now],
+            ['id' => 3, 'email' => 'proctor@gmail.com', 'role' => 'proctor', 'password' => $password, 'is_active' => true, 'created_at' => $now],
+            ['id' => 4, 'email' => 'student1@gmail.com', 'role' => 'student', 'password' => $password, 'is_active' => true, 'created_at' => $now],
+            ['id' => 5, 'email' => 'student2@gmail.com', 'role' => 'student', 'password' => $password, 'is_active' => true, 'created_at' => $now],
         ]);
 
-        // 4. Tạo các Lớp học (Classes) thuộc Khóa học trên
-        $classNames = ['12A1', 'CNTT1', 'KTPM2', 'ĐTVT1'];
-        $classIds = [];
+        // 2. TÀI KHOẢN MỞ RỘNG (1-1)
+        DB::table('teachers')->insert(['user_id' => 2, 'teacher_code' => 'GV001', 'name' => 'ThS. Lê Triệu Ngọc Đức', 'department' => 'Khoa CNTT']);
+        DB::table('proctors')->insert(['user_id' => 3, 'proctor_code' => 'GT001', 'name' => 'Giám thị Hội đồng 1']);
+        DB::table('students')->insert([
+            ['user_id' => 4, 'student_code' => 'DH52201285', 'name' => 'Huỳnh Ngọc Quân'],
+            ['user_id' => 5, 'student_code' => 'DH52201286', 'name' => 'Nguyễn Văn Test']
+        ]);
+
+        // 3. HỌC VỤ
+        $subjectId = DB::table('subjects')->insertGetId(['code' => 'IT301', 'name' => 'Lập trình Web PHP', 'created_at' => $now]);
+        $courseId = DB::table('courses')->insertGetId(['subject_id' => $subjectId, 'teacher_id' => 2, 'title' => 'Khóa K22 - HK1', 'created_at' => $now]);
+        $classId = DB::table('classes')->insertGetId(['course_id' => $courseId, 'name' => 'D22CQCN01-N', 'created_at' => $now]);
         
-        foreach ($classNames as $className) {
-            $classIds[] = DB::table('classes')->insertGetId([
-                'course_id' => $courseId,
-                'name' => $className,
-                'start_date' => Carbon::now()->toDateString(),
-                'end_date' => Carbon::now()->addMonths(6)->toDateString(),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ]);
-        }
+        DB::table('class_enrollments')->insert([
+            ['class_id' => $classId, 'student_id' => 4, 'created_at' => $now],
+            ['class_id' => $classId, 'student_id' => 5, 'created_at' => $now]
+        ]);
 
-        // 5. Tạo Sinh viên và gán vào Lớp học (Class Enrollments)
-        for ($i = 1; $i <= 10; $i++) {
-            $student = User::updateOrCreate(
-                ['email' => 'student' . $i . '@gmail.com'],
-                [
-                    'name' => 'Sinh viên ' . $i,
-                    'email_verified_at' => now(),
-                    'password' => Hash::make('123456'),
-                    'role' => 'student', // Sử dụng giá trị ENUM
-                    'is_active' => 1,
-                    'remember_token' => Str::random(10),
-                ]
-            );
+        // 4. NGÂN HÀNG CÂU HỎI
+        $topicId = DB::table('topics')->insertGetId(['subject_id' => $subjectId, 'name' => 'Cơ bản PHP', 'created_at' => $now]);
 
-            // Đăng ký (Enroll) sinh viên vào một lớp học ngẫu nhiên
-            DB::table('class_enrollments')->insert([
-                'class_id' => $classIds[array_rand($classIds)],
-                'student_id' => $student->id,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ]);
-        }
+        // Câu 1 (Single)
+        $q1 = DB::table('questions')->insertGetId([
+            'teacher_id' => 2, 'subject_id' => $subjectId, 'topic_id' => $topicId,
+            'type' => 'single', 'difficulty' => 'easy', 'content' => '<p>PHP là viết tắt của?</p>', 'score' => 5.0, 'created_at' => $now
+        ]);
+        DB::table('choices')->insert([
+            ['question_id' => $q1, 'choice_key' => 'A', 'choice_text' => 'Personal Home Page', 'is_correct' => false],
+            ['question_id' => $q1, 'choice_key' => 'B', 'choice_text' => 'PHP: Hypertext Preprocessor', 'is_correct' => true],
+            ['question_id' => $q1, 'choice_key' => 'C', 'choice_text' => 'Private Hypertext', 'is_correct' => false],
+        ]);
+
+        // Câu 2 (Fill Blank)
+        $q2 = DB::table('questions')->insertGetId([
+            'teacher_id' => 2, 'subject_id' => $subjectId, 'topic_id' => $topicId,
+            'type' => 'fill_blank', 'difficulty' => 'medium', 'content' => '<p>Lệnh in ra màn hình trong PHP là gì?</p>', 'score' => 5.0, 'created_at' => $now
+        ]);
+        DB::table('fill_blank_answers')->insert([
+            ['question_id' => $q2, 'accepted_text' => 'echo'],
+            ['question_id' => $q2, 'accepted_text' => 'print']
+        ]);
+
+        // 5. CẤU HÌNH KỲ THI
+        $examId = DB::table('exams')->insertGetId([
+            'class_id' => $classId, 'subject_id' => $subjectId,
+            'title' => 'Thi Giữa Kỳ PHP', 'duration' => 60, 'total_questions' => 2,
+            'passing_score' => 5, 'start_time' => Carbon::now()->subMinutes(10), 'end_time' => Carbon::now()->addDays(2),
+            'is_active' => true, 'created_at' => $now
+        ]);
+
+        // Gắn ma trận và câu hỏi
+        DB::table('exam_matrices')->insert(['exam_id' => $examId, 'topic_id' => $topicId, 'difficulty' => 'easy', 'quantity' => 2, 'created_at' => $now]);
+        DB::table('exam_questions')->insert([
+            ['exam_id' => $examId, 'question_id' => $q1, 'order' => 1],
+            ['exam_id' => $examId, 'question_id' => $q2, 'order' => 2],
+        ]);
+        DB::table('exam_proctors')->insert(['exam_id' => $examId, 'proctor_id' => 3, 'created_at' => $now]);
+
+        echo "\n✅ Hoàn tất Seed Dữ liệu chuẩn STU! Đăng nhập student1@stu.edu.vn / password để test nhé!\n";
     }
 }
