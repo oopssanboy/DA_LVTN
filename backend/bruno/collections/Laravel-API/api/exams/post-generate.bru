@@ -1,0 +1,17 @@
+meta {
+  name: Generate
+  type: http
+  seq: 12
+}
+post {
+  url: {{baseUrl}}/api/exams/{{exam}}/generate
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

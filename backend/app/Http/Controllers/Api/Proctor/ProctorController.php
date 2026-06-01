@@ -8,6 +8,7 @@ use App\Models\ExamAttempt;
 use Illuminate\Http\Request;
 use Illuminate\Support5\Facades\DB;
 use App\Events\ViolationUpdated;
+use Illuminate\Support\Facades\Log;
 
 class ProctorController extends Controller
 {
@@ -54,6 +55,7 @@ class ProctorController extends Controller
         $submitController->performSubmit($attempt); 
 
         // 👉 ĐỒNG BỘ: Phát hành động 'force_submit' qua Event
+        Log::info("Force submit attempt {$attempt->id}, broadcasting event");
         broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit', 'Bài thi của bạn đã bị thu bởi giám thị!'));
 
         return response()->json(['message' => 'Đã force submit thành công', 'score' => $attempt->fresh()->total_score]);

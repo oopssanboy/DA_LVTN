@@ -1,0 +1,17 @@
+meta {
+  name: Questions Update
+  type: http
+  seq: 27
+}
+put {
+  url: {{baseUrl}}/api/questions/{{question}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

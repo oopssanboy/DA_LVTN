@@ -1,0 +1,23 @@
+meta {
+  name: Get Attempt
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{baseUrl}}/api/student/exams/attempts/{{attempt}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+vars:pre-request {
+  attempt: 7
+}

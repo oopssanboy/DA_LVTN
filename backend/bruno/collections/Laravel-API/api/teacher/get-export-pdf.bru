@@ -1,0 +1,16 @@
+meta {
+  name: Export Pdf
+  type: http
+  seq: 39
+}
+get {
+  url: {{baseUrl}}/api/teacher/exams/{{exam}}/export-pdf
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Exams Index
+  type: http
+  seq: 4
+}
+get {
+  url: {{baseUrl}}/api/exams
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

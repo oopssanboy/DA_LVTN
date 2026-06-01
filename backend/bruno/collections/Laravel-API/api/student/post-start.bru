@@ -1,0 +1,17 @@
+meta {
+  name: Start
+  type: http
+  seq: 37
+}
+post {
+  url: {{baseUrl}}/api/student/exams/{{exam}}/start
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

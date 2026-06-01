@@ -1,0 +1,17 @@
+meta {
+  name: Update Status
+  type: http
+  seq: 14
+}
+patch {
+  url: {{baseUrl}}/api/exams/{{exam}}/status
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

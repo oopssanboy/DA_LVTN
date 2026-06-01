@@ -1,0 +1,16 @@
+meta {
+  name: Export Excel
+  type: http
+  seq: 38
+}
+get {
+  url: {{baseUrl}}/api/teacher/exams/{{exam}}/export-excel
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -18,78 +18,128 @@ export default function DoingExam() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState(null);
+  const [examId, setExamId] = useState(null); // 👈 state riêng để subscribe
 
   const API_URL = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem('token');
   const timerRef = useRef(null);
-  
-  // Dùng useRef để quản lý vòng đời bộ đàm giống hệt như bên Giám thị
-  const echoRef = useRef(null); 
-  const examId = exam?.id;
+  const echoRef = useRef(null);
 
-  // 👉 BỘ LẮNG NGHE ĐỒNG BỘ TIN NHẮN REALTIME TỪ GIÁM THỊ (CỰC KỲ ỔN ĐỊNH)
+  // 1. Khởi tạo Echo chỉ 1 lần
   useEffect(() => {
-    if (!examId) return;
-
-    // 1. Khởi tạo Echo kết nối thẳng vào bên trong Hook để đảm bảo 100% kết nối
-    echoRef.current = new Echo({
-        broadcaster: 'reverb',
-        key: import.meta.env.VITE_REVERB_APP_KEY,
-        wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
-        wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
-        wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
-        forceTLS: false,
-        enabledTransports: ['ws', 'wss'],
+    console.log("🔄 Khởi tạo Echo...");
+    const echoInstance = new Echo({
+      broadcaster: 'reverb',
+      key: import.meta.env.VITE_REVERB_APP_KEY,
+      wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
+      wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
+      wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
+      forceTLS: false,
+      enabledTransports: ['ws', 'wss'],
     });
 
-    // 2. Bật Popup nhỏ xíu góc dưới để chứng minh đã nối cáp thành công (Vì F12 bị khóa)
-    echoRef.current.connector.pusher.connection.bind('connected', () => {
-        Swal.fire({
-            toast: true, position: 'bottom-end', icon: 'success', 
-            title: 'Hệ thống an ninh đã kết nối', showConfirmButton: false, timer: 3000
-        });
+    echoInstance.connector.pusher.connection.bind('connected', () => {
+      console.log('✅ WebSocket connected (sinh viên)');
+      Swal.fire({
+        toast: true, position: 'bottom-end', icon: 'success',
+        title: 'Đã kết nối hệ thống giám sát', showConfirmButton: false, timer: 2000
+      });
     });
 
-    // 3. Đăng ký nghe kênh và nhận lệnh
-    const channel = echoRef.current.channel(`exam.${examId}`);
-
-    channel.listen('.violation.updated', (data) => {
-        // Khớp ID lượt thi
-        if (parseInt(data.attemptId) === parseInt(attemptId)) {
-            
-          // Nhận cảnh báo thủ công từ giám thị
-          if (data.type === 'warning') {
-            Swal.fire({
-              title: 'CẢNH BÁO TỪ GIÁM THỊ!',
-              text: data.message || 'Yêu cầu bạn tập trung làm bài, nghiêm túc thi!',
-              icon: 'warning',
-              confirmButtonColor: '#f59e0b',
-              allowOutsideClick: false 
-            });
-          } 
-          
-          // Nhận lệnh ép thu bài khẩn cấp từ giám thị
-          else if (data.type === 'force_submit') {
-            Swal.fire({
-              title: 'ĐÌNH CHỈ THI!',
-              text: data.message || 'Bài thi của bạn đã bị cưỡng chế thu và khóa lại!',
-              icon: 'error',
-              confirmButtonColor: '#ef4444',
-              allowOutsideClick: false
-            }).then(() => {
-              navigate('/student/home'); // Trục xuất thẳng tay
-            });
-          }
-        }
+    echoInstance.connector.pusher.connection.bind('error', (err) => {
+      console.error('❌ WebSocket error:', err);
     });
 
-    // 4. Ngắt kết nối an toàn khi chuyển trang
+    echoRef.current = echoInstance;
     return () => {
+      if (echoRef.current) echoRef.current.disconnect();
+    };
+  }, []);
+
+  // 2. Fetch dữ liệu bài thi và lấy examId
+  useEffect(() => {
+    fetch(`${API_URL}/student/exams/attempts/${attemptId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi tải đề thi');
+        return data;
+      })
+      .then(data => {
+        if (data.status === 'submitted') {
+          setResult(data);
+          setIsLoading(false);
+          navigate('/student/home');
+          return;
+        }
+        console.log("📦 Dữ liệu exam:", data.exam);
+        setExam(data.exam);
+        setExamId(data.exam.exam_id); // 👈 phải có id
+        console.log("🆔 Đã set examId:", data.exam.id);
+        setQuestions(data.questions);
+        setTimeLeft(data.remaining_seconds);
+        setCheatCount(data.violation_count || 0);
+        const savedAnswers = {};
+        data.questions.forEach(q => {
+          if (q.saved_answer) savedAnswers[q.id] = q.saved_answer;
+        });
+        setAnswers(savedAnswers);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        Swal.fire('Lỗi truy cập', err.message, 'error').then(()=> navigate('/student/home'));
+      });
+  }, [attemptId, token, API_URL, navigate]);
+
+  // 3. Lắng nghe realtime event khi có examId
+  useEffect(() => {
+      console.log("🔁 Effect lắng nghe chạy, examId =", examId, "echoRef =", !!echoRef.current);
+    if (!examId || !echoRef.current) {
+      console.log("⏳ Chưa có examId hoặc Echo chưa sẵn sàng");
+      return;
+    }
+
+    const channelName = `exam.${examId}`;
+    console.log(`📡 Đang lắng nghe channel: ${channelName}`);
+    const channel = echoRef.current.channel(channelName);
+
+    const handleRealtimeEvent = (data) => {
+      console.log("📩 [Sinh viên] Nhận event:", data);
+      if (parseInt(data.attemptId) !== parseInt(attemptId)) return; // chỉ xử lý đúng lượt thi
+
+      if (data.type === 'warning') {
+        Swal.fire({
+          title: 'CẢNH BÁO TỪ GIÁM THỊ!',
+          text: data.message || 'Yêu cầu bạn tập trung làm bài, nghiêm túc thi!',
+          icon: 'warning',
+          confirmButtonColor: '#f59e0b',
+          allowOutsideClick: false
+        });
+      } 
+      else if (data.type === 'force_submit') {
+        Swal.fire({
+          title: 'ĐÌNH CHỈ THI!',
+          text: data.message || 'Bài thi của bạn đã bị cưỡng chế thu và khóa lại!',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          allowOutsideClick: false
+        }).then(() => {
+          navigate('/student/home');
+        });
+      }
+    };
+
+    channel.listen('.violation.updated', handleRealtimeEvent);
+
+    return () => {
+      console.log(`👋 Rời kênh ${channelName}`);
       if (echoRef.current) {
-        echoRef.current.disconnect();
+        echoRef.current.leaveChannel(channelName);
       }
     };
   }, [examId, attemptId, navigate]);
+
 
   // Bộ tải dữ liệu đề thi gốc
   useEffect(() => {
@@ -138,7 +188,7 @@ export default function DoingExam() {
     return () => clearInterval(timerRef.current);
   }, [timeLeft, result]);
 
-  // Bộ lắng nghe gian lận cục bộ ở Client 
+  // Lắng nghe gian lận cục bộ ở Client 
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden && !result && !isLoading) {

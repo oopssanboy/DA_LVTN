@@ -1,0 +1,17 @@
+meta {
+  name: Save Answer
+  type: http
+  seq: 34
+}
+post {
+  url: {{baseUrl}}/api/student/exams/attempts/{{attempt}}/save-answer
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

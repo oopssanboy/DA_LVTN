@@ -1,0 +1,16 @@
+meta {
+  name: Score Distribution
+  type: http
+  seq: 40
+}
+get {
+  url: {{baseUrl}}/api/teacher/exams/{{exam}}/statistics/distribution
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Exams Store
+  type: http
+  seq: 5
+}
+post {
+  url: {{baseUrl}}/api/exams
+  body: json
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}
+body:json {
+  {
+      "class_id": 1,
+      "title": "Title",
+      "subject": "Subject",
+      "duration": 1,
+      "total_questions": 1,
+      "start_time": "2024-01-01",
+      "end_time": "2024-01-01",
+      "password": "Password",
+      "is_active": true,
+      "shuffle_questions": true,
+      "shuffle_options": true,
+      "passing_score": 0,
+      "matrices": [
+          {
+              "topic": "Matrices.*.Topic",
+              "difficulty": "Matrices.*.Difficulty",
+              "quantity": 1
+          }
+      ]
+  }
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Questions Destroy
+  type: http
+  seq: 29
+}
+delete {
+  url: {{baseUrl}}/api/questions/{{question}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

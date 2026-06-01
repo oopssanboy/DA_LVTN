@@ -344,6 +344,7 @@ class ExamAttemptController extends Controller
                 'title' => $exam->title,
                 'duration' => $exam->duration,
                 'remaining_seconds' => $remainingSeconds,
+                'exam_id' => $exam->id,
             ],
             'questions' => $examQuestions->map(function ($q) use ($savedAnswers) {
                 // Sử dụng ->get($id) của Laravel Collection để tránh bị báo lỗi sập trang nếu key chưa tồn tại

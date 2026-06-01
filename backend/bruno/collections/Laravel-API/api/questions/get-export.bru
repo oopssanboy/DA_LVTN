@@ -1,0 +1,16 @@
+meta {
+  name: Export
+  type: http
+  seq: 24
+}
+get {
+  url: {{baseUrl}}/api/questions/export
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Exams Destroy
+  type: http
+  seq: 9
+}
+delete {
+  url: {{baseUrl}}/api/exams/{{exam}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

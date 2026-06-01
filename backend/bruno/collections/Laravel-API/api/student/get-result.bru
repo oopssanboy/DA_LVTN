@@ -1,0 +1,16 @@
+meta {
+  name: Result
+  type: http
+  seq: 33
+}
+get {
+  url: {{baseUrl}}/api/student/exams/attempts/{{attempt}}/result
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}
