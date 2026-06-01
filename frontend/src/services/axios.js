@@ -22,13 +22,19 @@ instance.interceptors.request.use(
     }
 );
 
-// Xử lý khi token hết hạn hoặc không hợp lệ (Lỗi 401)
+// Xử lý khi API trả về lỗi
 instance.interceptors.response.use(
     (response) => response,
     (error) => {
+        // Chỉ bắt lỗi 401 khi API trả về thực sự là Unauthenticated
         if (error.response && error.response.status === 401) {
-            localStorage.clear();
-            window.location.href = '/login';
+            console.warn("Token hết hạn hoặc không hợp lệ. Đang đá ra trang login...");
+            localStorage.removeItem('token'); // Xóa token rác
+            
+            // Tránh việc redirect liên tục nếu đã ở trang login
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
