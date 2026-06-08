@@ -1,394 +1,301 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaClock, FaShieldAlt } from 'react-icons/fa';
-import axios from 'axios';
+import { Clock, ShieldAlert, CheckCircle2, AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
+import api from '../../services/api';
+import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
+// Cấu hình Pusher global nếu chưa có
 window.Pusher = Pusher;
 
-export default function DoingExam() {
-  const { attemptId } = useParams();
-  const navigate = useNavigate();
-  const [cheatCount, setCheatCount] = useState(0);
-  const [exam, setExam] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [result, setResult] = useState(null);
-  const [examId, setExamId] = useState(null); // 👈 state riêng để subscribe
+export default function ExamRoom() {
+    const { attemptId } = useParams();
+    const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_URL;
-  const token = localStorage.getItem('token');
-  const timerRef = useRef(null);
-  const echoRef = useRef(null);
+    const [exam, setExam] = useState(null);
+    const [attempt, setAttempt] = useState(null);
+    const [questions, setQuestions] = useState([]);
+    const [answers, setAnswers] = useState({});
+    
+    const [timeLeft, setTimeLeft] = useState(null);
+    const [cheatCount, setCheatCount] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 1. Khởi tạo Echo chỉ 1 lần
-  useEffect(() => {
-    console.log("🔄 Khởi tạo Echo...");
-    const echoInstance = new Echo({
-      broadcaster: 'reverb',
-      key: import.meta.env.VITE_REVERB_APP_KEY,
-      wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
-      wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
-      wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
-      forceTLS: false,
-      enabledTransports: ['ws', 'wss'],
-    });
+    const timerRef = useRef(null);
+    const echoRef = useRef(null);
 
-    echoInstance.connector.pusher.connection.bind('connected', () => {
-      console.log('✅ WebSocket connected (sinh viên)');
-      Swal.fire({
-        toast: true, position: 'bottom-end', icon: 'success',
-        title: 'Đã kết nối hệ thống giám sát', showConfirmButton: false, timer: 2000
-      });
-    });
+    // 1. Lấy dữ liệu bài thi
+    useEffect(() => {
+        fetchExamData();
+        return () => clearInterval(timerRef.current);
+    }, [attemptId]);
 
-    echoInstance.connector.pusher.connection.bind('error', (err) => {
-      console.error('❌ WebSocket error:', err);
-    });
-
-    echoRef.current = echoInstance;
-    return () => {
-      if (echoRef.current) echoRef.current.disconnect();
-    };
-  }, []);
-
-  // 2. Fetch dữ liệu bài thi và lấy examId
-  useEffect(() => {
-    fetch(`${API_URL}/student/exams/attempts/${attemptId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Lỗi tải đề thi');
-        return data;
-      })
-      .then(data => {
-        if (data.status === 'submitted') {
-          setResult(data);
-          setIsLoading(false);
-          navigate('/student/home');
-          return;
-        }
-        console.log("📦 Dữ liệu exam:", data.exam);
-        setExam(data.exam);
-        setExamId(data.exam.exam_id); // 👈 phải có id
-        console.log("🆔 Đã set examId:", data.exam.id);
-        setQuestions(data.questions);
-        setTimeLeft(data.remaining_seconds);
-        setCheatCount(data.violation_count || 0);
-        const savedAnswers = {};
-        data.questions.forEach(q => {
-          if (q.saved_answer) savedAnswers[q.id] = q.saved_answer;
-        });
-        setAnswers(savedAnswers);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        Swal.fire('Lỗi truy cập', err.message, 'error').then(()=> navigate('/student/home'));
-      });
-  }, [attemptId, token, API_URL, navigate]);
-
-  // 3. Lắng nghe realtime event khi có examId
-  useEffect(() => {
-      console.log("🔁 Effect lắng nghe chạy, examId =", examId, "echoRef =", !!echoRef.current);
-    if (!examId || !echoRef.current) {
-      console.log("⏳ Chưa có examId hoặc Echo chưa sẵn sàng");
-      return;
-    }
-
-    const channelName = `exam.${examId}`;
-    console.log(`📡 Đang lắng nghe channel: ${channelName}`);
-    const channel = echoRef.current.channel(channelName);
-
-    const handleRealtimeEvent = (data) => {
-      console.log("📩 [Sinh viên] Nhận event:", data);
-      if (parseInt(data.attemptId) !== parseInt(attemptId)) return; // chỉ xử lý đúng lượt thi
-
-      if (data.type === 'warning') {
-        Swal.fire({
-          title: 'CẢNH BÁO TỪ GIÁM THỊ!',
-          text: data.message || 'Yêu cầu bạn tập trung làm bài, nghiêm túc thi!',
-          icon: 'warning',
-          confirmButtonColor: '#f59e0b',
-          allowOutsideClick: false
-        });
-      } 
-      else if (data.type === 'force_submit') {
-        Swal.fire({
-          title: 'ĐÌNH CHỈ THI!',
-          text: data.message || 'Bài thi của bạn đã bị cưỡng chế thu và khóa lại!',
-          icon: 'error',
-          confirmButtonColor: '#ef4444',
-          allowOutsideClick: false
-        }).then(() => {
-          navigate('/student/home');
-        });
-      }
-    };
-
-    channel.listen('.violation.updated', handleRealtimeEvent);
-
-    return () => {
-      console.log(`👋 Rời kênh ${channelName}`);
-      if (echoRef.current) {
-        echoRef.current.leaveChannel(channelName);
-      }
-    };
-  }, [examId, attemptId, navigate]);
-
-
-  // Bộ tải dữ liệu đề thi gốc
-  useEffect(() => {
-    fetch(`${API_URL}/student/exams/attempts/${attemptId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Lỗi tải đề thi');
-        return data;
-      })
-      .then(data => {
-        if (data.status === 'submitted') {
-          setResult(data);
-          setIsLoading(false);
-          navigate('/student/home');
-          return;
-        }
-        setExam(data.exam);
-        setQuestions(data.questions);
-        setTimeLeft(data.remaining_seconds);
-        setCheatCount(data.violation_count || 0);
-
-        const savedAnswers = {};
-        data.questions.forEach(q => {
-          if (q.saved_answer) savedAnswers[q.id] = q.saved_answer;
-        });
-        setAnswers(savedAnswers);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        Swal.fire('Lỗi truy cập', err.message, 'error').then(()=> navigate('/student/home'));
-      });
-  }, [attemptId, token, API_URL, navigate]);
-
-  // Bộ đếm thời gian ngược
-  useEffect(() => {
-    if (timeLeft === null || result) return;
-    if (timeLeft <= 0) {
-      handleSubmit(true); 
-      return;
-    }
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [timeLeft, result]);
-
-  // Lắng nghe gian lận cục bộ ở Client 
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.hidden && !result && !isLoading) {
+    const fetchExamData = async () => {
         try {
-          const res = await axios.post(`${API_URL}/student/exams/attempts/${attemptId}/log-violation`, {
-            type: 'tab_switch', detail: 'Sinh viên chuyển tab hoặc thu nhỏ trình duyệt'
-          }, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }});
-          
-          setCheatCount(res.data.violation_count);
-          Swal.fire({
-            title: 'CẢNH BÁO!',
-            text: `Bạn vừa rời khỏi màn hình làm bài! Số lần vi phạm: ${res.data.violation_count}/3`,
-            icon: 'warning', confirmButtonColor: '#f59e0b'
-          });
+            const res = await api.get(`/student/attempts/${attemptId}`);
+            const data = res.data;
+            
+            setExam(data.exam);
+            setAttempt(data.attempt);
+            setQuestions(data.questions);
+            setTimeLeft(data.remaining_seconds);
+            setCheatCount(data.violation_count);
+
+            // Nạp đáp án đã lưu (nếu có)
+            const initialAnswers = {};
+            data.questions.forEach(q => {
+                if (q.saved_choice_id) initialAnswers[q.id] = q.saved_choice_id;
+                else if (q.saved_answer_text) initialAnswers[q.id] = q.saved_answer_text;
+            });
+            setAnswers(initialAnswers);
+
+            // Khởi động Timer & Socket
+            startTimer(data.remaining_seconds);
+            setupSocket(data.exam.id);
+
         } catch (error) {
-          if (error.response && error.response.status === 403) {
-            setCheatCount(3);
-            Swal.fire({
-              title: 'ĐÌNH CHỈ THI!',
-              text: error.response.data.message || 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
-              icon: 'error', confirmButtonColor: '#ef4444', allowOutsideClick: false
-            }).then(() => navigate('/student/home')); 
-          }
+            toast.error(error.response?.data?.message || 'Không thể tải đề thi');
+            navigate('/student/dashboard');
+        } finally {
+            setLoading(false);
         }
-      }
     };
 
-    const handlePreventCheating = async (e) => {
-      if (!result && !isLoading) {
-        e.preventDefault();
-        let violationType = 'copy_paste';
-        if (e.type === 'contextmenu') violationType = 'right_click';
+    // 2. Logic đếm ngược thời gian
+    const startTimer = (seconds) => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        
+        timerRef.current = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    handleAutoSubmit();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const formatTime = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // 3. Logic WebSockets (Lắng nghe Giám thị)
+    const setupSocket = (examId) => {
+        if (!echoRef.current) {
+            echoRef.current = new Echo({
+                broadcaster: 'reverb',
+                key: import.meta.env.VITE_REVERB_APP_KEY,
+                wsHost: import.meta.env.VITE_REVERB_HOST,
+                wsPort: import.meta.env.VITE_REVERB_PORT,
+                wssPort: import.meta.env.VITE_REVERB_PORT,
+                forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+                enabledTransports: ['ws', 'wss'],
+            });
+
+            echoRef.current.channel(`exam.${examId}`)
+                .listen('.violation.updated', (e) => {
+                    if (e.attemptId === parseInt(attemptId)) {
+                        if (e.type === 'forced_submit') {
+                            Swal.fire('Bị thu bài!', 'Giám thị đã buộc thu bài thi của bạn.', 'error').then(() => {
+                                navigate(`/student/exam-result/${attemptId}`);
+                            });
+                        } else if (e.type === 'warning') {
+                            toast.error(`⚠️ Cảnh báo từ Giám thị: ${e.message}`, { duration: 5000 });
+                        }
+                    }
+                });
+        }
+    };
+
+    // 4. Logic Chống gian lận (Chuyển tab)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && !isSubmitting && timeLeft > 0) {
+                logCheat('Rời khỏi tab thi');
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isSubmitting, timeLeft]);
+
+    const logCheat = async (reason) => {
+        try {
+            const res = await api.post(`/student/attempts/${attemptId}/violation`, { type: reason });
+            setCheatCount(res.data.violation_count);
+            Swal.fire('Cảnh báo!', `Bạn đã rời khỏi màn hình thi. Vi phạm lần: ${res.data.violation_count}/3`, 'warning');
+        } catch (error) {
+            if (error.response?.status === 403) {
+                // Quá 3 lần -> Bị thu bài
+                clearInterval(timerRef.current);
+                Swal.fire('ĐÌNH CHỈ THI', error.response.data.message, 'error').then(() => {
+                    navigate(`/student/exam-result/${attemptId}`);
+                });
+            }
+        }
+    };
+
+    // 5. Lưu đáp án (Auto-save)
+    const handleAnswerChange = async (questionId, value, isFillBlank = false) => {
+        const newAnswers = { ...answers, [questionId]: value };
+        setAnswers(newAnswers);
 
         try {
-          const res = await axios.post(`${API_URL}/student/exams/attempts/${attemptId}/log-violation`, {
-            type: violationType, detail: `Thực hiện hành vi: ${e.type}`
-          }, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }});
-          
-          setCheatCount(res.data.violation_count);
-          Swal.fire({
-            title: 'CẢNH BÁO!',
-            text: 'Hành động sao chép tài liệu hoặc mở chuột phải bị cấm trong phòng thi!',
-            icon: 'warning', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
-          });
+            const payload = { question_id: questionId };
+            if (isFillBlank) payload.answer_text = value;
+            else payload.choice_id = value;
+
+            await api.patch(`/student/attempts/${attemptId}/answers`, payload);
         } catch (error) {
-          if (error.response && error.response.status === 403) {
-            setCheatCount(3);
-            Swal.fire({
-              title: 'ĐÌNH CHỈ THI!',
-              text: error.response.data.message || 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
-              icon: 'error', confirmButtonColor: '#ef4444', allowOutsideClick: false
-            }).then(() => navigate('/student/home')); 
-          }
+            toast.error('Lỗi mạng: Không thể lưu đáp án tạm thời');
         }
-      }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("copy", handlePreventCheating);
-    window.addEventListener("paste", handlePreventCheating);
-    window.addEventListener("contextmenu", handlePreventCheating);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("copy", handlePreventCheating);
-      window.removeEventListener("paste", handlePreventCheating);
-      window.removeEventListener("contextmenu", handlePreventCheating);
+    // 6. Nộp bài
+    const handleManualSubmit = () => {
+        Swal.fire({
+            title: 'Nộp bài thi?',
+            text: "Bạn có chắc chắn muốn nộp bài? Hành động này không thể hoàn tác.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#cbd5e1',
+            confirmButtonText: 'Vâng, Nộp bài!'
+        }).then((result) => {
+            if (result.isConfirmed) submitExam();
+        });
     };
-  }, [attemptId, token, API_URL, navigate, result, isLoading]);
 
-  const handleSelectAnswer = async (questionId, option) => {
-    if (result) return;
-    setAnswers(prev => ({ ...prev, [questionId]: option }));
-    try {
-      await fetch(`${API_URL}/student/exams/attempts/${attemptId}/save-answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ question_id: questionId, answer_text: option })
-      });
-    } catch (err) {}
-  };
+    const handleAutoSubmit = () => {
+        Swal.fire('Hết giờ!', 'Hệ thống đang tự động thu bài...', 'info');
+        submitExam();
+    };
 
-  const handleSubmit = async (isAuto = false) => {
-    if (result) return;
-    if (!isAuto) {
-      const confirm = await Swal.fire({
-        title: 'Xác nhận nộp bài?',
-        text: 'Bạn chắc chắn muốn kết thúc kỳ thi để tính điểm?',
-        icon: 'question', showCancelButton: true,
-        confirmButtonColor: '#10b981', cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Vâng, nộp bài', cancelButtonText: 'Làm tiếp'
-      });
-      if (!confirm.isConfirmed) return;
+    const submitExam = async () => {
+        setIsSubmitting(true);
+        clearInterval(timerRef.current);
+        try {
+            await api.post(`/student/attempts/${attemptId}/submit`);
+            toast.success('Nộp bài thành công!');
+            navigate(`/student/exam-result/${attemptId}`);
+        } catch (error) {
+            toast.error('Lỗi khi nộp bài');
+            setIsSubmitting(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+            </div>
+        );
     }
 
-    setIsLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/student/exams/attempts/${attemptId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setResult(data);
-      
-      Swal.fire({
-        title: 'Đã nộp bài!', text: 'Bài thi của bạn đã được ghi nhận chấm điểm.',
-        icon: 'success', confirmButtonColor: '#10b981'
-      }).then(() => { navigate('/student/home'); });
-    } catch (err) {
-      Swal.fire('Lỗi nộp bài', err.message, 'error').then(() => navigate('/student/home'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const formatTime = (seconds) => {
-    if (seconds <= 0 || seconds === null) return "00:00";
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  if (isLoading) return <div className="text-center py-20 font-medium">Đang mở khóa niêm phong cấu trúc đề thi...</div>;
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{exam?.title}</h2>
-              <p className="text-sm text-gray-500 mt-1">Môn học: {exam?.subject}</p>
-            </div>
-            <div className="flex items-center gap-4 bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 font-bold">
-              <FaClock />
-              <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {questions.map((q, idx) => (
-              <div key={q.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div className="font-semibold text-gray-900 flex gap-2">
-                  <span>Câu {idx + 1}:</span>
-                  <div dangerouslySetInnerHTML={{ __html: q.content }} />
+    return (
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start pb-20">
+            
+            {/* Cột trái: Danh sách câu hỏi */}
+            <div className="flex-1 w-full space-y-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h1 className="text-2xl font-bold text-slate-800">{exam?.title}</h1>
+                    <p className="text-slate-500 mt-1">{exam?.subject?.name} - {exam?.subject?.code}</p>
                 </div>
 
-                {q.type !== 'fill_blank' && q.choices ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-4">
-                    {q.choices.map(c => (
-                      <label key={c.key} className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition select-none text-sm">
-                        <input
-                          type={q.type === 'single' ? 'radio' : 'checkbox'}
-                          name={`q-${q.id}`}
-                          checked={answers[q.id] === c.key}
-                          onChange={() => handleSelectAnswer(q.id, c.key)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="font-medium text-gray-700">{c.key}. {c.text}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="pl-4">
-                    <input
-                      type="text"
-                      className="w-full sm:w-1/2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:border-blue-500 transition text-sm"
-                      placeholder="Gõ kết quả câu trả lời của bạn tại đây..."
-                      value={answers[q.id] || ''}
-                      onChange={(e) => handleSelectAnswer(q.id, e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+                {questions.map((q, index) => (
+                    <div key={q.id} id={`question-${index}`} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div className="flex items-start gap-4 mb-4">
+                            <span className="shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                                {index + 1}
+                            </span>
+                            <div className="prose max-w-none text-slate-800 font-medium pt-1" dangerouslySetInnerHTML={{ __html: q.content }} />
+                        </div>
 
-        <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6 sticky top-6">
-            <div className="border-b border-gray-100 pb-3 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900">Tiến độ bài làm</h3>
-              <div className="flex items-center gap-1.5 text-xs font-semibold bg-amber-50 text-amber-700 px-2 py-1 rounded-md border border-amber-200">
-                <FaShieldAlt /> Vi phạm: {cheatCount}/3
-              </div>
+                        <div className="pl-12 space-y-3">
+                            {q.type === 'fill_blank' ? (
+                                <input
+                                    type="text"
+                                    value={answers[q.id] || ''}
+                                    onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+                                    onBlur={(e) => handleAnswerChange(q.id, e.target.value, true)}
+                                    placeholder="Nhập câu trả lời của bạn..."
+                                    className="w-full md:w-1/2 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition bg-slate-50"
+                                />
+                            ) : (
+                                q.choices.map(c => (
+                                    <label key={c.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${answers[q.id] === c.id ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                        <input
+                                            type={q.type === 'single' ? 'radio' : 'checkbox'}
+                                            name={`question-${q.id}`}
+                                            checked={answers[q.id] === c.id}
+                                            onChange={() => handleAnswerChange(q.id, c.id)}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                        />
+                                        <span className="text-slate-700">{c.text}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
-            <div className="grid grid-cols-5 gap-2">
-              {questions.map((q, index) => (
-                <div key={q.id} className={`h-9 w-9 flex items-center justify-center font-bold text-xs rounded-lg transition border ${answers[q.id] ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                  {index + 1}
+
+            {/* Cột phải: Bảng điều khiển (Sticky) */}
+            <div className="w-full lg:w-80 lg:sticky lg:top-24 space-y-4 shrink-0">
+                
+                {/* Timer & Cảnh báo */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
+                    <div className="flex items-center justify-center gap-2 text-slate-500 mb-2 font-medium">
+                        <Clock className="w-5 h-5" /> Thời gian còn lại
+                    </div>
+                    <div className={`text-4xl font-black font-mono tracking-tight ${timeLeft < 300 ? 'text-red-500' : 'text-slate-800'}`}>
+                        {formatTime(timeLeft)}
+                    </div>
+                    
+                    {cheatCount > 0 && (
+                        <div className="mt-4 inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-200 text-sm font-bold">
+                            <ShieldAlert className="w-4 h-4" /> Vi phạm: {cheatCount}/3
+                        </div>
+                    )}
                 </div>
-              ))}
+
+                {/* Question Grid */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Danh sách câu hỏi</h3>
+                    <div className="grid grid-cols-5 gap-2">
+                        {questions.map((q, index) => {
+                            const isAnswered = answers[q.id] !== undefined && answers[q.id] !== '';
+                            return (
+                                <button
+                                    key={q.id}
+                                    onClick={() => document.getElementById(`question-${index}`).scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                                    className={`h-10 w-10 flex items-center justify-center rounded-xl text-sm font-bold transition border 
+                                        ${isAnswered ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-blue-300'}`}
+                                >
+                                    {index + 1}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleManualSubmit}
+                    disabled={isSubmitting}
+                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-6 h-6" /> NỘP BÀI THI</>}
+                </button>
             </div>
-            <button onClick={() => handleSubmit(false)} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition shadow-sm shadow-emerald-500/10 active:scale-[0.98]">
-              NỘP BÀI THI NGAY
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }

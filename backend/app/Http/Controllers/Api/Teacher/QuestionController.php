@@ -9,6 +9,9 @@ use App\Models\FillBlankAnswer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\QuestionsImport;
+use App\Exports\QuestionsExport;
 
 class QuestionController extends Controller
 {
@@ -179,5 +182,27 @@ class QuestionController extends Controller
 
         $question->delete();
         return response()->json(['message' => 'Xóa câu hỏi thành công'], 200);
+    }
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:10240', // max 10MB
+        ]);
+
+        try {
+            Excel::import(new QuestionsImport, $request->file('file'));
+            return response()->json(['message' => 'Import câu hỏi thành công'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi import file', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function export()
+    {
+        try {
+            return Excel::download(new QuestionsExport, 'ngan_hang_cau_hoi.xlsx');
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi export dữ liệu', 'error' => $e->getMessage()], 500);
+        }
     }
 }

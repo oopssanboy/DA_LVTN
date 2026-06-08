@@ -1,167 +1,208 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Edit, Trash2, Upload, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, Loader2, Upload, Download } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 export default function QuestionList() {
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const fileInputRef = useRef(null);
-  const [filterSubject, setFilterSubject] = useState('');
-  const [filterDifficulty, setFilterDifficulty] = useState('');
+    const { user } = useAuth();
+    const [questions, setQuestions] = useState([]);
+    const [pagination, setPagination] = useState({});
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchQuestions(); }, [filterSubject, filterDifficulty]);
+    const apiPrefix = user?.role === 'admin' ? '/admin' : '/teacher';
 
-  const fetchQuestions = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (filterSubject) params.append('subject', filterSubject);
-      if (filterDifficulty) params.append('difficulty', filterDifficulty);
+    const fetchQuestions = async (url = `${apiPrefix}/questions`) => {
+        setLoading(true);
+        try {
+            const res = await api.get(url);
+            // Chuẩn hóa data từ Laravel (Dù dùng Paginate hay API Resource)
+            setQuestions(res.data.data);
+            setPagination({
+                links: res.data.meta?.links || res.data.links,
+                meta: res.data.meta || res.data
+            });
+        } catch (error) {
+            toast.error('Lỗi tải danh sách câu hỏi');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      const res = await api.get(`/questions?${params.toString()}`);
-      setQuestions(res.data.data || []);
-    } catch (err) { 
-      toast.error('Lỗi đồng bộ danh sách dữ liệu câu hỏi'); 
-    } finally { 
-      setLoading(false); 
-    }
-  };
+    useEffect(() => {
+        fetchQuestions();
+    }, []);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa vĩnh viễn câu hỏi này khỏi ngân hàng đề?')) {
-      await api.delete(`/questions/${id}`);
-      toast.success('Đã gỡ bỏ câu hỏi thành công');
-      fetchQuestions();
-    }
-  };
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: 'Xóa câu hỏi?',
+            text: "Dữ liệu này sẽ không thể khôi phục!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#cbd5e1',
+            confirmButtonText: 'Vâng, Xóa!'
+        });
 
-  const handleExport = async () => {
-    try {
-      const response = await api.get('/questions/export', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'ngan_hang_cau_hoi.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      toast.error('Export Excel thất bại!');
-    }
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      await api.post('/questions/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Import dữ liệu câu hỏi Excel thành công!');
-      fetchQuestions();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'File Excel sai cấu trúc định dạng mẫu!');
-    }
-  };
-
-  const selectClass = "px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition";
-
-  return (
-    <div className="space-y-6">
-      {/* Khối Header điều khiển */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-5 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Ngân hàng câu hỏi</h1>
-          <p className="text-sm text-gray-500 mt-1">Cấu hình kho dữ liệu câu hỏi trắc nghiệm và điền khuyết</p>
-        </div>
+        if (result.isConfirmed) {
+            try {
+                await api.delete(`${apiPrefix}/questions/${id}`);
+                toast.success('Xóa thành công');
+                fetchQuestions(); // Load lại trang hiện tại
+            } catch (error) {
+                toast.error('Lỗi khi xóa câu hỏi');
+            }
+        }
         
-        {/* Thanh Action hành động */}
-        <div className="flex flex-wrap gap-2.5">
-          <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls" className="hidden" />
-          <button onClick={() => fileInputRef.current.click()} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition active:scale-95">
-            <Upload size={16} /> Nhập Excel
-          </button>
-          <button onClick={handleExport} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition active:scale-95">
-            <Download size={16} /> Xuất dữ liệu
-          </button>
-          <Link to="/admin/questions/create" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/10 transition active:scale-95">
-            <Plus size={16} /> Thêm câu hỏi
-          </Link>
-        </div>
-      </div>
+    };
+    const fileInputRef = useRef(null);
 
-      {/* Thanh công cụ lọc bộ lọc Filter */}
-      <div className="flex flex-wrap gap-4 items-center bg-gray-50 border border-gray-100 p-4 rounded-2xl">
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1">Bộ lọc tìm nhanh:</span>
-        <input type="text" placeholder="Lọc theo môn học..." value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2 w-64 text-sm outline-none focus:border-indigo-500" />
-        <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)} className={selectClass}>
-          <option value="">-- Tất cả độ khó --</option>
-          <option value="easy">Nhận biết (Dễ)</option>
-          <option value="medium">Thông hiểu (Vừa)</option>
-          <option value="hard">Vận dụng (Khó)</option>
-        </select>
-      </div>
+    const handleExport = async () => {
+        try {
+            const res = await api.get(`${apiPrefix}/questions/export`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Danh_Sach_Cau_Hoi.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            toast.error('Lỗi khi tải file Excel');
+        }
+    };
 
-      {/* Bảng hiển thị kết quả */}
-      {loading ? (
-        <div className="text-center py-20 text-sm text-gray-400 font-medium">Đang tải ngân hàng câu hỏi...</div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm text-left">
-              <thead className="bg-gray-50">
-                <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="px-6 py-4">Môn học</th>
-                  <th className="px-6 py-4">Chủ đề</th>
-                  <th className="px-6 py-4">Nội dung câu hỏi</th>
-                  <th className="px-6 py-4 text-center">Phân loại</th>
-                  <th className="px-6 py-4 text-center">Độ khó</th>
-                  <th className="px-6 py-4 text-right">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {questions.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-gray-400 font-medium">Không tìm thấy câu hỏi nào khớp với bộ lọc.</td>
-                  </tr>
-                ) : (
-                  questions.map(q => (
-                    <tr key={q.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">{q.subject}</td>
-                      <td className="px-6 py-4 text-gray-600 font-medium whitespace-nowrap">{q.topic}</td>
-                      <td className="px-6 py-4 max-w-md truncate text-gray-700" dangerouslySetInnerHTML={{ __html: q.content }} />
-                      <td className="px-6 py-4 text-center whitespace-nowrap">
-                        {q.type === 'single' ? (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 rounded-md">Một đáp án</span>
-                        ) : q.type === 'multiple' ? (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 rounded-md">Nhiều đáp án</span>
-                        ) : (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-md">Điền từ trống</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-center whitespace-nowrap">
-                        {q.difficulty === 'easy' ? (
-                          <span className="text-emerald-600 font-semibold text-xs">Dễ</span>
-                        ) : q.difficulty === 'medium' ? (
-                          <span className="text-amber-600 font-semibold text-xs">Vừa</span>
-                        ) : (
-                          <span className="text-red-600 font-semibold text-xs">Khó</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right space-x-3 whitespace-nowrap text-gray-500">
-                        <Link to={`/admin/questions/${q.id}/edit`} className="hover:text-amber-600 transition inline-block"><Edit size={18} /></Link>
-                        <button onClick={() => handleDelete(q.id)} className="hover:text-red-600 transition inline-block"><Trash2 size={18} /></button>
-                      </td>
-                    </tr>
-                  ))
+    const handleImport = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const loadingToast = toast.loading('Đang xử lý import...');
+        try {
+            await api.post(`${apiPrefix}/questions/import`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Import thành công!', { id: loadingToast });
+            fetchQuestions(); // Tải lại danh sách
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Import thất bại. Kiểm tra lại format file.', { id: loadingToast });
+        }
+        e.target.value = ''; // Reset input
+    };
+
+    return (
+        <div className="space-y-6 max-w-7xl mx-auto pb-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800">Ngân hàng Câu hỏi</h1>
+                    <p className="text-slate-500 mt-1">Quản lý và biên soạn câu hỏi trắc nghiệm, điền khuyết.</p>
+                </div>
+                <div className="flex gap-2">
+                    {/* Input ẩn để chọn file */}
+                    <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls,.csv" className="hidden" />
+                    
+                    <button onClick={() => fileInputRef.current.click()} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
+                        <Upload className="w-5 h-5" /> Import
+                    </button>
+                    
+                    <button onClick={handleExport} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
+                        <Download className="w-5 h-5" /> Export
+                    </button>
+
+                    <Link to={`${apiPrefix}/questions/create`} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
+                        <Plus className="w-5 h-5" /> Thêm mới
+                    </Link>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex gap-4 bg-slate-50/50">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input type="text" placeholder="Tìm kiếm nội dung câu hỏi..." className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <button className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition flex items-center gap-2 font-medium">
+                        <Filter className="w-5 h-5" /> Lọc
+                    </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {loading ? (
+                        <div className="p-10 flex justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
+                    ) : questions.length === 0 ? (
+                        <div className="p-10 text-center text-slate-500">Chưa có dữ liệu câu hỏi.</div>
+                    ) : (
+                        <table className="w-full text-left text-sm text-slate-600">
+                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-4">Môn học</th>
+                                    <th className="px-6 py-4">Nội dung tóm tắt</th>
+                                    <th className="px-6 py-4">Loại</th>
+                                    <th className="px-6 py-4">Độ khó</th>
+                                    <th className="px-6 py-4 text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {questions.map((q) => (
+                                    <tr key={q.id} className="hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-slate-800">{q.subject?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="line-clamp-2 max-w-md" dangerouslySetInnerHTML={{ __html: q.content }} />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {q.type === 'fill_blank' ? (
+                                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Điền khuyết</span>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Trắc nghiệm</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase
+                                                ${q.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' : 
+                                                  q.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}
+                                            >
+                                                {q.difficulty}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                                                    <Edit className="w-5 h-5" />
+                                                </Link>
+                                                <button onClick={() => handleDelete(q.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+                
+                {/* Pagination */}
+                {pagination.links && pagination.links.length > 3 && (
+                    <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
+                        {pagination.links.map((link, idx) => (
+                            <button
+                                key={idx}
+                                disabled={!link.url}
+                                onClick={() => fetchQuestions(link.url)}
+                                className={`px-4 py-2 text-sm font-medium rounded-xl transition border
+                                    ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
+                                    ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
+                                `}
+                                dangerouslySetInnerHTML={{ __html: link.label }}
+                            />
+                        ))}
+                    </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
 }
