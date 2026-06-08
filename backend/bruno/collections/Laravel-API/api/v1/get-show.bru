@@ -1,0 +1,16 @@
+meta {
+  name: Show
+  type: http
+  seq: 22
+}
+get {
+  url: {{baseUrl}}/api/v1/admin/users/{{id}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

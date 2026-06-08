@@ -1,0 +1,16 @@
+meta {
+  name: Index
+  type: http
+  seq: 20
+}
+get {
+  url: {{baseUrl}}/api/v1/admin/users
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

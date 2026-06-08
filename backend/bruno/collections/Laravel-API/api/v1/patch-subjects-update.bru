@@ -1,0 +1,17 @@
+meta {
+  name: Subjects Update
+  type: http
+  seq: 18
+}
+patch {
+  url: {{baseUrl}}/api/v1/admin/subjects/{{subject}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

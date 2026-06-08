@@ -1,220 +1,73 @@
-import { useEffect, useState, useRef } from 'react'
-import { EyeIcon, ExclamationTriangleIcon, NoSymbolIcon } from '@heroicons/react/24/outline'
-import api from '../../services/axios'
-import Echo from 'laravel-echo'
-import Pusher from 'pusher-js'
-import Swal from 'sweetalert2'
-
-window.Pusher = Pusher
+import { useState, useEffect } from 'react';
+import api from '../../services/api';
+import { Eye, Users, AlertTriangle, MonitorPlay } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function ProctorDashboard() {
-  const [exams, setExams] = useState([])
-  const [selectedExam, setSelectedExam] = useState(null)
-  const [attempts, setAttempts] = useState([])
-  const echoRef = useRef(null)
+    const [stats, setStats] = useState({ activeExams: 0, totalViolations: 0, onlineStudents: 0 });
 
-  // 1. CHỈ KHỞI TẠO REVERB DUY NHẤT 1 LẦN KHI VÀO TRANG GIÁM THỊ
-  useEffect(() => {
-    fetchActiveExams();
+    // Dữ liệu mô phỏng (Placeholder) cho đến khi Backend API Thống kê Giám thị hoàn thiện
+    useEffect(() => {
+        // Fetch dữ liệu thực tế tại đây
+        setStats({
+            activeExams: 2,
+            totalViolations: 5,
+            onlineStudents: 45
+        });
+    }, []);
 
-    echoRef.current = new Echo({
-      broadcaster: 'reverb',
-      key: import.meta.env.VITE_REVERB_APP_KEY,
-      wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
-      wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
-      wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
-      forceTLS: false,
-      enabledTransports: ['ws', 'wss'],
-    });
-
-    echoRef.current.connector.pusher.connection.bind('connected', () => {
-      console.log('✅ GIÁM THỊ ĐÃ KẾT NỐI REVERB THÀNH CÔNG!');
-    });
-
-    return () => {
-      if (echoRef.current) {
-        echoRef.current.disconnect();
-      }
-    };
-  }, []);
-
-  const fetchActiveExams = async () => {
-    try {
-      const res = await api.get('/proctor/active-exams')
-      setExams(res.data)
-    } catch (err) { console.error(err) }
-  }
-
-  const fetchAttempts = async (examId) => {
-    try {
-      const res = await api.get(`/proctor/exams/${examId}/attempts`)
-      setAttempts(res.data)
-    } catch (err) { console.error(err) }
-  }
-
-  // 2. TỰ ĐỘNG THAY ĐỔI KÊNH LẮNG NGHE MỖI KHI CLICK CHỌN BÀI THI KHÁC
-  useEffect(() => {
-    if (!selectedExam || !echoRef.current) return;
-
-    fetchAttempts(selectedExam.id);
-    const channelName = `exam.${selectedExam.id}`;
-    
-    const channel = echoRef.current.channel(channelName);
-    
-    channel.listen('.violation.updated', (e) => {
-      console.log("📡 [Giám thị] Có biến động từ sinh viên:", e);
-      
-      // Luôn F5 lại bảng ngầm định
-      fetchAttempts(selectedExam.id); 
-
-      // Bật Toast thông báo cho các hành vi
-      if (e.type === 'joined') {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Học viên mới', text: `Có sinh viên vừa truy cập phòng thi`, showConfirmButton: false, timer: 3000 });
-      } 
-      else if (e.type === 'violation') {
-        const actionName = e.message === 'tab_switch' ? 'Chuyển tab / Rời màn hình' 
-                         : e.message === 'copy_paste' ? 'Sao chép / Dán dữ liệu' 
-                         : e.message === 'right_click' ? 'Sử dụng chuột phải' : 'Gian lận';
-                         
-        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Phát hiện vi phạm!', text: `Lượt thi #${e.attemptId} vừa: ${actionName}`, showConfirmButton: false, timer: 6000, timerProgressBar: true });
-      }
-      else if (e.type === 'submitted') {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã nộp bài', text: `Lượt thi #${e.attemptId} vừa nộp bài thành công`, showConfirmButton: false, timer: 3000 });
-      }
-    });
-
-    return () => {
-      echoRef.current.leaveChannel(channelName);
-    };
-  }, [selectedExam]);
-
-
-  const forceSubmit = async (attemptId) => {
-    const confirm = await Swal.fire({
-      title: 'Thu bài khẩn cấp?',
-      text: 'Hệ thống sẽ ép khóa đề thi và tính điểm sinh viên tại thời điểm hiện tại!',
-      icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444',
-      confirmButtonText: 'Đình chỉ & Thu bài', cancelButtonText: 'Hủy'
-    });
-    if (!confirm.isConfirmed) return;
-
-    try {
-      await api.post(`/proctor/attempts/${attemptId}/force-submit`)
-      Swal.fire('Thành công', 'Đã thực hiện ép thu bài.', 'success')
-      fetchAttempts(selectedExam.id)
-    } catch (err) {
-      Swal.fire('Lỗi', 'Thao tác thất bại!', 'error')
-    }
-  }
-
-  const sendWarning = async (attemptId) => {
-    const { value: warningText } = await Swal.fire({
-      title: 'Nội dung nhắc nhở', input: 'text',
-      inputLabel: 'Nhập lời nhắn trực tiếp đến sinh viên:',
-      inputPlaceholder: 'Ví dụ: Yêu cầu bật camera...',
-      showCancelButton: true, confirmButtonText: 'Phát tín hiệu', cancelButtonText: 'Hủy bỏ',
-      confirmButtonColor: '#eab308',
-      inputValidator: (value) => { if (!value) return 'Bạn không thể gửi tin nhắn rỗng!'; }
-    });
-
-    if (!warningText) return;
-
-    try {
-      await api.post(`/proctor/attempts/${attemptId}/warn`, { message: warningText });
-      Swal.fire({ title: 'Đã gửi!', text: 'Cảnh báo đã đẩy tới màn hình sinh viên.', icon: 'success', timer: 1500, showConfirmButton: false });
-      fetchAttempts(selectedExam.id);
-    } catch (err) {
-      Swal.fire('Lỗi', 'Không thể kết nối websocket!', 'error');
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Hội đồng Giám thị</h1>
-        <p className="text-sm text-gray-500 mt-1">Giám sát tiến độ phòng thi trực tuyến thời gian thực</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
-          <h3 className="font-bold text-gray-800 text-sm border-b pb-2">Kỳ thi đang kích hoạt</h3>
-          {exams.map(e => (
-            <div
-              key={e.id}
-              onClick={() => setSelectedExam(e)}
-              className={`p-3 rounded-xl cursor-pointer transition border text-sm ${
-                selectedExam?.id === e.id 
-                  ? 'bg-blue-50 border-blue-200 font-semibold text-blue-700' 
-                  : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <div>{e.title}</div>
-              <div className="text-xs text-gray-400 mt-1">Đang làm bài: {e.active_attempts} thí sinh</div>
+    return (
+        <div className="space-y-6 max-w-7xl mx-auto">
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900">Tổng quan Giám thị</h1>
+                <p className="text-slate-500 mt-1">Theo dõi trạng thái các phòng thi đang diễn ra.</p>
             </div>
-          ))}
-        </div>
 
-        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-          {selectedExam ? (
-            <>
-              <h3 className="font-bold text-gray-900">{selectedExam.title}</h3>
-              <div className="overflow-x-auto rounded-xl border border-gray-100">
-                <table className="min-w-full divide-y divide-gray-200 text-sm text-left">
-                  <thead className="bg-gray-50">
-                    <tr className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-                      <th className="px-4 py-3">Thí sinh</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3">Thời gian</th>
-                      <th className="px-4 py-3 text-center">Số vi phạm</th>
-                      <th className="px-4 py-3 text-center">Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {attempts.map(att => (
-                      <tr key={att.id} className="hover:bg-gray-50/50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{att.student?.name}</td>
-                        <td className="px-4 py-3">
-                          {att.status === 'in_progress' ? (
-                            <span className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-xs">Đang làm bài</span>
-                          ) : (
-                            <span className="text-gray-500 font-semibold bg-gray-50 px-2 py-0.5 rounded border border-gray-200 text-xs">Đã nộp ({att.total_score}đ)</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-gray-600 text-xs">
-                          {att.status === 'in_progress' ? `${Math.floor(att.remaining_seconds / 60)} phút` : 'Hoàn thành'}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {att.violation_count > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 border border-red-100 px-2 py-0.5 rounded text-xs">
-                              <ExclamationTriangleIcon className="h-3.5 w-3.5" /> {att.violation_count}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {att.status === 'in_progress' && (
-                            <div className="flex gap-4 justify-center text-gray-500">
-                              <button onClick={() => sendWarning(att.id)} className="hover:text-yellow-600 transition" title="Gửi lời nhắc cảnh báo">
-                                <EyeIcon className="h-5 w-5" />
-                              </button>
-                              <button onClick={() => forceSubmit(att.id)} className="hover:text-red-600 transition" title="Ép thu bài vĩnh viễn">
-                                <NoSymbolIcon className="h-5 w-5" />
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : (
-            <p className="text-gray-400 text-center py-20 font-medium">Chọn một kỳ thi ở danh mục bên trái để kích hoạt cổng theo dõi phòng thi.</p>
-          )}
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="p-4 bg-blue-50 text-blue-600 rounded-xl">
+                        <MonitorPlay className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <p className="text-slate-500 text-sm font-medium">Phòng thi đang mở</p>
+                        <h3 className="text-2xl font-bold text-slate-900">{stats.activeExams}</h3>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <Users className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <p className="text-slate-500 text-sm font-medium">Sinh viên đang thi</p>
+                        <h3 className="text-2xl font-bold text-slate-900">{stats.onlineStudents}</h3>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div className="p-4 bg-red-50 text-red-600 rounded-xl">
+                        <AlertTriangle className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <p className="text-slate-500 text-sm font-medium">Cảnh báo vi phạm</p>
+                        <h3 className="text-2xl font-bold text-slate-900">{stats.totalViolations}</h3>
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Action Card */}
+            <div className="bg-blue-600 text-white p-8 rounded-2xl shadow-sm mt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <h2 className="text-xl font-bold mb-2">Truy cập trạm giám sát</h2>
+                    <p className="text-blue-100 text-sm max-w-xl">
+                        Xem chi tiết tiến độ làm bài, màn hình cảnh báo gian lận và thực hiện các thao tác ép thu bài khẩn cấp đối với sinh viên vi phạm quy chế.
+                    </p>
+                </div>
+                <button className="bg-white text-blue-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition whitespace-nowrap shadow-sm">
+                    Vào phòng giám sát
+                </button>
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    );
 }

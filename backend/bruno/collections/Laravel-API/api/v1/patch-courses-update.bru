@@ -1,0 +1,17 @@
+meta {
+  name: Courses Update
+  type: http
+  seq: 12
+}
+patch {
+  url: {{baseUrl}}/api/v1/admin/courses/{{course}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

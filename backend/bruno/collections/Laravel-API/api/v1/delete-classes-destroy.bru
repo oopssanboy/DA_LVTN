@@ -1,0 +1,16 @@
+meta {
+  name: Classes Destroy
+  type: http
+  seq: 6
+}
+delete {
+  url: {{baseUrl}}/api/v1/admin/classes/{{class}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

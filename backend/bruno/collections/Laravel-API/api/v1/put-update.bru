@@ -1,0 +1,17 @@
+meta {
+  name: Update
+  type: http
+  seq: 23
+}
+put {
+  url: {{baseUrl}}/api/v1/admin/users/{{id}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

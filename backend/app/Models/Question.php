@@ -10,4 +10,5 @@ class Question extends Model
     public function subject() { return $this->belongsTo(Subject::class); }
     public function topic() { return $this->belongsTo(Topic::class); }
     public function choices() { return $this->hasMany(Choice::class); }
+    public function fillBlankAnswers()  { return $this->hasMany(FillBlankAnswer::class);}
 }

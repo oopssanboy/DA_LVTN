@@ -8,4 +8,8 @@ class Subject extends Model
 
     public function courses() { return $this->hasMany(Course::class); }
     public function topics() { return $this->hasMany(Topic::class); }
+    public function questions()
+    {
+        return $this->hasMany(Question::class);
+    }
 }

@@ -1,30 +1,58 @@
-import { Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { LayoutDashboard, LogOut, Menu, X, MonitorPlay, Eye } from 'lucide-react';
 
 export default function ProctorLayout() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { user, logout } = useAuth();
+  const location = useLocation();
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
+  const menuItems = [
+    { name: 'Tổng quan', path: '/proctor/dashboard', icon: LayoutDashboard },
+    { name: 'Danh sách lớp giám sát', path: '/proctor/monitor', icon: MonitorPlay },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b px-6 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-primary-600">Proctor Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">{user?.name}</span>
-          <button onClick={handleLogout} className="text-red-500 hover:text-red-700">
-            <ArrowRightOnRectangleIcon className="h-5 w-5" />
+    <div className="flex h-screen bg-gray-50 font-sans">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 text-white transition-all duration-300 flex flex-col`}>
+        <div className="h-16 flex items-center justify-between px-4 bg-slate-950">
+          {sidebarOpen && <span className="text-lg font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-teal-400"/> GIÁM THỊ</span>}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 hover:bg-slate-800 rounded">
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
-      </nav>
-      <main className="p-6">
-        <Outlet />
+        <nav className="flex-1 py-4">
+          {menuItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            return (
+              <Link key={item.path} to={item.path} className={`flex items-center px-4 py-3 mb-1 transition-colors ${isActive ? 'bg-teal-600 border-r-4 border-white text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <item.icon size={20} className="min-w-[20px]" />
+                {sidebarOpen && <span className="ml-4 text-sm font-medium">{item.name}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 bg-slate-950">
+          {sidebarOpen && (
+            <div className="mb-4">
+              <p className="text-sm font-semibold truncate">{user?.name}</p>
+            </div>
+          )}
+          <button onClick={logout} className="flex items-center w-full px-4 py-2 text-red-400 hover:bg-red-500/20 rounded transition-colors">
+            <LogOut size={20} />
+            {sidebarOpen && <span className="ml-4 text-sm font-medium">Đăng xuất</span>}
+          </button>
+        </div>
+      </aside>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-16 bg-white border-b flex items-center px-8 shadow-sm">
+          <h1 className="text-xl font-bold text-gray-800">Trạm Giám sát Realtime</h1>
+        </header>
+        <div className="flex-1 overflow-y-auto p-8">
+          <Outlet />
+        </div>
       </main>
     </div>
-  )
+  );
 }

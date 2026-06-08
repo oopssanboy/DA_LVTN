@@ -1,0 +1,17 @@
+meta {
+  name: Classes Update
+  type: http
+  seq: 5
+}
+patch {
+  url: {{baseUrl}}/api/v1/admin/classes/{{class}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

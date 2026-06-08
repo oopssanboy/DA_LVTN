@@ -1,0 +1,16 @@
+meta {
+  name: Subjects Index
+  type: http
+  seq: 14
+}
+get {
+  url: {{baseUrl}}/api/v1/admin/subjects
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Courses Index
+  type: http
+  seq: 8
+}
+get {
+  url: {{baseUrl}}/api/v1/admin/courses
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -8,7 +8,6 @@ const instance = axios.create({
     }
 });
 
-// Tự động đính kèm token vào header nếu có
 instance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -22,16 +21,11 @@ instance.interceptors.request.use(
     }
 );
 
-// Xử lý khi API trả về lỗi
 instance.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Chỉ bắt lỗi 401 khi API trả về thực sự là Unauthenticated
         if (error.response && error.response.status === 401) {
-            console.warn("Token hết hạn hoặc không hợp lệ. Đang đá ra trang login...");
-            localStorage.removeItem('token'); // Xóa token rác
-            
-            // Tránh việc redirect liên tục nếu đã ở trang login
+            localStorage.removeItem('token');
             if (window.location.pathname !== '/login') {
                 window.location.href = '/login';
             }

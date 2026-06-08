@@ -1,189 +1,123 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ClockIcon, AcademicCapIcon, PlayIcon, DocumentTextIcon, KeyIcon } from '@heroicons/react/24/outline'
-import api from '../../services/axios'
-import Swal from 'sweetalert2'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import { BookOpen, Clock, AlertTriangle, CheckCircle, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function StudentHome() {
-  const [exams, setExams] = useState([])
-  const [history, setHistory] = useState([])
-  const navigate = useNavigate()
+    const [exams, setExams] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // 1. Tải danh sách kỳ thi hiện tại
-      try {
-        const examsRes = await api.get('/student/exams')
-        setExams(examsRes.data)
-      } catch (err) {
-        console.error("Lỗi tải danh sách kỳ thi:", err)
-      }
+    useEffect(() => {
+        fetchExams();
+    }, []);
 
-      // 2. Tải lịch sử làm bài (tách riêng try-catch)
-      try {
-        const historyRes = await api.get('/student/exams/history')
-        setHistory(historyRes.data)
-      } catch (err) {
-        console.error("Lỗi tải lịch sử thi:", err)
-      }
-    }
-    
-    fetchData()
-  }, [])
-
-  const startExam = async (exam) => {
-    let passwordInput = null;
-
-    // Kiểm tra nếu kỳ thi này yêu cầu mật khẩu bảo mật (trường password trong DB không rỗng)
-    if (exam.password) {
-      const { value: password } = await Swal.fire({
-        title: 'Mật khẩu phòng thi',
-        text: `Kỳ thi "${exam.title}" yêu cầu mật khẩu để truy cập đề thi.`,
-        input: 'password',
-        inputPlaceholder: 'Nhập mật khẩu phòng thi tại đây...',
-        inputAttributes: {
-          autocapitalize: 'off',
-          autocorrect: 'off'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Xác nhận vào thi',
-        cancelButtonText: 'Hủy bỏ',
-        confirmButtonColor: '#2563eb',
-        inputValidator: (value) => {
-          if (!value) {
-            return 'Bạn bắt buộc phải nhập mật khẩu!';
-          }
+    const fetchExams = async () => {
+        try {
+            const res = await api.get('/student/exams/available');
+            setExams(res.data);
+        } catch (error) {
+            toast.error('Không thể tải danh sách kỳ thi');
+        } finally {
+            setLoading(false);
         }
-      });
+    };
 
-      // Nếu sinh viên bấm hủy hoặc không nhập mật khẩu thì dừng luồng xử lý
-      if (!password) return;
-      passwordInput = password;
-    }
+    const handleEnterExam = (examId, attempt) => {
+        if (attempt && attempt.status === 'submitted') {
+            navigate(`/student/exam-result/${attempt.id}`);
+        } else if (attempt && attempt.status === 'in_progress') {
+            navigate(`/student/exam/${attempt.id}`);
+        } else {
+            // Hiển thị modal nhập mật khẩu (nếu có) trước khi gọi API start
+            if(window.confirm('Bạn đã sẵn sàng bắt đầu làm bài? Thời gian sẽ được tính ngay lập tức.')){
+                startExam(examId);
+            }
+        }
+    };
 
-    try {
-      // Gửi request POST kèm password lên backend
-      const res = await api.post(`/student/exams/${exam.id}/start`, {
-        password: passwordInput
-      });
-      
-      // Thành công thì chuyển hướng trực tiếp tới phòng thi thông qua attempt_id
-      navigate(`/student/exam/${res.data.attempt_id}`)
-    } catch (err) {
-      Swal.fire({
-        title: 'Chặn quyền truy cập!',
-        text: err.response?.data?.message || 'Mật khẩu phòng thi không đúng hoặc lỗi hệ thống.',
-        icon: 'error',
-        confirmButtonColor: '#ef4444'
-      });
-    }
-  }
+    const startExam = async (examId) => {
+        try {
+            const res = await api.post(`/student/exams/${examId}/start`);
+            navigate(`/student/exam/${res.data.attempt_id}`);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Không thể vào phòng thi');
+        }
+    };
 
-  return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Kỳ thi của tôi</h1>
-        <p className="text-gray-500 mt-1">Chọn kỳ thi được chỉ định để bắt đầu làm bài</p>
-      </div>
+    if (loading) return <div className="text-center py-10 text-slate-500">Đang tải dữ liệu...</div>;
 
-      {exams.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-500">Hiện chưa có kỳ thi nào diễn ra dành cho bạn.</p>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {exams.map((exam) => (
-            <div key={exam.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden">
-              <div className="p-5 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">{exam.title}</h3>
-                    {exam.password && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                        <KeyIcon className="h-3 w-3" /> Khóa
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-                    <span className="flex items-center gap-1"><AcademicCapIcon className="h-4 w-4 text-blue-500" /> {exam.subject}</span>
-                    <span className="flex items-center gap-1"><ClockIcon className="h-4 w-4 text-emerald-500" /> {exam.duration} phút</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-3 border-t border-gray-50">
-                  <p className="text-xs text-gray-400">Lớp học: <span className="text-gray-600 font-medium">{exam.class?.course?.title} - {exam.class?.name}</span></p>
-                  
-                  <button
-                    onClick={() => {
-                      if (exam.attempt_status === 'in_progress') {
-                        // Nếu đang làm dở, chuyển tiếp vào phòng luôn bằng attempt_id sẵn có không cần hỏi lại mật khẩu
-                        navigate(`/student/exam/${exam.attempt_id}`);
-                      } else {
-                        // Nếu thi mới hoàn toàn, kích hoạt hàm kiểm tra mật khẩu phòng thi
-                        startExam(exam);
-                      }
-                    }}
-                    className={`mt-4 w-full flex items-center justify-center gap-2 font-semibold text-sm py-2.5 px-4 rounded-xl shadow-sm transition-all duration-200 active:scale-[0.98] ${
-                      exam.attempt_status === 'in_progress'
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/10'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/10'
-                    }`}
-                  >
-                    <PlayIcon className="h-4 w-4" />
-                    {exam.attempt_status === 'in_progress' ? 'Tiếp tục làm bài' : 'Bắt đầu vào thi'}
-                  </button>
-                </div>
-              </div>
+    return (
+        <div className="space-y-6 max-w-7xl mx-auto">
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900">Kỳ thi của tôi</h1>
+                <p className="text-slate-500 mt-1">Danh sách các môn thi bạn được phép tham gia.</p>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Lịch sử làm bài */}
-      {history.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Lịch sử làm bài thi</h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    <th className="px-6 py-4">Kỳ thi</th>
-                    <th className="px-6 py-4 text-center">Điểm số</th>
-                    <th className="px-6 py-4 text-center">Kết quả</th>
-                    <th className="px-6 py-4 text-right">Ngày nộp bài</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {history.map(h => (
-                    <tr key={h.id} className="hover:bg-gray-50/70 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{h.exam_title}</td>
-                      <td className="px-6 py-4 text-center font-bold text-blue-600 text-base">{h.score}/10</td>
-                      <td className="px-6 py-4 text-center">
-                        {h.is_passed ? (
-                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">Đạt</span>
-                        ) : (
-                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">Chưa đạt</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm text-gray-500">
-                        {new Date(h.completed_at).toLocaleDateString('vi-VN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            {exams.length === 0 ? (
+                <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-200 text-center">
+                    <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-slate-700">Chưa có kỳ thi nào</h3>
+                    <p className="text-slate-500 text-sm mt-2">Hiện tại không có lịch thi nào được mở cho lớp của bạn.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {exams.map(exam => {
+                        const isSubmitted = exam.attempt?.status === 'submitted';
+                        const inProgress = exam.attempt?.status === 'in_progress';
+                        
+                        return (
+                            <div key={exam.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                                        <BookOpen className="w-6 h-6" />
+                                    </div>
+                                    {isSubmitted ? (
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                                            <CheckCircle className="w-3 h-3"/> Đã nộp
+                                        </span>
+                                    ) : inProgress ? (
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex items-center gap-1">
+                                            <AlertTriangle className="w-3 h-3"/> Đang làm
+                                        </span>
+                                    ) : (
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 flex items-center gap-1">
+                                            <Clock className="w-3 h-3"/> Mới
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                <h3 className="font-bold text-lg text-slate-900 mb-1 line-clamp-2">{exam.title}</h3>
+                                <p className="text-slate-500 text-sm mb-4">{exam.subject?.name} - {exam.subject?.code}</p>
+                                
+                                <div className="mt-auto pt-4 border-t border-slate-100 space-y-2 mb-6">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Thời gian:</span>
+                                        <span className="font-semibold text-slate-900">{exam.duration} phút</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Số câu:</span>
+                                        <span className="font-semibold text-slate-900">{exam.total_questions} câu</span>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={() => handleEnterExam(exam.id, exam.attempt)}
+                                    className={`w-full py-2.5 rounded-xl font-medium transition flex justify-center items-center gap-2 ${
+                                        isSubmitted 
+                                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
+                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    }`}
+                                >
+                                    {isSubmitted ? 'Xem điểm' : inProgress ? 'Tiếp tục làm bài' : 'Vào phòng thi'}
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  )
+    );
 }

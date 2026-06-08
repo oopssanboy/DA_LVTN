@@ -1,0 +1,17 @@
+meta {
+  name: Classes Update
+  type: http
+  seq: 4
+}
+put {
+  url: {{baseUrl}}/api/v1/admin/classes/{{class}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

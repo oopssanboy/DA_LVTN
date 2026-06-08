@@ -1,81 +1,199 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline'
-import toast from 'react-hot-toast'
-import api from '../../services/axios'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { BookOpen, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("student");
+  
+  // States quản lý form đăng nhập
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const navigate = useNavigate();
+  
+  // 🔥 Lấy hàm login từ Context để cập nhật State toàn cục ngay lập tức (Fix lỗi phải đăng nhập 2 lần)
+  const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      const res = await api.post('/login', { email, password })
-      const { access_token, user } = res.data
-      localStorage.setItem('token', access_token)
-      localStorage.setItem('user', JSON.stringify(user))
-      toast.success('Đăng nhập thành công!')
-      if (user.role === 'admin' || user.role === 'teacher') navigate('/admin/dashboard')
-      else if (user.role === 'proctor') navigate('/proctor/dashboard')
-      else navigate('/student/home')
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Đăng nhập thất bại')
-    } finally {
-      setLoading(false)
+  // Tính năng ẩn: Tự động điền tài khoản khi click chọn Role (Dành cho lúc test/bảo vệ đồ án)
+  const handleRoleChange = (selectedRole) => {
+    setRole(selectedRole);
+    if (selectedRole === "admin") {
+      setEmail("admin@gmail.com");
+      setPassword("123456");
+    } else {
+      setEmail("student1@gmail.com");
+      setPassword("123456");
     }
-  }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // 🔥 Gọi hàm login của Context thay vì gọi api trực tiếp
+      const data = await login(email, password);
+      toast.success("Đăng nhập thành công!");
+      
+      // Chuyển hướng người dùng dựa vào Role thực tế trả về từ Backend
+      const userRole = data.user.role;
+      if (userRole === "admin" || userRole === "teacher") return navigate("/admin/dashboard");
+      if (userRole === "proctor") return navigate("/proctor/dashboard");
+      // Có thể là /student/dashboard hoặc /student/home tùy vào file App.jsx của bạn
+      if (userRole === "student") return navigate("/student/dashboard"); 
+      
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Sai tài khoản hoặc mật khẩu!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl border border-gray-100 animate-fade-in">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
-            ExamPro
-          </h2>
-          <p className="mt-2 text-gray-600">Đăng nhập để vào phòng thi</p>
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
+      {/* CỘT TRÁI - Branding (Ẩn trên thiết bị di động) */}
+      <div className="hidden md:flex flex-1 bg-blue-600 text-white flex-col justify-between p-12 relative overflow-hidden">
+        {/* Hình nền mờ */}
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent"></div>
+        
+        <div className="relative z-10">
+          <Link to="/" className="flex items-center gap-2 mb-12 w-max">
+            <div className="bg-white p-2 rounded-xl">
+              <BookOpen className="w-8 h-8 text-blue-600" />
+            </div>
+            <span className="font-bold text-2xl tracking-tight">STU Exam</span>
+          </Link>
+          
+          <div>
+            <h1 className="text-4xl lg:text-5xl font-extrabold mb-6 leading-tight">
+              Nền tảng thi <br/> trắc nghiệm <br/> trực tuyến.
+            </h1>
+            <p className="text-blue-100 text-lg max-w-md leading-relaxed">
+              Hệ thống đánh giá năng lực minh bạch, bảo mật và thân thiện. Áp dụng công nghệ giám sát phòng thi thời gian thực.
+            </p>
+          </div>
         </div>
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          <div>
-            <label className="label">Email</label>
-            <div className="relative">
-              <EnvelopeIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input pl-10"
-                placeholder="you@example.com"
-              />
+
+        <div className="relative z-10 flex items-center gap-4 text-sm font-medium text-blue-200">
+          <span>© 2026 STU ExamSystem</span>
+          <div className="w-1 h-1 rounded-full bg-blue-400"></div>
+          <a href="#" className="hover:text-white transition">Hỗ trợ</a>
+        </div>
+      </div>
+
+      {/* CỘT PHẢI - Form Đăng nhập */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 relative">
+        <div className="w-full max-w-md">
+          {/* Logo hiển thị riêng cho điện thoại */}
+          <Link to="/" className="flex items-center gap-2 mb-8 md:hidden justify-center">
+            <div className="bg-blue-600 p-2 rounded-xl">
+              <BookOpen className="w-6 h-6 text-white" />
             </div>
+            <span className="font-bold text-2xl tracking-tight text-slate-800">STU Exam</span>
+          </Link>
+
+          <div className="mb-10 text-center md:text-left">
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Đăng nhập</h2>
+            <p className="text-slate-500">Vui lòng điền thông tin để truy cập hệ thống.</p>
           </div>
-          <div>
-            <label className="label">Mật khẩu</label>
-            <div className="relative">
-              <LockClosedIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pl-10"
-                placeholder="••••••••"
-              />
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              {/* Input Email */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email / Mã số</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white text-slate-800 placeholder:text-slate-400 font-medium"
+                    placeholder="VD: admin@stu.edu.vn"
+                  />
+                </div>
+              </div>
+
+              {/* Input Mật khẩu */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-sm font-semibold text-slate-700">Mật khẩu</label>
+                  <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition">Quên mật khẩu?</a>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white text-slate-800 font-medium"
+                    placeholder="••••••••"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* Role Selection - Kèm Auto-fill */}
+            <div className="pt-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Vai trò truy cập (Chỉ dùng để Auto-fill test)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  type="button"
+                  onClick={() => handleRoleChange("student")}
+                  className={`py-2.5 rounded-xl font-bold text-sm border transition-all
+                    ${role === 'student' ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}
+                  `}
+                >
+                  Học viên
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => handleRoleChange("admin")}
+                  className={`py-2.5 rounded-xl font-bold text-sm border transition-all
+                    ${role === 'admin' ? 'border-slate-800 bg-slate-900 text-white shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}
+                  `}
+                >
+                  Quản trị viên
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
+            >
+              {loading ? (
+                <>Đang xử lý <Loader2 className="w-5 h-5 animate-spin" /></>
+              ) : (
+                <>Đăng nhập hệ thống <ArrowRight className="w-5 h-5" /></>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-8 border-t border-slate-100 text-center text-sm font-medium text-slate-500">
+            Chưa có tài khoản? Liên hệ Phòng Đào Tạo.
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full flex justify-center gap-2"
-          >
-            {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
-  )
+  );
 }

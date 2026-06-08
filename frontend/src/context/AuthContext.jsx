@@ -5,9 +5,8 @@ const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true) // Quan trọng: Phải luôn là true lúc mới F5
+  const [loading, setLoading] = useState(true)
 
-  // Hàm load lại user khi F5
   const fetchUser = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -19,15 +18,14 @@ export const AuthProvider = ({ children }) => {
       const res = await api.get('/user')
       setUser(res.data.user)
     } catch (error) {
-      console.error('Lỗi khi fetch user (Token hết hạn/không hợp lệ):', error)
+      console.error('Lỗi khi fetch user:', error)
       localStorage.removeItem('token')
       setUser(null)
     } finally {
-      setLoading(false) // Chỉ set false khi API đã chạy xong xuôi
+      setLoading(false)
     }
   }
 
-  // Chạy 1 lần duy nhất khi ứng dụng tải
   useEffect(() => {
     fetchUser()
   }, [])
@@ -43,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post('/logout')
     } catch (e) {
-      console.error('Lỗi khi gọi API logout:', e)
+      console.error(e)
     } finally {
       localStorage.removeItem('token')
       setUser(null)

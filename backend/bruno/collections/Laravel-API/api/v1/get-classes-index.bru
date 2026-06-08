@@ -1,0 +1,16 @@
+meta {
+  name: Classes Index
+  type: http
+  seq: 1
+}
+get {
+  url: {{baseUrl}}/api/v1/admin/classes
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

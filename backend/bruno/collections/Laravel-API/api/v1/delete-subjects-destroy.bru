@@ -1,0 +1,16 @@
+meta {
+  name: Subjects Destroy
+  type: http
+  seq: 19
+}
+delete {
+  url: {{baseUrl}}/api/v1/admin/subjects/{{subject}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

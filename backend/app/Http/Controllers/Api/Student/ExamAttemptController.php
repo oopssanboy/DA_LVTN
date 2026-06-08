@@ -20,17 +20,14 @@ use Carbon\Carbon;
 
 class ExamAttemptController extends Controller
 {
-    // Lấy danh sách kỳ thi sinh viên được phép tham gia
+    // Lấy danh sách kỳ thi sinh viên được phép thi
     public function getAvailableExams()
     {
-        $studentId = Auth::user()->id; // Khóa ngoại trỏ về user_id
-
-        // Chỉ lấy các kỳ thi của lớp mà sinh viên này có ghi danh
+        $studentId = Auth::user()->student->user_id ?? Auth::id(); // Fix lấy chuẩn ID
         $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id');
-
         $now = Carbon::now();
 
-        $exams = Exam::with(['subject', 'classes'])
+        $exams = Exam::with(['subject', 'class'])
             ->whereIn('class_id', $classIds)
             ->where('is_active', true)
             ->where(function($q) use ($now) {
@@ -41,11 +38,8 @@ class ExamAttemptController extends Controller
             })
             ->get();
 
-        // Đính kèm trạng thái xem sinh viên đã nộp bài hay đang làm dở
         $exams = $exams->map(function ($exam) use ($studentId) {
-            $attempt = ExamAttempt::where('exam_id', $exam->id)
-                ->where('student_id', $studentId)
-                ->first();
+            $attempt = ExamAttempt::where('exam_id', $exam->id)->where('student_id', $studentId)->first();
             $exam->attempt = $attempt;
             return $exam;
         });
@@ -53,45 +47,28 @@ class ExamAttemptController extends Controller
         return response()->json($exams);
     }
 
-    // Lấy lịch sử các bài đã nộp hoặc bị đình chỉ
-    public function getHistory()
-    {
-        $studentId = Auth::user()->id;
-        $attempts = ExamAttempt::with(['exam.subject'])
-            ->where('student_id', $studentId)
-            ->whereIn('status', ['submitted', 'suspended'])
-            ->orderBy('ended_at', 'desc')
-            ->get();
-
-        return response()->json($attempts);
-    }
-
-    // Bắt đầu hoặc vào lại phòng thi
+    // Bắt đầu làm bài
     public function startExam(Request $request, $examId)
     {
-        $studentId = Auth::user()->id;
+        $studentId = Auth::id();
         $exam = Exam::findOrFail($examId);
 
-        // Kiểm tra mật khẩu mã hóa phòng thi
-        if ($exam->password && $request->password !== $exam->password) {
+        // Kiểm tra mật khẩu nếu có
+        if ($exam->password && $request->input('password') !== $exam->password) {
             return response()->json(['message' => 'Mật khẩu phòng thi không chính xác'], 403);
         }
 
-        // Kiểm tra lượt thi cũ
-        $attempt = ExamAttempt::where('exam_id', $examId)
-            ->where('student_id', $studentId)
-            ->first();
+        $attempt = ExamAttempt::where('exam_id', $examId)->where('student_id', $studentId)->first();
 
+        // Nếu đã từng vào phòng
         if ($attempt) {
             if ($attempt->status !== 'in_progress') {
-                return response()->json(['message' => 'Bạn đã hoàn thành bài thi này rồi.'], 403);
+                return response()->json(['message' => 'Bài thi này đã kết thúc.'], 403);
             }
-            return response()->json([
-                'message' => 'Vào lại phòng thi thành công',
-                'attempt_id' => $attempt->id
-            ]);
+            return response()->json(['message' => 'Vào lại phòng thi thành công', 'attempt_id' => $attempt->id]);
         }
 
+        // Tạo lượt thi mới
         DB::beginTransaction();
         try {
             $attempt = ExamAttempt::create([
@@ -102,65 +79,59 @@ class ExamAttemptController extends Controller
                 'started_at' => Carbon::now(),
             ]);
 
-            // Lấy bộ khung câu hỏi tĩnh đã ghim cho mã đề này
-            $examQuestions = ExamQuestion::where('exam_id', $examId)->get();
-            $questions = Question::whereIn('id', $examQuestions->pluck('question_id'))->get();
+            // Load danh sách câu hỏi đã được sinh từ trước
+            $examQuestionIds = ExamQuestion::where('exam_id', $examId)->pluck('question_id');
+            $questions = Question::whereIn('id', $examQuestionIds)->get();
 
-            // Áp dụng thuật toán Random nếu giảng viên cho phép xáo trộn câu
             if ($exam->shuffle_questions) {
                 $questions = $questions->shuffle();
             }
 
-            // Ghi sẵn template đáp án để đảm bảo thứ tự luôn khớp khi reload trang
+            // Khởi tạo bảng StudentAnswer sẵn cho sinh viên
+            $answersData = [];
             foreach ($questions as $q) {
-                StudentAnswer::create([
+                $answersData[] = [
                     'attempt_id' => $attempt->id,
                     'question_id' => $q->id,
-                    'choice_id' => null,
-                    'answer_text' => null,
-                ]);
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+            StudentAnswer::insert($answersData);
 
             DB::commit();
+            
+            // Broadcast sự kiện có sinh viên vào phòng
+            broadcast(new ViolationUpdated($examId, $attempt->id, 'joined', 'Sinh viên vừa vào phòng thi'))->toOthers();
 
-            // Phát Socket Reverb để bảng Giám thị nhảy tên Sinh viên Realtime
-            event(new ViolationUpdated($examId, $attempt->id, 'joined', 'Sinh viên vừa vào phòng thi'));
-
-            return response()->json([
-                'message' => 'Khởi tạo phòng thi thành công',
-                'attempt_id' => $attempt->id
-            ]);
-
+            return response()->json(['message' => 'Khởi tạo phòng thi thành công', 'attempt_id' => $attempt->id]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Lỗi khởi tạo đề thi: ' . $e->getMessage()], 500);
         }
     }
 
-    // Truyền dữ liệu cấu trúc đề thi về cho React hiển thị
+    // Lấy chi tiết đề thi đang làm
     public function getAttempt($attemptId)
     {
-        $studentId = Auth::user()->id;
-        $attempt = ExamAttempt::with(['exam.subject'])
-            ->where('id', $attemptId)
-            ->where('student_id', $studentId)
-            ->firstOrFail();
+        $studentId = Auth::id();
+        $attempt = ExamAttempt::with(['exam.subject'])->where('id', $attemptId)->where('student_id', $studentId)->firstOrFail();
 
-        // Hệ thống tự bấm giờ an toàn từ phía Server (Chống Hack Timer)
         $timeElapsed = Carbon::now()->diffInSeconds(Carbon::parse($attempt->started_at));
         $totalTime = $attempt->exam->duration * 60;
         $remaining = max(0, $totalTime - $timeElapsed);
 
-        if ($attempt->status !== 'in_progress') {
-            return response()->json(array_merge($attempt->toArray(), ['remaining_seconds' => 0]));
+        if ($attempt->status !== 'in_progress' || $remaining <= 0) {
+            // Nếu hết giờ mà status vẫn in_progress thì force submit
+            if ($attempt->status === 'in_progress') {
+                $this->autoSubmitExam($attempt);
+            }
+            return response()->json(['message' => 'Bài thi đã kết thúc', 'status' => 'submitted'], 403);
         }
 
-        // Lấy câu hỏi theo thứ tự đóng băng trong student_answers
-        $answers = StudentAnswer::where('attempt_id', $attempt->id)
-            ->orderBy('id', 'asc') 
-            ->get();
-
+        $answers = StudentAnswer::where('attempt_id', $attempt->id)->orderBy('id', 'asc')->get();
         $questions = [];
+
         foreach ($answers as $ans) {
             $q = Question::with('choices')->find($ans->question_id);
             if (!$q) continue;
@@ -175,13 +146,9 @@ class ExamAttemptController extends Controller
                 'content' => $q->content,
                 'type' => $q->type,
                 'choices' => $choices->map(function($c) {
-                    return [
-                        'id' => $c->id,
-                        'key' => $c->choice_key,
-                        'text' => $c->choice_text
-                    ];
+                    return ['id' => $c->id, 'key' => $c->choice_key, 'text' => $c->choice_text];
                 }),
-                'saved_choice_id' => $ans->choice_id, // Fetch lại lựa chọn đang tick dở
+                'saved_choice_id' => $ans->choice_id,
                 'saved_answer_text' => $ans->answer_text,
             ];
         }
@@ -195,39 +162,42 @@ class ExamAttemptController extends Controller
         ]);
     }
 
-    // Auto-save khi sinh viên click đáp án trên Frontend
+    // Lưu Auto-save đáp án
     public function saveAnswer(Request $request, $attemptId)
     {
-        $request->validate([
-            'question_id' => 'required|exists:questions,id',
-        ]);
+        $request->validate(['question_id' => 'required|exists:questions,id']);
 
-        $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::user()->id)->firstOrFail();
+        $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::id())->firstOrFail();
         if ($attempt->status !== 'in_progress') {
             return response()->json(['message' => 'Bài thi đã đóng.'], 403);
         }
 
         $question = Question::findOrFail($request->question_id);
 
-        StudentAnswer::updateOrCreate(
-            ['attempt_id' => $attempt->id, 'question_id' => $question->id],
-            [
+        StudentAnswer::where('attempt_id', $attempt->id)
+            ->where('question_id', $question->id)
+            ->update([
                 'choice_id' => $question->type !== 'fill_blank' ? $request->choice_id : null,
                 'answer_text' => $question->type === 'fill_blank' ? $request->answer_text : null,
-            ]
-        );
+            ]);
 
-        return response()->json(['message' => 'Đã lưu đáp án tạm thời']);
+        return response()->json(['message' => 'Đã lưu đáp án']);
     }
 
-    // Chấm điểm và nộp bài
+    // Nộp bài
     public function submitExam(Request $request, $attemptId)
     {
-        $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::user()->id)->firstOrFail();
+        $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::id())->firstOrFail();
         if ($attempt->status !== 'in_progress') {
             return response()->json(['message' => 'Bài thi đã được nộp trước đó'], 400);
         }
 
+        return $this->autoSubmitExam($attempt);
+    }
+
+    // Logic chấm điểm server
+    private function autoSubmitExam(ExamAttempt $attempt)
+    {
         $exam = $attempt->exam;
         $answers = StudentAnswer::where('attempt_id', $attempt->id)->get();
         $totalScore = 0;
@@ -260,7 +230,6 @@ class ExamAttemptController extends Controller
                 }
             }
 
-            // Ghi đè vào DB dữ liệu chấm điểm
             $answer->update([
                 'is_correct' => $isCorrect,
                 'score_earned' => $scoreEarned
@@ -278,8 +247,7 @@ class ExamAttemptController extends Controller
             'is_passed' => $isPassed
         ]);
 
-        // Push Socket báo Giám thị màu xanh
-        event(new ViolationUpdated($exam->id, $attempt->id, 'submitted', 'Sinh viên đã nộp bài'));
+        broadcast(new ViolationUpdated($exam->id, $attempt->id, 'submitted', 'Sinh viên đã nộp bài'))->toOthers();
 
         return response()->json([
             'message' => 'Nộp bài thành công',
@@ -288,15 +256,11 @@ class ExamAttemptController extends Controller
         ]);
     }
 
-    // Trigger cơ chế chống gian lận
+    // Ghi nhận log vi phạm và bắn Socket
     public function logViolation(Request $request, $attemptId)
     {
-        $request->validate([
-            'type' => 'required|string',
-            'detail' => 'nullable|string'
-        ]);
-
-        $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::user()->id)->firstOrFail();
+        $request->validate(['type' => 'required|string', 'detail' => 'nullable|string']);
+        $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::id())->firstOrFail();
 
         if ($attempt->status !== 'in_progress') {
             return response()->json(['message' => 'Bài thi đã kết thúc'], 400);
@@ -306,19 +270,16 @@ class ExamAttemptController extends Controller
             'attempt_id' => $attempt->id,
             'type' => $request->type,
             'detail' => $request->detail ?? 'Hành vi vi phạm',
-            'created_at' => Carbon::now()
         ]);
 
         $attempt->increment('violation_count');
+        
+        // Broadcast cho Giám thị biết Realtime
+        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', "Sinh viên vi phạm: " . $request->type))->toOthers();
 
-        // Bắn còi báo động qua Reverb
-        event(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', $request->type));
-
-        // Block và đá văng nếu chạm ngưởng 3 lần cảnh cáo
         if ($attempt->violation_count >= 3) {
-            $this->submitExam($request, $attemptId); 
+            $this->autoSubmitExam($attempt); 
             $attempt->update(['status' => 'suspended']); 
-            
             return response()->json([
                 'message' => 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
                 'violation_count' => $attempt->violation_count,
@@ -326,32 +287,21 @@ class ExamAttemptController extends Controller
             ], 403);
         }
 
-        return response()->json([
-            'message' => 'Ghi nhận vi phạm thành công',
-            'violation_count' => $attempt->violation_count
-        ]);
+        return response()->json(['message' => 'Ghi nhận vi phạm', 'violation_count' => $attempt->violation_count]);
     }
 
-    // Trả kết quả chi tiết
+    // Xem kết quả bài thi
     public function getResult($attemptId)
     {
-        $studentId = Auth::user()->id;
-        $attempt = ExamAttempt::with(['exam.subject', 'exam.classes'])
-            ->where('id', $attemptId)
-            ->where('student_id', $studentId)
-            ->firstOrFail();
+        $studentId = Auth::id();
+        $attempt = ExamAttempt::with(['exam.subject'])->where('id', $attemptId)->where('student_id', $studentId)->firstOrFail();
 
         if ($attempt->status === 'in_progress') {
-            return response()->json(['message' => 'Bài thi chưa được nộp'], 400);
+            return response()->json(['message' => 'Bài thi chưa nộp'], 400);
         }
 
-        $answers = StudentAnswer::with(['question.choices', 'question.fillBlankAnswers'])
-            ->where('attempt_id', $attempt->id)
-            ->get();
+        $answers = StudentAnswer::with(['question.choices', 'question.fillBlankAnswers'])->where('attempt_id', $attempt->id)->get();
 
-        return response()->json([
-            'attempt' => $attempt,
-            'details' => $answers
-        ]);
+        return response()->json(['attempt' => $attempt, 'details' => $answers]);
     }
 }

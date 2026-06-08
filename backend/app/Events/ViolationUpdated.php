@@ -27,6 +27,7 @@ class ViolationUpdated implements ShouldBroadcastNow
 
     public function broadcastOn()
     {
+        // Kênh phát sóng: exam.{id_kỳ_thi}
         return new Channel('exam.' . $this->examId);
     }
 

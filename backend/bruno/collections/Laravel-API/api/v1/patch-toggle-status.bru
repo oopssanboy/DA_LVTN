@@ -1,0 +1,17 @@
+meta {
+  name: Toggle Status
+  type: http
+  seq: 24
+}
+patch {
+  url: {{baseUrl}}/api/v1/admin/users/{{id}}/status
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

@@ -1,0 +1,17 @@
+meta {
+  name: Enroll Students
+  type: http
+  seq: 7
+}
+post {
+  url: {{baseUrl}}/api/v1/admin/classes/{{id}}/enroll
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

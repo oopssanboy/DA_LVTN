@@ -1,0 +1,17 @@
+meta {
+  name: Store
+  type: http
+  seq: 21
+}
+post {
+  url: {{baseUrl}}/api/v1/admin/users
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}
