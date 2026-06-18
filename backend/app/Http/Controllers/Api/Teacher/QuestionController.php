@@ -189,6 +189,10 @@ class QuestionController extends Controller
             'file' => 'required|mimes:xlsx,xls,csv|max:10240', // max 10MB
         ]);
 
+
+
+
+        
         try {
             Excel::import(new QuestionsImport, $request->file('file'));
             return response()->json(['message' => 'Import câu hỏi thành công'], 200);
