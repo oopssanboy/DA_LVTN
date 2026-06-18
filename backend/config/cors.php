@@ -19,7 +19,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+    'http://localhost:5173', 
+    'https://ten-du-an-frontend-cua-ban.vercel.app' 
+    ],
 
     'allowed_origins_patterns' => [],
 

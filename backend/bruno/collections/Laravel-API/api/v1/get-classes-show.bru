@@ -3,21 +3,14 @@ meta {
   type: http
   seq: 3
 }
-
 get {
   url: {{baseUrl}}/api/v1/admin/classes/{{class}}
   body: none
   auth: bearer
 }
-
 headers {
   Accept: application/json
 }
-
 auth:bearer {
   token: {{authToken}}
-}
-
-vars:pre-request {
-  class: 1
 }

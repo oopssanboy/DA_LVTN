@@ -6,7 +6,7 @@ class Student extends Model
 {
     protected $primaryKey = 'user_id';
     public $incrementing = false;
-    public $timestamps = false; // Bảng này không có created_at, updated_at
+    public $timestamps = false; 
     protected $fillable = ['user_id', 'student_code', 'name'];
 
     public function user() { return $this->belongsTo(User::class, 'user_id'); }

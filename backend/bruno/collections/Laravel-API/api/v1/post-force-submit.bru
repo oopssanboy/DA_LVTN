@@ -1,0 +1,17 @@
+meta {
+  name: Force Submit
+  type: http
+  seq: 46
+}
+post {
+  url: {{baseUrl}}/api/v1/proctor/attempts/{{attemptId}}/force-submit
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

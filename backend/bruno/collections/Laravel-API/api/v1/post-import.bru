@@ -1,0 +1,17 @@
+meta {
+  name: Import
+  type: http
+  seq: 71
+}
+post {
+  url: {{baseUrl}}/api/v1/teacher/questions/import
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

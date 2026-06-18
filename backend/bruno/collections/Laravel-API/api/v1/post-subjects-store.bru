@@ -1,27 +1,17 @@
 meta {
   name: Subjects Store
   type: http
-  seq: 15
+  seq: 31
 }
-
 post {
   url: {{baseUrl}}/api/v1/admin/subjects
-  body: json
+  body: none
   auth: bearer
 }
-
 headers {
   Accept: application/json
   Content-Type: application/json
 }
-
 auth:bearer {
   token: {{authToken}}
-}
-
-body:json {
-  {
-    "code" : "IT302",
-    "name" : "Nhập môn lập trình"
-  }
 }

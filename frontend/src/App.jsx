@@ -107,12 +107,21 @@ import QuestionList from './pages/admin/QuestionList';
 import QuestionForm from './pages/admin/QuestionForm';
 import ExamManager from './pages/admin/ExamManager';
 import ExamForm from './pages/admin/ExamForm';
+import UserManager from './pages/admin/UserManager.jsx';
+import SubjectManager from './pages/admin/SubjectManager.jsx';
+import CourseManager from './pages/admin/CourseManager.jsx';
+import ClassManager from './pages/admin/ClassManager.jsx';
+import TopicManager from './pages/admin/TopicManager';
 import ExamStatistics from './pages/teacher/ExamStatistics';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherClassManager from './pages/teacher/TeacherClassManager.jsx';
 import ProctorDashboard from './pages/proctor/ProctorDashboard';
+import ExamMonitor from './pages/proctor/ExamMonitor';
 import StudentHome from './pages/student/StudentHome';
 import ExamRoom from './pages/student/ExamRoom';
 import ExamResult from './pages/student/ExamResult';
+import MyExams from './pages/student/MyExams.jsx';
+import ExamHistory from './pages/student/ExamHistory';
 import StudentProfile from './pages/student/StudentProfile';
 
 // Middleware Bảo vệ
@@ -158,31 +167,31 @@ function App() {
       <BrowserRouter>
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
-          {/* TRANG CHỦ CHUNG DÀNH CHO MỌI ACTOR */}
+
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          
-          {/* 1. ADMIN CÓ TOÀN QUYỀN */}
+    
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="subjects" element={<PlaceholderPage title="Quản lý Môn học" />} />
-            <Route path="courses" element={<PlaceholderPage title="Quản lý Khóa học" />} />
-            <Route path="classes" element={<PlaceholderPage title="Quản lý Lớp học" />} />
-            <Route path="users" element={<PlaceholderPage title="Quản lý Người dùng" />} />
+            <Route path="subjects" element={<SubjectManager />} />
+            <Route path="courses" element={<CourseManager />} />
+            <Route path="classes" element={<ClassManager />} />
+            <Route path="users" element={<UserManager />} />
             <Route path="questions" element={<QuestionList />} />
             <Route path="questions/create" element={<QuestionForm />} />
             <Route path="questions/:id/edit" element={<QuestionForm />} />
             <Route path="exams" element={<ExamManager />} />
             <Route path="exams/create" element={<ExamForm />} />
             <Route path="exams/:id/edit" element={<ExamForm />} />
-            <Route path="monitor" element={<PlaceholderPage title="Giám sát phòng thi toàn cục" />} />
+            <Route path="/admin/monitor" element={<ProctorDashboard />} />
+            <Route path="/admin/monitor/:examId" element={<ExamMonitor />} />
             <Route path="statistics" element={<ExamStatistics />} />
+            <Route path="topics" element={<TopicManager />} />
           </Route>
 
-          {/* 2. GIẢNG VIÊN (Quản lý lớp được phân, biên soạn) */}
           <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
             <Route path="dashboard" element={<TeacherDashboard />} />
-            <Route path="classes" element={<PlaceholderPage title="Lớp học của tôi" />} />
+            <Route path="classes" element={<TeacherClassManager />} />
             <Route path="questions" element={<QuestionList />} />
             <Route path="questions/create" element={<QuestionForm />} />
             <Route path="questions/:id/edit" element={<QuestionForm />} />
@@ -190,23 +199,23 @@ function App() {
             <Route path="exams/create" element={<ExamForm />} />
             <Route path="exams/:id/edit" element={<ExamForm />} />
             <Route path="statistics" element={<ExamStatistics />} />
+            <Route path="topics" element={<TopicManager />} />
           </Route>
-          
-          {/* 3. GIÁM THỊ (Chỉ giám sát) */}
+       
           <Route path="/proctor" element={<ProtectedRoute allowedRoles={['proctor']}><ProctorLayout /></ProtectedRoute>}>
-            <Route path="dashboard" element={<ProctorDashboard />} />
-            <Route path="monitor" element={<PlaceholderPage title="Danh sách lớp phân công giám sát" />} />
+            <Route path="/proctor/dashboard" element={<ProctorDashboard />} />
+            <Route path="/proctor/monitor/:examId" element={<ExamMonitor />} />
           </Route>
           
-          {/* 4. SINH VIÊN */}
+     
           <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout /></ProtectedRoute>}>
             <Route path="dashboard" element={<StudentHome />} />
-            <Route path="exams" element={<PlaceholderPage title="Kỳ thi của tôi" />} />
-            <Route path="history" element={<PlaceholderPage title="Lịch sử làm bài" />} />
+            <Route path="exams" element={<MyExams />} />
+            <Route path="history" element={<ExamHistory />} />
             <Route path="profile" element={<StudentProfile />} />
           </Route>
           
-          {/* Phòng thi không cần Sidebar */}
+     
           <Route path="/student/exam/:attemptId" element={<ProtectedRoute allowedRoles={['student']}><ExamRoom /></ProtectedRoute>} />
           <Route path="/student/exam-result/:attemptId" element={<ProtectedRoute allowedRoles={['student']}><ExamResult /></ProtectedRoute>} />
 

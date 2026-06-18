@@ -1,20 +1,17 @@
 meta {
   name: Questions Store
   type: http
-  seq: 30
+  seq: 69
 }
-
 post {
   url: {{baseUrl}}/api/v1/teacher/questions
-  body: json
+  body: none
   auth: bearer
 }
-
 headers {
   Accept: application/json
   Content-Type: application/json
 }
-
 auth:bearer {
   token: {{authToken}}
 }

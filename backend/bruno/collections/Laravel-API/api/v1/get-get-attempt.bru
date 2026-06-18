@@ -1,0 +1,16 @@
+meta {
+  name: Get Attempt
+  type: http
+  seq: 49
+}
+get {
+  url: {{baseUrl}}/api/v1/student/attempts/{{attemptId}}
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

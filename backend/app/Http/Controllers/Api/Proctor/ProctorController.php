@@ -6,67 +6,88 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use Illuminate\Http\Request;
-use Illuminate\Support5\Facades\DB;
+use Illuminate\Support\Facades\DB; 
 use App\Events\ViolationUpdated;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ProctorController extends Controller
 {
-    public function activeExams()
+
+    public function getActiveExams() 
     {
+        $now = Carbon::now();
         $exams = Exam::where('is_active', true)
-            ->where('start_time', '<=', now())
-            ->where('end_time', '>=', now())
+            ->where(function($q) use ($now) {
+                $q->whereNull('start_time')->orWhere('start_time', '<=', $now);
+            })
+            ->where(function($q) use ($now) {
+                $q->whereNull('end_time')->orWhere('end_time', '>=', $now);
+            })
+            ->with(['class', 'subject'])
             ->withCount(['attempts as active_attempts' => function ($q) {
                 $q->where('status', 'in_progress');
             }])
-            ->get(['id', 'title', 'subject', 'duration', 'start_time', 'end_time']);
+            ->get();
+
         return response()->json($exams);
     }
 
-    public function examAttempts(Exam $exam)
+ 
+    public function getAttempts($examId) 
     {
+        $exam = Exam::findOrFail($examId);
         $attempts = ExamAttempt::where('exam_id', $exam->id)
-            ->with('student:id,name,email')
-            ->orderBy('started_at')
-            ->get(['id', 'student_id', 'started_at', 'ended_at', 'status', 'violation_count', 'total_score']);
+            ->with(['student.user', 'violationLogs'])
+            ->orderBy('started_at', 'desc')
+            ->get();
         
-        foreach ($attempts as $attempt) {
+        $attempts->map(function ($attempt) use ($exam) {
+            $attempt->student_name = $attempt->student->name ?? 'Sinh viên';
+            $attempt->student_code = $attempt->student->student_code ?? '';
+            
             if ($attempt->status === 'in_progress') {
                 $examDuration = $exam->duration * 60;
-                $elapsed = now()->diffInSeconds($attempt->started_at);
+                $elapsed = now()->timestamp - Carbon::parse($attempt->started_at)->timestamp;
                 $attempt->remaining_seconds = max(0, $examDuration - $elapsed);
             } else {
                 $attempt->remaining_seconds = 0;
             }
-        }
-        return response()->json($attempts);
+            return $attempt;
+        });
+
+        return response()->json([
+            'exam' => $exam,
+            'attempts' => $attempts
+        ]);
     }
 
-    // Force submit một attempt khẩn cấp từ giám thị
-    public function forceSubmit(ExamAttempt $attempt)
+    public function forceSubmit($attemptId)
     {
+        $attempt = ExamAttempt::findOrFail($attemptId);
+
         if ($attempt->status !== 'in_progress') {
             return response()->json(['message' => 'Bài thi không ở trạng thái đang tiến hành'], 400);
         }
 
-        // Thực hiện logic tự động thu bài chấm điểm
+   
         $submitController = new \App\Http\Controllers\Api\Student\ExamAttemptController();
-        $submitController->performSubmit($attempt); 
+        $submitController->autoSubmitExam($attempt); 
 
-        // 👉 ĐỒNG BỘ: Phát hành động 'force_submit' qua Event
-        Log::info("Force submit attempt {$attempt->id}, broadcasting event");
-        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'force_submit', 'Bài thi của bạn đã bị thu bởi giám thị!'));
+        $attempt->update(['status' => 'suspended']);
 
-        return response()->json(['message' => 'Đã force submit thành công', 'score' => $attempt->fresh()->total_score]);
+ 
+        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'forced_submit', 'Bài thi của bạn đã bị thu bởi giám thị!'));
+
+        return response()->json(['message' => 'Đã thu bài thành công', 'score' => $attempt->fresh()->total_score]);
     }
 
-    // Gửi cảnh báo thủ công từ ô nhập liệu văn bản
-    public function sendWarning(Request $request, ExamAttempt $attempt)
+    public function sendWarning(Request $request, $attemptId)
     {
         $request->validate(['message' => 'required|string']);
+        $attempt = ExamAttempt::findOrFail($attemptId);
         
-        // 👉 ĐỒNG BỘ: Truyền chuẩn biến hành động 'warning' và text thông điệp $request->message
+
         broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'warning', $request->message));
         
         return response()->json(['message' => 'Đã gửi cảnh báo thành công']);

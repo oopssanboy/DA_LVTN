@@ -12,11 +12,16 @@ class ClassController extends Controller
 {
     public function index(Request $request)
     {
-        $classes = Classes::with(['course.subject', 'course.teacher'])
+        $query = Classes::with(['course.subject', 'course.teacher'])
             ->withCount('enrollments')
-            ->orderBy('created_at', 'desc')
-            ->get();
-            
+            ->orderBy('created_at', 'desc');
+        if (auth()->user()->role === 'teacher') {
+            $query->whereHas('course', function($q) {
+                $q->where('teacher_id', auth()->id());
+            });
+        }
+
+        $classes = $query->get();
         return response()->json($classes, 200);
     }
 

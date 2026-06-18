@@ -1,0 +1,23 @@
+meta {
+  name: Exams Show
+  type: http
+  seq: 62
+}
+
+get {
+  url: {{baseUrl}}/api/v1/teacher/exams/{{exam}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+vars:pre-request {
+  exam: 1
+}

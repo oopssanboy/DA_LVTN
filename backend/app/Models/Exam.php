@@ -10,7 +10,7 @@ class Exam extends Model
         'start_time', 'end_time', 'is_active'
     ];
 
-    public function classes() { return $this->belongsTo(Classes::class, 'class_id'); }
+    public function class() { return $this->belongsTo(Classes::class, 'class_id'); }
     public function subject() { return $this->belongsTo(Subject::class); }
     public function matrices() { return $this->hasMany(ExamMatrix::class); }
     public function questions() { return $this->hasMany(ExamQuestion::class); }

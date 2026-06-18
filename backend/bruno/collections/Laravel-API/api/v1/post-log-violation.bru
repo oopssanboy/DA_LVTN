@@ -1,0 +1,17 @@
+meta {
+  name: Log Violation
+  type: http
+  seq: 53
+}
+post {
+  url: {{baseUrl}}/api/v1/student/attempts/{{attemptId}}/violation
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

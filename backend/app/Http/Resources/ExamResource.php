@@ -13,6 +13,7 @@ class ExamResource extends JsonResource
             'class_id' => $this->class_id,
             'class_name' => $this->class->name ?? null,
             'title' => $this->title,
+            'subject_name' => $this->subject->name ?? '',
             'subject' => $this->subject,
             'duration' => $this->duration,
             'total_questions' => $this->total_questions,

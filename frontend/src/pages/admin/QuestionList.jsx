@@ -11,6 +11,7 @@ export default function QuestionList() {
     const [questions, setQuestions] = useState([]);
     const [pagination, setPagination] = useState({});
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const apiPrefix = user?.role === 'admin' ? '/admin' : '/teacher';
 
@@ -18,7 +19,6 @@ export default function QuestionList() {
         setLoading(true);
         try {
             const res = await api.get(url);
-            // Chuẩn hóa data từ Laravel (Dù dùng Paginate hay API Resource)
             setQuestions(res.data.data);
             setPagination({
                 links: res.data.meta?.links || res.data.links,
@@ -50,12 +50,12 @@ export default function QuestionList() {
             try {
                 await api.delete(`${apiPrefix}/questions/${id}`);
                 toast.success('Xóa thành công');
-                fetchQuestions(); // Load lại trang hiện tại
+                fetchQuestions();
             } catch (error) {
                 toast.error('Lỗi khi xóa câu hỏi');
             }
         }
-        
+
     };
     const fileInputRef = useRef(null);
 
@@ -87,12 +87,18 @@ export default function QuestionList() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             toast.success('Import thành công!', { id: loadingToast });
-            fetchQuestions(); // Tải lại danh sách
+            fetchQuestions();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Import thất bại. Kiểm tra lại format file.', { id: loadingToast });
         }
-        e.target.value = ''; // Reset input
+        e.target.value = '';
     };
+    const filteredQuestions = questions.filter(q => {
+        const content = q.content || '';
+        const subjectName = q.subject?.name || '';
+        const query = searchQuery.toLowerCase();
+        return content.toLowerCase().includes(query) || subjectName.toLowerCase().includes(query);
+    });
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -102,13 +108,13 @@ export default function QuestionList() {
                     <p className="text-slate-500 mt-1">Quản lý và biên soạn câu hỏi trắc nghiệm, điền khuyết.</p>
                 </div>
                 <div className="flex gap-2">
-                    {/* Input ẩn để chọn file */}
+
                     <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls,.csv" className="hidden" />
-                    
+
                     <button onClick={() => fileInputRef.current.click()} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
                         <Upload className="w-5 h-5" /> Import
                     </button>
-                    
+
                     <button onClick={handleExport} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
                         <Download className="w-5 h-5" /> Export
                     </button>
@@ -123,7 +129,13 @@ export default function QuestionList() {
                 <div className="p-4 border-b border-slate-100 flex gap-4 bg-slate-50/50">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                        <input type="text" placeholder="Tìm kiếm nội dung câu hỏi..." className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm nội dung hoặc môn học..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
                     </div>
                     <button className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition flex items-center gap-2 font-medium">
                         <Filter className="w-5 h-5" /> Lọc
@@ -147,7 +159,7 @@ export default function QuestionList() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {questions.map((q) => (
+                                {filteredQuestions.map((q) => (
                                     <tr key={q.id} className="hover:bg-slate-50/80 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-800">{q.subject?.name || 'N/A'}</td>
                                         <td className="px-6 py-4">
@@ -162,8 +174,8 @@ export default function QuestionList() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase
-                                                ${q.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' : 
-                                                  q.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}
+                                                ${q.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' :
+                                                    q.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}
                                             >
                                                 {q.difficulty}
                                             </span>
@@ -184,7 +196,7 @@ export default function QuestionList() {
                         </table>
                     )}
                 </div>
-                
+
                 {/* Pagination */}
                 {pagination.links && pagination.links.length > 3 && (
                     <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">

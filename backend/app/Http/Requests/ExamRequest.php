@@ -16,19 +16,19 @@ class ExamRequest extends FormRequest
         return [
             'class_id' => 'required|exists:classes,id',
             'title' => 'required|string|max:255',
-            'subject' => 'required|string|max:255',
+            'subject_id' => 'required|exists:subjects,id',
             'duration' => 'required|integer|min:1',
             'total_questions' => 'required|integer|min:1',
             'start_time' => 'nullable|date',
-            'end_time' => 'nullable|date|after:start_time',
-            'password' => 'nullable|string|min:4',
+            'end_time' => 'nullable|date|after_or_equal:start_time',
+            'password' => 'nullable|string',
             'is_active' => 'boolean',
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
             'passing_score' => 'required|numeric|min:0|max:10',
-            // matrices là một mảng các dòng, mỗi dòng có topic, difficulty, quantity
+           
             'matrices' => 'required|array|min:1',
-            'matrices.*.topic' => 'required|string|max:255',
+            'matrices.*.topic_id' => 'required|exists:topics,id', 
             'matrices.*.difficulty' => 'required|in:easy,medium,hard',
             'matrices.*.quantity' => 'required|integer|min:1',
         ];
@@ -38,9 +38,28 @@ class ExamRequest extends FormRequest
     {
         return [
             'matrices.required' => 'Vui lòng thiết lập ít nhất một dòng ma trận.',
-            'total_questions' => 'Tổng số câu hỏi phải bằng tổng quantity trong ma trận.',
+            'matrices.*.topic_id.required' => 'Vui lòng chọn chủ đề cho ma trận.',
+            'matrices.*.topic_id.exists' => 'Chủ đề được chọn không hợp lệ.',
+            'matrices.*.difficulty.required' => 'Vui lòng chọn độ khó.',
+            'matrices.*.quantity.required' => 'Vui lòng nhập số lượng câu hỏi.',
+            'matrices.*.quantity.min' => 'Số lượng câu hỏi phải lớn hơn 0.',
         ];
     }
 
-    // Tùy chọn: kiểm tra tổng quantity có bằng total_questions không (nên làm ở controller)
+    // Tùy chọn: có thể thêm phương thức withValidator để kiểm tra tổng quantity == total_questions
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $data = $this->all();
+            if (isset($data['matrices']) && isset($data['total_questions'])) {
+                $totalQuantity = collect($data['matrices'])->sum('quantity');
+                if ($totalQuantity != $data['total_questions']) {
+                    $validator->errors()->add(
+                        'total_questions',
+                        "Tổng số câu hỏi trong ma trận ({$totalQuantity}) không khớp với tổng số câu hỏi của kỳ thi ({$data['total_questions']})."
+                    );
+                }
+            }
+        });
+    }
 }

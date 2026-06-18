@@ -1,0 +1,16 @@
+meta {
+  name: Get Attempts
+  type: http
+  seq: 48
+}
+get {
+  url: {{baseUrl}}/api/v1/proctor/exams/{{examId}}/attempts
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

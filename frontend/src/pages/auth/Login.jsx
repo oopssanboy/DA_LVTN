@@ -1,24 +1,22 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { BookOpen,GraduationCap, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
+import FloatingContact from '../../components/common/FloatingContact';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("student");
   
-  // States quản lý form đăng nhập
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
   
-  // 🔥 Lấy hàm login từ Context để cập nhật State toàn cục ngay lập tức (Fix lỗi phải đăng nhập 2 lần)
   const { login } = useAuth();
 
-  // Tính năng ẩn: Tự động điền tài khoản khi click chọn Role (Dành cho lúc test/bảo vệ đồ án)
   const handleRoleChange = (selectedRole) => {
     setRole(selectedRole);
     if (selectedRole === "admin") {
@@ -35,15 +33,11 @@ export default function Login() {
     setLoading(true);
     
     try {
-      // 🔥 Gọi hàm login của Context thay vì gọi api trực tiếp
       const data = await login(email, password);
       toast.success("Đăng nhập thành công!");
-      
-      // Chuyển hướng người dùng dựa vào Role thực tế trả về từ Backend
       const userRole = data.user.role;
       if (userRole === "admin" || userRole === "teacher") return navigate("/admin/dashboard");
       if (userRole === "proctor") return navigate("/proctor/dashboard");
-      // Có thể là /student/dashboard hoặc /student/home tùy vào file App.jsx của bạn
       if (userRole === "student") return navigate("/student/dashboard"); 
       
     } catch (error) {
@@ -55,18 +49,18 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
-      {/* CỘT TRÁI - Branding (Ẩn trên thiết bị di động) */}
-      <div className="hidden md:flex flex-1 bg-blue-600 text-white flex-col justify-between p-12 relative overflow-hidden">
-        {/* Hình nền mờ */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+
+      <div className="hidden md:flex flex-1 bg-blue-400 text-white flex-col justify-between p-12 relative overflow-hidden">
+
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-100 mix-blend-overlay"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent"></div>
         
         <div className="relative z-10">
           <Link to="/" className="flex items-center gap-2 mb-12 w-max">
             <div className="bg-white p-2 rounded-xl">
-              <BookOpen className="w-8 h-8 text-blue-600" />
+             <GraduationCap className="w-8 h-8 text-blue-600"/>
             </div>
-            <span className="font-bold text-2xl tracking-tight">STU Exam</span>
+            <span className="font-bold text-2xl tracking-tight">NQ EduTech</span>
           </Link>
           
           <div>
@@ -80,21 +74,21 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 flex items-center gap-4 text-sm font-medium text-blue-200">
-          <span>© 2026 STU ExamSystem</span>
+          <span>© 2026 NQ EduTech</span>
           <div className="w-1 h-1 rounded-full bg-blue-400"></div>
           <a href="#" className="hover:text-white transition">Hỗ trợ</a>
         </div>
       </div>
 
-      {/* CỘT PHẢI - Form Đăng nhập */}
+   
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 relative">
         <div className="w-full max-w-md">
-          {/* Logo hiển thị riêng cho điện thoại */}
+       
           <Link to="/" className="flex items-center gap-2 mb-8 md:hidden justify-center">
             <div className="bg-blue-600 p-2 rounded-xl">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <span className="font-bold text-2xl tracking-tight text-slate-800">STU Exam</span>
+            <span className="font-bold text-2xl tracking-tight text-slate-800">NQ EduTech</span>
           </Link>
 
           <div className="mb-10 text-center md:text-left">
@@ -104,9 +98,9 @@ export default function Login() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-4">
-              {/* Input Email */}
+        
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email / Mã số</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Mail className="w-5 h-5" />
@@ -122,7 +116,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Input Mật khẩu */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-sm font-semibold text-slate-700">Mật khẩu</label>
@@ -151,9 +144,9 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Role Selection - Kèm Auto-fill */}
+         
             <div className="pt-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Vai trò truy cập (Chỉ dùng để Auto-fill test)</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Auto-fill test</label>
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   type="button"
@@ -190,10 +183,11 @@ export default function Login() {
           </form>
 
           <div className="mt-8 pt-8 border-t border-slate-100 text-center text-sm font-medium text-slate-500">
-            Chưa có tài khoản? Liên hệ Phòng Đào Tạo.
+            Chưa có tài khoản? Liên Trung Tâm Đào Tạo hoặc giảng viên hướng dẫn.
           </div>
         </div>
       </div>
+      <FloatingContact />
     </div>
   );
 }

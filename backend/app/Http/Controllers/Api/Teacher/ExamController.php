@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
@@ -14,12 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class ExamController extends Controller
 {
-    // Lấy danh sách kỳ thi
     public function index(Request $request)
     {
         $query = Exam::with(['class', 'matrices']);
         
-        // Giảng viên chỉ xem kỳ thi của lớp mình dạy
+        // Nếu là giảng viên, chỉ lấy kỳ thi của lớp mình dạy
         if (auth()->user()->role === 'teacher') {
             $query->whereHas('class.course', function($q) {
                 $q->where('teacher_id', auth()->user()->id);
@@ -34,14 +33,12 @@ class ExamController extends Controller
         return ExamResource::collection($exams);
     }
 
-    // Xem chi tiết kỳ thi
     public function show($id)
     {
         $exam = Exam::with(['class', 'matrices', 'questions'])->findOrFail($id);
         return response()->json(new ExamResource($exam));
     }
 
-    // Tạo kỳ thi và ma trận đề
     public function store(ExamRequest $request)
     {
         $data = $request->validated();
@@ -58,14 +55,12 @@ class ExamController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Tạo kỳ thi
             $exam = Exam::create($data);
 
-            // 2. Lưu ma trận đề
             foreach ($matrices as $matrix) {
                 ExamMatrix::create([
                     'exam_id' => $exam->id,
-                    'topic_id' => $matrix['topic_id'], // Đã sửa string thành ID chuẩn
+                    'topic_id' => $matrix['topic_id'],
                     'difficulty' => $matrix['difficulty'],
                     'quantity' => $matrix['quantity']
                 ]);
@@ -76,18 +71,16 @@ class ExamController extends Controller
             return response()->json(['message' => 'Tạo kỳ thi thành công', 'data' => new ExamResource($exam)], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Lỗi tạo kỳ thi', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Lỗi tạo kỳ thi'.$e->getMessage(), 'error' => $e->getMessage()], 500);
         }
     }
 
-    // Sinh đề thi ngẫu nhiên dựa trên ma trận
     public function generateExam($id)
     {
         $exam = Exam::findOrFail($id);
         
         DB::beginTransaction();
         try {
-            // Xóa đề cũ nếu đã có (để cho phép trộn lại)
             ExamQuestion::where('exam_id', $exam->id)->delete();
             
             $matrices = ExamMatrix::where('exam_id', $exam->id)->get();
@@ -100,7 +93,6 @@ class ExamController extends Controller
                     ->limit($matrix->quantity)
                     ->get();
                 
-                // Kiểm tra xem ngân hàng câu hỏi có đủ không
                 if ($questions->count() < $matrix->quantity) {
                     throw new \Exception("Chủ đề ID {$matrix->topic_id} độ khó {$matrix->difficulty} không đủ câu hỏi trong ngân hàng.");
                 }
@@ -115,18 +107,15 @@ class ExamController extends Controller
                 }
             }
             
-            // Insert bulk để tối ưu hiệu suất
             ExamQuestion::insert($selectedQuestions);
-            
             DB::commit();
             return response()->json(['message' => 'Đã sinh đề thi thành công từ ma trận']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Lỗi sinh đề thi', 'error' => $e->getMessage()], 400);
+            return response()->json(['message' => 'Lỗi sinh đề thi'.$e->getMessage(), 'error' => $e->getMessage()], 400);
         }
     }
 
-    // Cập nhật kỳ thi
     public function update(ExamRequest $request, $id)
     {
         $exam = Exam::findOrFail($id);
@@ -136,7 +125,6 @@ class ExamController extends Controller
         try {
             $exam->update($data);
             
-            // Nếu có update ma trận, xóa ma trận cũ và tạo lại
             if (isset($data['matrices'])) {
                 ExamMatrix::where('exam_id', $exam->id)->delete();
                 foreach ($data['matrices'] as $matrix) {
@@ -156,11 +144,23 @@ class ExamController extends Controller
         }
     }
 
-    // Xóa kỳ thi
     public function destroy($id)
     {
         $exam = Exam::findOrFail($id);
         $exam->delete();
         return response()->json(['message' => 'Xóa kỳ thi thành công']);
+    }
+    // Bật/Tắt trạng thái kỳ thi
+    public function toggleStatus($id)
+    {
+        $exam = Exam::findOrFail($id);
+        $exam->is_active = !$exam->is_active;
+        $exam->save();
+
+        $statusText = $exam->is_active ? 'Đã mở khóa' : 'Đã khóa';
+        return response()->json([
+            'message' => $statusText . ' phòng thi thành công!',
+            'is_active' => $exam->is_active
+        ]);
     }
 }

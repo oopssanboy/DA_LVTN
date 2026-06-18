@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
         return
       }
       
-      const res = await api.get('/user')
+      const res = await api.get('/auth/me')
       setUser(res.data.user)
     } catch (error) {
       console.error('Lỗi khi fetch user:', error)

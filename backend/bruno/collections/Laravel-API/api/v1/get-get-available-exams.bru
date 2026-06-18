@@ -1,0 +1,16 @@
+meta {
+  name: Get Available Exams
+  type: http
+  seq: 54
+}
+get {
+  url: {{baseUrl}}/api/v1/student/exams/available
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

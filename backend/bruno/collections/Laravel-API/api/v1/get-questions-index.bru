@@ -1,19 +1,16 @@
 meta {
   name: Questions Index
   type: http
-  seq: 29
+  seq: 68
 }
-
 get {
   url: {{baseUrl}}/api/v1/teacher/questions
-  body: json
+  body: none
   auth: bearer
 }
-
 headers {
   Accept: application/json
 }
-
 auth:bearer {
   token: {{authToken}}
 }

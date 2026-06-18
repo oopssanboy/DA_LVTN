@@ -1,246 +1,137 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
-import axios from 'axios';
-import { 
-  FaUserGraduate, FaSignOutAlt, FaLock, FaSave, 
-  FaEnvelope, FaIdCard, FaPhone, FaUserEdit, FaShieldAlt 
-} from 'react-icons/fa';
+import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { User, Mail, Shield, Key, Save, Loader2 } from 'lucide-react';
+import api from '../../services/api';
+import toast from 'react-hot-toast';
 
 export default function StudentProfile() {
-    const navigate = useNavigate();
-    const API_URL = import.meta.env.VITE_API_URL;
-    const token = localStorage.getItem('token');
+    const { user } = useAuth();
+    const [loading, setLoading] = useState(false);
     
-    const [user, setUser] = useState({ name: '', email: '', class: '', phone: '' });
-    const [passwords, setPasswords] = useState({ current_password: '', new_password: '', confirm_password: '' });
-    
-    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-
-    useEffect(() => {
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        setUser({
-            name: storedUser.name || '',
-            email: storedUser.email || '',
-            class: storedUser.class || '',
-            phone: storedUser.phone || ''
-        });
-    }, [navigate, token]);
-
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/login');
-    };
-
-    const handleUpdateProfile = async (e) => {
-        e.preventDefault();
-        setIsUpdatingProfile(true);
-        try {
-            const response = await axios.put(`${API_URL}/student/profile`, user, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-            Swal.fire({
-                title: 'Thành công!',
-                text: 'Thông tin cá nhân đã được cập nhật.',
-                icon: 'success',
-                confirmButtonColor: '#2563eb'
-            });
-        } catch (error) {
-            Swal.fire('Thất bại', error.response?.data?.message || 'Không thể cập nhật thông tin!', 'error');
-        } finally {
-            setIsUpdatingProfile(false);
-        }
-    };
+    // Form đổi mật khẩu
+    const [passwords, setPasswords] = useState({
+        current_password: '',
+        new_password: '',
+        new_password_confirmation: '' // Laravel yêu cầu trường confirmed phải có hậu tố _confirmation
+    });
 
     const handleUpdatePassword = async (e) => {
         e.preventDefault();
-        if (passwords.new_password !== passwords.confirm_password) {
-            Swal.fire('Lỗi', 'Xác nhận mật khẩu mới không khớp!', 'error');
+        
+        if (passwords.new_password !== passwords.new_password_confirmation) {
+            toast.error('Mật khẩu mới không khớp nhau!');
             return;
         }
-        setIsUpdatingPassword(true);
+
+        setLoading(true);
         try {
-            await axios.put(`${API_URL}/student/change-password`, passwords, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            Swal.fire({
-                title: 'Thành công!',
-                text: 'Mật khẩu đã được thay đổi.',
-                icon: 'success',
-                confirmButtonColor: '#2563eb'
-            });
-            setPasswords({ current_password: '', new_password: '', confirm_password: '' });
+            await api.put('/auth/password', passwords);
+            toast.success('Đổi mật khẩu thành công!');
+            setPasswords({ current_password: '', new_password: '', new_password_confirmation: '' });
         } catch (error) {
-            Swal.fire('Thất bại', error.response?.data?.message || 'Không thể đổi mật khẩu!', 'error');
+            const errs = error.response?.data?.errors;
+            if (errs) {
+                Object.values(errs).forEach(err => toast.error(err[0]));
+            } else {
+                toast.error(error.response?.data?.message || 'Lỗi khi đổi mật khẩu');
+            }
         } finally {
-            setIsUpdatingPassword(false);
+            setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-            {/* Header: Tiêu đề & Nút Đăng xuất */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 pb-5 border-b border-gray-200">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <FaUserGraduate className="text-blue-600" /> Hồ sơ cá nhân
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">Quản lý thông tin cá nhân và bảo mật tài khoản sinh viên</p>
-                </div>
-                <button 
-                    onClick={handleLogout} 
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-all duration-200 shadow-sm active:scale-95 self-start sm:self-auto"
-                >
-                    <FaSignOutAlt /> Đăng xuất
-                </button>
-            </div>
+        <div className="max-w-4xl mx-auto space-y-6 pb-10">
+            <h1 className="text-2xl font-bold text-slate-800">Hồ sơ cá nhân</h1>
 
-            {/* Grid Layout 2 Cột bằng Tailwind */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* Khối bên trái: Thông tin cá nhân */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-                    <div className="border-b border-gray-100 pb-4">
-                        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <FaUserEdit className="text-blue-600" /> Thông tin sinh viên
-                        </h2>
+                {/* THÔNG TIN CÁ NHÂN */}
+                <div className="md:col-span-1 space-y-6">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
+                        <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                            <User className="w-12 h-12" />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-800">{user?.name || 'Học viên'}</h2>
+                        <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold mt-2">
+                            {user?.code || 'Chưa cập nhật mã số'}
+                        </span>
                     </div>
-                    
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <FaIdCard className="text-gray-400" /> Họ và tên <span className="text-red-500">*</span>
-                            </label>
-                            <input 
-                                type="text" 
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm" 
-                                required 
-                                value={user.name} 
-                                onChange={(e) => setUser({...user, name: e.target.value})}
-                                placeholder="Nhập họ và tên sinh viên"
-                            />
-                        </div>
 
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <FaEnvelope className="text-gray-400" /> Địa chỉ Email <span className="text-red-500">*</span>
-                            </label>
-                            <input 
-                                type="email" 
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm" 
-                                required 
-                                value={user.email} 
-                                onChange={(e) => setUser({...user, email: e.target.value})}
-                                placeholder="Nhập email sinh viên (@stu.edu.vn)"
-                            />
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                        <h3 className="font-bold text-slate-800 border-b pb-2">Thông tin liên hệ</h3>
+                        <div className="flex items-center gap-3 text-sm text-slate-600">
+                            <Mail className="w-5 h-5 text-slate-400" />
+                            <span className="break-all">{user?.email}</span>
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <FaPhone className="text-gray-400" /> Số điện thoại
-                            </label>
-                            <input 
-                                type="text" 
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm" 
-                                value={user.phone} 
-                                onChange={(e) => setUser({...user, phone: e.target.value})}
-                                placeholder="Chưa cập nhật số điện thoại liên hệ"
-                            />
+                        <div className="flex items-center gap-3 text-sm text-slate-600">
+                            <Shield className="w-5 h-5 text-slate-400" />
+                            <span className="capitalize">Vai trò: {user?.role}</span>
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <FaUserGraduate /> Lớp sinh hoạt cố định
-                            </label>
-                            <input 
-                                type="text" 
-                                className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed text-sm outline-none" 
-                                disabled 
-                                value={user.class || 'Chưa phân lớp'} 
-                            />
-                        </div>
-
-                        <button 
-                            type="submit" 
-                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all duration-150 shadow-sm shadow-blue-500/10 active:scale-[0.99]"
-                            disabled={isUpdatingProfile}
-                        >
-                            <FaSave className="text-base" />
-                            {isUpdatingProfile ? 'Đang lưu xử lý...' : 'Lưu thông tin'}
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
-                {/* Khối bên phải: Bảo mật & Mật khẩu */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-                    <div className="border-b border-gray-100 pb-4">
-                        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <FaShieldAlt className="text-amber-500" /> Bảo mật tài khoản
-                        </h2>
-                    </div>
-                    
-                    <form onSubmit={handleUpdatePassword} className="space-y-4 h-[calc(100%-3rem)] flex flex-col justify-between">
-                        <div className="space-y-4 w-full">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                    <FaLock className="text-gray-400" /> Mật khẩu hiện tại <span className="text-red-500">*</span>
-                                </label>
-                                <input 
-                                    type="password" 
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm" 
-                                    required 
-                                    value={passwords.current_password} 
-                                    onChange={(e) => setPasswords({...passwords, current_password: e.target.value})}
-                                    placeholder="Xác thực mật khẩu cũ để thay đổi"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                    <FaLock className="text-blue-500" /> Mật khẩu mới <span className="text-red-500">*</span>
-                                </label>
-                                <input 
-                                    type="password" 
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm" 
-                                    required 
-                                    minLength="6"
-                                    value={passwords.new_password} 
-                                    onChange={(e) => setPasswords({...passwords, new_password: e.target.value})}
-                                    placeholder="Tối thiểu từ 6 ký tự trở lên"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                    <FaLock className="text-green-500" /> Xác nhận mật khẩu mới <span className="text-red-500">*</span>
-                                </label>
-                                <input 
-                                    type="password" 
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm" 
-                                    required 
-                                    minLength="6"
-                                    value={passwords.confirm_password} 
-                                    onChange={(e) => setPasswords({...passwords, confirm_password: e.target.value})}
-                                    placeholder="Nhập lại mật khẩu mới để đối chiếu"
-                                />
-                            </div>
+                {/* ĐỔI MẬT KHẨU */}
+                <div className="md:col-span-2">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <Key className="w-5 h-5 text-amber-500" /> Đổi mật khẩu
+                            </h2>
+                            <p className="text-sm text-slate-500 mt-1">Đảm bảo tài khoản của bạn đang sử dụng một mật khẩu mạnh và an toàn.</p>
                         </div>
 
-                        <button 
-                            type="submit" 
-                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm rounded-xl transition-all duration-150 shadow-sm shadow-amber-500/10 active:scale-[0.99] mt-6"
-                            disabled={isUpdatingPassword}
-                        >
-                            <FaSave className="text-base" />
-                            {isUpdatingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
-                        </button>
-                    </form>
+                        <form onSubmit={handleUpdatePassword} className="p-6 space-y-5">
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Mật khẩu hiện tại</label>
+                                <input 
+                                    type="password" 
+                                    required 
+                                    value={passwords.current_password}
+                                    onChange={(e) => setPasswords({...passwords, current_password: e.target.value})}
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition" 
+                                    placeholder="••••••••"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Mật khẩu mới</label>
+                                <input 
+                                    type="password" 
+                                    required 
+                                    minLength={6}
+                                    value={passwords.new_password}
+                                    onChange={(e) => setPasswords({...passwords, new_password: e.target.value})}
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition" 
+                                    placeholder="Ít nhất 6 ký tự"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Xác nhận mật khẩu mới</label>
+                                <input 
+                                    type="password" 
+                                    required 
+                                    minLength={6}
+                                    value={passwords.new_password_confirmation}
+                                    onChange={(e) => setPasswords({...passwords, new_password_confirmation: e.target.value})}
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition" 
+                                    placeholder="Nhập lại mật khẩu mới"
+                                />
+                            </div>
+
+                            <div className="pt-4 flex justify-end">
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                    className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition flex items-center gap-2 disabled:opacity-70"
+                                >
+                                    {loading ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5" />} 
+                                    Lưu thay đổi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
             </div>

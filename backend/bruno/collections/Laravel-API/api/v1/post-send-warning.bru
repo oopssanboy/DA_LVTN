@@ -1,0 +1,17 @@
+meta {
+  name: Send Warning
+  type: http
+  seq: 47
+}
+post {
+  url: {{baseUrl}}/api/v1/proctor/attempts/{{attemptId}}/warn
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

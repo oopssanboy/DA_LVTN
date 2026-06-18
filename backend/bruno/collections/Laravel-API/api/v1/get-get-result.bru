@@ -1,0 +1,16 @@
+meta {
+  name: Get Result
+  type: http
+  seq: 51
+}
+get {
+  url: {{baseUrl}}/api/v1/student/attempts/{{attemptId}}/result
+  body: none
+  auth: bearer
+}
+headers {
+  Accept: application/json
+}
+auth:bearer {
+  token: {{authToken}}
+}

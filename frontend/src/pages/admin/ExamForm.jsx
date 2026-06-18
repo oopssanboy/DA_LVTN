@@ -1,183 +1,301 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { useAuth } from '../../context/AuthContext';
+import { Save, X, Plus, Trash2, Loader2 } from 'lucide-react';
 import api from '../../services/api';
-import MatrixRows from '../../components/admin/MatrixRows';
+import toast from 'react-hot-toast';
 
 export default function ExamForm() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const isEdit = !!id;
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const apiPrefix = user?.role === 'admin' ? '/admin' : '/teacher';
+    
+    const isEdit = !!id;
+    const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(isEdit);
+    const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]); 
+    const [allTopics, setAllTopics] = useState([]); // Lưu trữ toàn bộ chủ đề từ cơ sở dữ liệu
 
-  const [formData, setFormData] = useState({
-    class_id: '',
-    title: '',
-    subject: '',
-    duration: 60,
-    total_questions: 0,
-    start_time: '',
-    end_time: '',
-    password: '',
-    is_active: false,
-    shuffle_questions: true,
-    shuffle_options: true,
-    passing_score: 5,
-    matrices: [{ topic: '', difficulty: 'easy', quantity: 1 }],
-  });
-
-  const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-  // Fetch danh sách lớp
-  api.get('/classes')
-    .then(res => {
-      // Ưu tiên res.data.data (nếu dùng Resource/Pagination), nếu không có thì lấy trực tiếp res.data
-      const classList = res.data.data || res.data || [];
-      setClasses(classList);
-    })
-    .catch(err => {
-      console.error('Lỗi khi tải danh sách lớp:', err);
+    const { register, control, handleSubmit, watch, reset } = useForm({
+        defaultValues: {
+            title: '',
+            subject_id: '', 
+            class_id: '',
+            duration: 60,
+            passing_score: 5,
+            shuffle_questions: true,
+            shuffle_options: true,
+            is_active: false,
+            password: '',
+            start_time: '',
+            end_time: '',
+            matrices: [{ topic_id: '', difficulty: 'easy', quantity: 1 }]
+        }
     });
 
-  if (isEdit) {
-    api.get(`/exams/${id}`).then(res => {
-      const exam = res.data.data;
-      setFormData({
-        class_id: exam.class_id,
-        title: exam.title,
-        subject: exam.subject,
-        duration: exam.duration,
-        total_questions: exam.total_questions,
-        start_time: exam.start_time ? exam.start_time.slice(0, 16) : '',
-        end_time: exam.end_time ? exam.end_time.slice(0, 16) : '',
-        password: exam.password || '',
-        is_active: exam.is_active,
-        shuffle_questions: exam.shuffle_questions,
-        shuffle_options: exam.shuffle_options,
-        passing_score: exam.passing_score,
-        matrices: exam.matrices && exam.matrices.length > 0 ? exam.matrices : [{ topic: '', difficulty: 'easy', quantity: 1 }],
-      });
-    }).catch(err => {
-       console.error('Lỗi khi tải chi tiết kỳ thi:', err);
-    });
-  }
-}, [id, isEdit]);
+    const { fields, append, remove } = useFieldArray({ control, name: 'matrices' });
+    
+    // Theo dõi các trường để tính toán động
+    const watchMatrices = watch('matrices');
+    const selectedSubjectId = watch('subject_id'); 
+    
+    // Tính tổng số câu hỏi tự động dựa trên ma trận
+    const totalQuestions = watchMatrices.reduce((sum, current) => sum + (Number(current.quantity) || 0), 0);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
+    // Lọc danh sách chủ đề động theo Môn học đang được chọn
+    const filteredTopics = allTopics.filter(
+        topic => String(topic.subject_id) === String(selectedSubjectId)
+    );
 
-  const handleTotalQuestionsChange = (e) => {
-    const val = parseInt(e.target.value) || 0;
-    setFormData(prev => ({ ...prev, total_questions: val }));
-  };
+    useEffect(() => {
+        fetchDependencies();
+        if (isEdit) fetchExam();
+    }, [id]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const totalQ = formData.matrices.reduce((sum, m) => sum + (Number(m.quantity) || 0), 0);
-    if (totalQ !== parseInt(formData.total_questions)) {
-      alert(`Tổng số câu hỏi (${totalQ}) không khớp với tổng số câu bạn nhập (${formData.total_questions})`);
-      return;
-    }
+    // Tải danh mục Lớp, Môn học và tất cả Chủ đề
+    const fetchDependencies = async () => {
+        try {
+            const [classRes, subjectRes, topicRes] = await Promise.all([
+                api.get(`${apiPrefix}/classes`),
+                api.get(`${apiPrefix}/subjects`),
+                api.get(`${apiPrefix}/topics`) 
+            ]);
+            
+            setClasses(classRes.data.data || classRes.data);
+            setSubjects(subjectRes.data.data || subjectRes.data);
+            setAllTopics(topicRes.data.data || topicRes.data);
+            
+        } catch (error) {
+            toast.error("Không thể tải danh mục Lớp học / Môn học / Chủ đề");
+        }
+    };
 
-    setLoading(true);
-    try {
-      if (isEdit) {
-        await api.put(`/exams/${id}`, formData);
-      } else {
-        await api.post('/exams', formData);
-      }
-      navigate('/admin/exams');
-    } catch (error) {
-      if (error.response?.status === 422) {
-        // Trích xuất các lỗi validation chi tiết từ Laravel
-        const validationErrors = error.response.data.errors;
-        const errorMessages = Object.values(validationErrors).flat().join('\n');
-        alert(`Vui lòng kiểm tra lại thông tin:\n${errorMessages}`);
-      } else {
-        alert(error.response?.data?.message || 'Lỗi lưu kỳ thi');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Tải thông tin kỳ thi cũ nếu ở chế độ Sửa
+    const fetchExam = async () => {
+        try {
+            const res = await api.get(`${apiPrefix}/exams/${id}`);
+            const e = res.data.data || res.data;
+            
+            const formatDT = (dt) => dt ? new Date(dt).toISOString().slice(0, 16) : '';
 
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">{isEdit ? 'Sửa kỳ thi' : 'Tạo kỳ thi mới'}</h1>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium">Lớp học</label>
-            <select name="class_id" value={formData.class_id} onChange={handleChange} required className="w-full border rounded px-3 py-2">
-              <option value="">Chọn lớp</option>
-              {classes.map(cls => (
-                <option key={cls.id} value={cls.id}>{cls.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Tiêu đề kỳ thi</label>
-            <input type="text" name="title" value={formData.title} onChange={handleChange} required className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Môn học</label>
-            <input type="text" name="subject" value={formData.subject} onChange={handleChange} required className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Thời gian làm bài (phút)</label>
-            <input type="number" name="duration" value={formData.duration} onChange={handleChange} required className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Tổng số câu hỏi</label>
-            <input type="number" name="total_questions" value={formData.total_questions} onChange={handleTotalQuestionsChange} required className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Điểm đậu (thang 10)</label>
-            <input type="number" step="0.5" name="passing_score" value={formData.passing_score} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Ngày bắt đầu</label>
-            <input type="datetime-local" name="start_time" value={formData.start_time} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Ngày kết thúc</label>
-            <input type="datetime-local" name="end_time" value={formData.end_time} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Mật khẩu (nếu có)</label>
-            <input type="text" name="password" value={formData.password} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-          </div>
+            reset({
+                title: e.title,
+                subject_id: e.subject_id || e.subject?.id || '', 
+                class_id: e.class_id,
+                duration: e.duration,
+                passing_score: e.passing_score,
+                shuffle_questions: e.shuffle_questions,
+                shuffle_options: e.shuffle_options,
+                is_active: e.is_active,
+                password: e.password || '',
+                start_time: formatDT(e.start_time),
+                end_time: formatDT(e.end_time),
+                // Map chính xác topic_id từ quan hệ database
+                matrices: e.matrices && e.matrices.length > 0 
+                    ? e.matrices.map(m => ({ 
+                        topic_id: m.topic_id, 
+                        difficulty: m.difficulty, 
+                        quantity: m.quantity 
+                    }))
+                    : [{ topic_id: '', difficulty: 'easy', quantity: 1 }]
+            });
+        } catch (error) {
+            toast.error('Lỗi tải thông tin kỳ thi');
+            navigate(`${apiPrefix}/exams`);
+        } finally {
+            setFetching(false);
+        }
+    };
+
+    const onSubmit = async (data) => {
+        setLoading(true);
+        const payload = { ...data, total_questions: totalQuestions };
+
+        // Định dạng lại chuỗi thời gian phù hợp với Laravel Validation
+        if (payload.start_time) payload.start_time = payload.start_time.replace('T', ' ');
+        else payload.start_time = null;
+
+        if (payload.end_time) payload.end_time = payload.end_time.replace('T', ' ');
+        else payload.end_time = null;
+
+        try {
+            if (isEdit) {
+                await api.put(`${apiPrefix}/exams/${id}`, payload);
+                toast.success('Cập nhật kỳ thi thành công!');
+            } else {
+                await api.post(`${apiPrefix}/exams`, payload);
+                toast.success('Tạo kỳ thi thành công!');
+            }
+            navigate(`${apiPrefix}/exams`);
+        } catch (error) {
+            const errs = error.response?.data?.errors;
+            if (errs) {
+                Object.values(errs).forEach(errArray => toast.error(errArray[0]));
+            } else {
+                toast.error(error.response?.data?.message || 'Lỗi khi lưu cấu hình kỳ thi');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (fetching) return <div className="p-10 flex justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>;
+
+    return (
+        <div className="max-w-5xl mx-auto pb-10 font-sans">
+            <div className="mb-6 flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-slate-800">{isEdit ? 'Sửa cấu hình Kỳ thi' : 'Tạo Kỳ thi mới'}</h1>
+                <button type="button" onClick={() => navigate(-1)} className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition flex items-center gap-2 text-slate-600 font-medium bg-white">
+                    <X className="w-5 h-5" /> Hủy
+                </button>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 md:p-8 space-y-6">
+                    
+                    {/* BỘ PHẦN 1: THÔNG TIN CHUNG */}
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">1. Thông tin chung</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Tên kỳ thi <span className="text-red-500">*</span></label>
+                                <input required {...register('title')} placeholder="VD: Thi giữa kỳ Lập trình Web" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Môn học áp dụng <span className="text-red-500">*</span></label>
+                                <select required {...register('subject_id')} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-medium">
+                                    <option value="">-- Chọn môn học --</option>
+                                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Lớp học làm bài <span className="text-red-500">*</span></label>
+                                <select required {...register('class_id')} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-medium">
+                                    <option value="">-- Chọn lớp học --</option>
+                                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Thời gian làm bài (Phút) <span className="text-red-500">*</span></label>
+                                <input required type="number" min="1" {...register('duration')} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Điểm đạt (Passing Score) <span className="text-red-500">*</span></label>
+                                <input required type="number" step="0.5" min="0" max="10" {...register('passing_score')} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Mật khẩu vào phòng (Tùy chọn)</label>
+                                <input {...register('password')} placeholder="Bỏ trống nếu muốn vào tự do" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* BỘ PHẦN 2: THỜI GIAN & CẤU HÌNH TRỘN ĐỀ */}
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">2. Cài đặt thời gian & Quy chế</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Thời gian bắt đầu cho phép vào</label>
+                                <input type="datetime-local" {...register('start_time')} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-semibold text-slate-700">Thời gian đóng phòng thi</label>
+                                <input type="datetime-local" {...register('end_time')} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4">
+                            <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[200px]">
+                                <input type="checkbox" {...register('shuffle_questions')} className="w-5 h-5 text-blue-600 rounded border-slate-300" />
+                                <span className="text-sm font-semibold text-slate-700">Xáo trộn thứ tự câu hỏi</span>
+                            </label>
+                            <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[200px]">
+                                <input type="checkbox" {...register('shuffle_options')} className="w-5 h-5 text-blue-600 rounded border-slate-300" />
+                                <span className="text-sm font-semibold text-slate-700">Xáo trộn đáp án câu hỏi</span>
+                            </label>
+                            <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 p-3 rounded-xl border border-emerald-200 flex-1 min-w-[200px]">
+                                <input type="checkbox" {...register('is_active')} className="w-5 h-5 text-emerald-600 rounded border-emerald-300" />
+                                <span className="text-sm font-bold text-emerald-700">Kích hoạt mở phòng thi luôn</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* BỘ PHẦN 3: MA TRẬN ĐỀ THI ĐỘNG */}
+                    <div>
+                        <div className="flex justify-between items-end border-b pb-2 mb-4">
+                            <h2 className="text-lg font-bold text-slate-800">3. Thiết lập ma trận đề thi</h2>
+                            <div className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
+                                Tổng số câu hỏi: {totalQuestions} câu
+                            </div>
+                        </div>
+
+                        {!selectedSubjectId ? (
+                            <div className="text-center p-6 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm font-medium">
+                                ⚠️ Vui lòng chọn "Môn học áp dụng" ở mục 1 trước để hệ thống tải danh sách Chủ đề tương ứng.
+                            </div>
+                        ) : (
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                                <div className="hidden md:grid grid-cols-12 gap-3 mb-2 px-2 text-sm font-bold text-slate-500">
+                                    <div className="col-span-5">Chủ đề bài học (Lọc theo môn học)</div>
+                                    <div className="col-span-3">Mức độ khó</div>
+                                    <div className="col-span-3">Số lượng câu cần lấy</div>
+                                    <div className="col-span-1 text-center">Xóa</div>
+                                </div>
+
+                                {fields.map((field, idx) => (
+                                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-150">
+                                        <div className="col-span-5">
+                                            <select required {...register(`matrices.${idx}.topic_id`)} className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm font-medium bg-slate-50/50">
+                                                <option value="">-- Chọn chủ đề bài học --</option>
+                                                {filteredTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="col-span-3">
+                                            <select {...register(`matrices.${idx}.difficulty`)} className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm font-semibold bg-slate-50/50">
+                                                <option value="easy">Mức độ Dễ</option>
+                                                <option value="medium">Mức độ Trung bình</option>
+                                                <option value="hard">Mức độ Khó</option>
+                                            </select>
+                                        </div>
+                                        <div className="col-span-3">
+                                            <input required type="number" min="1" {...register(`matrices.${idx}.quantity`)} placeholder="Nhập số câu" className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm text-center" />
+                                        </div>
+                                        <div className="col-span-1 flex justify-center">
+                                            {fields.length > 1 && (
+                                                <button type="button" onClick={() => remove(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Xóa dòng này">
+                                                    <Trash2 className="w-5 h-5"/>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button type="button" onClick={() => append({ topic_id: '', difficulty: 'easy', quantity: 1 })} className="mt-2 text-blue-600 font-bold hover:text-blue-800 transition flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm w-fit">
+                                    <Plus className="w-4 h-4"/> Thêm cấu hình ma trận
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* THANH HÀNH ĐỘNG DƯỚI CÙNG */}
+                <div className="bg-slate-50 p-5 flex justify-end gap-3 border-t border-slate-200">
+                    <button type="button" onClick={() => navigate(`${apiPrefix}/exams`)} className="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-50 font-bold transition">
+                        Quay lại
+                    </button>
+                    <button type="submit" disabled={loading} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition flex items-center gap-2 disabled:opacity-70">
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} {isEdit ? 'Cập nhật cấu hình' : 'Tạo đề & Lưu phòng thi'}
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleChange} />
-            Kích hoạt kỳ thi
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="shuffle_questions" checked={formData.shuffle_questions} onChange={handleChange} />
-            Xáo trộn câu hỏi
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="shuffle_options" checked={formData.shuffle_options} onChange={handleChange} />
-            Xáo trộn đáp án
-          </label>
-        </div>
-
-        <MatrixRows matrices={formData.matrices} setMatrices={(newMatrices) => setFormData({ ...formData, matrices: newMatrices })} />
-
-        <div className="flex gap-4">
-          <button type="submit" disabled={loading} className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700">
-            {loading ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Tạo mới')}
-          </button>
-          <button type="button" onClick={() => navigate('/admin/exams')} className="bg-gray-200 px-6 py-2 rounded-lg">Hủy</button>
-        </div>
-      </form>
-    </div>
-  );
+    );
 }

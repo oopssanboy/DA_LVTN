@@ -20,10 +20,9 @@ use Carbon\Carbon;
 
 class ExamAttemptController extends Controller
 {
-    // Lấy danh sách kỳ thi sinh viên được phép thi
     public function getAvailableExams()
     {
-        $studentId = Auth::user()->student->user_id ?? Auth::id(); // Fix lấy chuẩn ID
+        $studentId = Auth::user()->student->user_id ?? Auth::id(); 
         $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id');
         $now = Carbon::now();
 
@@ -47,20 +46,29 @@ class ExamAttemptController extends Controller
         return response()->json($exams);
     }
 
-    // Bắt đầu làm bài
+    public function getHistory()
+    {
+        $studentId = Auth::id();
+        $history = ExamAttempt::with(['exam.subject'])
+            ->where('student_id', $studentId)
+            ->whereIn('status', ['submitted', 'suspended'])
+            ->orderBy('ended_at', 'desc')
+            ->get();
+
+        return response()->json($history);
+    }
+
     public function startExam(Request $request, $examId)
     {
         $studentId = Auth::id();
         $exam = Exam::findOrFail($examId);
 
-        // Kiểm tra mật khẩu nếu có
         if ($exam->password && $request->input('password') !== $exam->password) {
             return response()->json(['message' => 'Mật khẩu phòng thi không chính xác'], 403);
         }
 
         $attempt = ExamAttempt::where('exam_id', $examId)->where('student_id', $studentId)->first();
 
-        // Nếu đã từng vào phòng
         if ($attempt) {
             if ($attempt->status !== 'in_progress') {
                 return response()->json(['message' => 'Bài thi này đã kết thúc.'], 403);
@@ -68,7 +76,6 @@ class ExamAttemptController extends Controller
             return response()->json(['message' => 'Vào lại phòng thi thành công', 'attempt_id' => $attempt->id]);
         }
 
-        // Tạo lượt thi mới
         DB::beginTransaction();
         try {
             $attempt = ExamAttempt::create([
@@ -79,7 +86,6 @@ class ExamAttemptController extends Controller
                 'started_at' => Carbon::now(),
             ]);
 
-            // Load danh sách câu hỏi đã được sinh từ trước
             $examQuestionIds = ExamQuestion::where('exam_id', $examId)->pluck('question_id');
             $questions = Question::whereIn('id', $examQuestionIds)->get();
 
@@ -87,7 +93,6 @@ class ExamAttemptController extends Controller
                 $questions = $questions->shuffle();
             }
 
-            // Khởi tạo bảng StudentAnswer sẵn cho sinh viên
             $answersData = [];
             foreach ($questions as $q) {
                 $answersData[] = [
@@ -101,7 +106,6 @@ class ExamAttemptController extends Controller
 
             DB::commit();
             
-            // Broadcast sự kiện có sinh viên vào phòng
             broadcast(new ViolationUpdated($examId, $attempt->id, 'joined', 'Sinh viên vừa vào phòng thi'))->toOthers();
 
             return response()->json(['message' => 'Khởi tạo phòng thi thành công', 'attempt_id' => $attempt->id]);
@@ -111,18 +115,24 @@ class ExamAttemptController extends Controller
         }
     }
 
-    // Lấy chi tiết đề thi đang làm
     public function getAttempt($attemptId)
     {
         $studentId = Auth::id();
         $attempt = ExamAttempt::with(['exam.subject'])->where('id', $attemptId)->where('student_id', $studentId)->firstOrFail();
 
-        $timeElapsed = Carbon::now()->diffInSeconds(Carbon::parse($attempt->started_at));
+        // 🔥 FIX LỖI THỜI GIAN: Dùng timestamp tuyệt đối để trị dứt điểm F5 bị lệch giờ
+        $startedAt = Carbon::parse($attempt->started_at)->timestamp; 
+        $now = Carbon::now()->timestamp;
+        
+        $timeElapsed = $now - $startedAt;
+        if ($timeElapsed < 0) {
+            $timeElapsed = 0; 
+        }
+
         $totalTime = $attempt->exam->duration * 60;
         $remaining = max(0, $totalTime - $timeElapsed);
 
         if ($attempt->status !== 'in_progress' || $remaining <= 0) {
-            // Nếu hết giờ mà status vẫn in_progress thì force submit
             if ($attempt->status === 'in_progress') {
                 $this->autoSubmitExam($attempt);
             }
@@ -153,8 +163,11 @@ class ExamAttemptController extends Controller
             ];
         }
 
+        // Đảm bảo không trả về object lồng nhau gây crash frontend
+        $examData = $attempt->exam;
+
         return response()->json([
-            'exam' => $attempt->exam,
+            'exam' => $examData,
             'attempt' => $attempt,
             'questions' => $questions,
             'remaining_seconds' => $remaining,
@@ -162,7 +175,6 @@ class ExamAttemptController extends Controller
         ]);
     }
 
-    // Lưu Auto-save đáp án
     public function saveAnswer(Request $request, $attemptId)
     {
         $request->validate(['question_id' => 'required|exists:questions,id']);
@@ -184,7 +196,6 @@ class ExamAttemptController extends Controller
         return response()->json(['message' => 'Đã lưu đáp án']);
     }
 
-    // Nộp bài
     public function submitExam(Request $request, $attemptId)
     {
         $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::id())->firstOrFail();
@@ -195,8 +206,7 @@ class ExamAttemptController extends Controller
         return $this->autoSubmitExam($attempt);
     }
 
-    // Logic chấm điểm server
-    private function autoSubmitExam(ExamAttempt $attempt)
+    public function autoSubmitExam(ExamAttempt $attempt)
     {
         $exam = $attempt->exam;
         $answers = StudentAnswer::where('attempt_id', $attempt->id)->get();
@@ -256,7 +266,6 @@ class ExamAttemptController extends Controller
         ]);
     }
 
-    // Ghi nhận log vi phạm và bắn Socket
     public function logViolation(Request $request, $attemptId)
     {
         $request->validate(['type' => 'required|string', 'detail' => 'nullable|string']);
@@ -274,7 +283,6 @@ class ExamAttemptController extends Controller
 
         $attempt->increment('violation_count');
         
-        // Broadcast cho Giám thị biết Realtime
         broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', "Sinh viên vi phạm: " . $request->type))->toOthers();
 
         if ($attempt->violation_count >= 3) {
@@ -290,7 +298,6 @@ class ExamAttemptController extends Controller
         return response()->json(['message' => 'Ghi nhận vi phạm', 'violation_count' => $attempt->violation_count]);
     }
 
-    // Xem kết quả bài thi
     public function getResult($attemptId)
     {
         $studentId = Auth::id();

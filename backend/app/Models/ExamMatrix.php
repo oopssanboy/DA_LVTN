@@ -10,7 +10,7 @@ class ExamMatrix extends Model
     use HasFactory;
 
     protected $fillable = [
-        'exam_id', 'topic', 'difficulty', 'quantity'
+        'exam_id', 'topic_id', 'difficulty', 'quantity'
     ];
 
     public function exam()
