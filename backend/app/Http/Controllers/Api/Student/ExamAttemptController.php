@@ -120,7 +120,6 @@ class ExamAttemptController extends Controller
         $studentId = Auth::id();
         $attempt = ExamAttempt::with(['exam.subject'])->where('id', $attemptId)->where('student_id', $studentId)->firstOrFail();
 
-        // 🔥 FIX LỖI THỜI GIAN: Dùng timestamp tuyệt đối để trị dứt điểm F5 bị lệch giờ
         $startedAt = Carbon::parse($attempt->started_at)->timestamp; 
         $now = Carbon::now()->timestamp;
         
@@ -163,7 +162,6 @@ class ExamAttemptController extends Controller
             ];
         }
 
-        // Đảm bảo không trả về object lồng nhau gây crash frontend
         $examData = $attempt->exam;
 
         return response()->json([

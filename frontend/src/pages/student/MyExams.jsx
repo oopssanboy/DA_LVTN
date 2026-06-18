@@ -29,19 +29,18 @@ export default function MyExams() {
     const handleEnterExam = async (exam) => {
         const attempt = exam.attempt;
 
-        // Nếu đã nộp hoặc bị đình chỉ -> Xem kết quả
-        if (attempt && (attempt.status === 'submitted' || attempt.status === 'suspended')) {
+        if (attempt?.status === 'submitted' || attempt?.status === 'suspended') {
             navigate(`/student/exam-result/${attempt.id}`);
             return;
         } 
         
-        // Nếu đang làm dở -> Vào thẳng phòng thi theo đường dẫn chuẩn
-        if (attempt && attempt.status === 'in_progress') {
+   
+        if (attempt?.status === 'in_progress') {
             navigate(`/student/exam/${attempt.id}`);
             return;
         } 
         
-        // Xác nhận bắt đầu lượt thi mới
+
         const { isConfirmed, value: password } = await Swal.fire({
             title: 'Bắt đầu làm bài?',
             text: `Bạn có chắc chắn muốn bắt đầu kỳ thi "${exam.title}"? Thời gian làm bài sẽ được tính ngay lập tức.`,

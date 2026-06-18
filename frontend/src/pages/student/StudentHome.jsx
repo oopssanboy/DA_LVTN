@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
 export default function StudentHome() {
-    const [activeTab, setActiveTab] = useState('available'); // 'available' hoặc 'history'
+    const [activeTab, setActiveTab] = useState('available'); 
     const [exams, setExams] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,13 +45,13 @@ export default function StudentHome() {
     const handleEnterExam = async (exam) => {
         const attempt = exam.attempt;
 
-        if (attempt && attempt.status === 'submitted') {
+        if (attempt?.status === 'submitted' || attempt?.status === 'suspended') {
             navigate(`/student/exam-result/${attempt.id}`);
             return;
         } 
         
-        if (attempt && attempt.status === 'in_progress') {
-            navigate(`/student/exam-room/${attempt.id}`);
+        if (attempt?.status === 'in_progress') {
+            navigate(`/student/exam/${attempt.id}`);
             return;
         } 
         
@@ -77,14 +77,13 @@ export default function StudentHome() {
                 const payload = exam.password ? { password } : {};
                 const res = await api.post(`/student/exams/${exam.id}/start`, payload);
                 toast.success('Khởi tạo thành công!', { id: loadingToast });
-                navigate(`/student/exam-room/${res.data.attempt_id}`);
+                navigate(`/student/exam/${res.data.attempt_id}`);
             } catch (error) {
                 toast.error(error.response?.data?.message || 'Lỗi khởi tạo bài thi', { id: loadingToast });
             }
         }
     };
 
-    // Lọc dữ liệu theo Search (Áp dụng cho Tab hiện tại)
     const displayData = activeTab === 'available' ? exams : history;
     const filteredData = displayData.filter(item => {
         const title = item.title || item.exam?.title || '';
@@ -101,7 +100,7 @@ export default function StudentHome() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 pb-10 font-sans">
-            {/* Banner */}
+
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
                 <div className="relative z-10">
                     <h1 className="text-3xl font-extrabold mb-2">Không gian Học tập</h1>
@@ -110,7 +109,6 @@ export default function StudentHome() {
                 <BookOpen className="absolute -right-6 -bottom-6 w-48 h-48 text-white opacity-10" />
             </div>
 
-            {/* Toolbar: Tabs & Search */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex w-full md:w-auto p-1 bg-slate-100 rounded-xl">
                     <button 
@@ -143,7 +141,6 @@ export default function StudentHome() {
                 </div>
             </div>
 
-            {/* Nội dung chính */}
             {loading ? (
                 <div className="p-20 flex justify-center"><Loader2 className="w-10 h-10 text-blue-600 animate-spin" /></div>
             ) : filteredData.length === 0 ? (
@@ -158,7 +155,7 @@ export default function StudentHome() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Render Danh sách Available Exams */}
+                 
                     {activeTab === 'available' && filteredData.map(exam => {
                         const attempt = exam.attempt;
                         const isSubmitted = attempt?.status === 'submitted' || attempt?.status === 'suspended';
@@ -207,7 +204,7 @@ export default function StudentHome() {
                         );
                     })}
 
-                    {/* Render Danh sách Lịch sử thi */}
+               
                     {activeTab === 'history' && filteredData.map(attempt => {
                         const exam = attempt.exam;
                         const subjectName = typeof exam.subject === 'object' ? exam.subject?.name : exam.subject;

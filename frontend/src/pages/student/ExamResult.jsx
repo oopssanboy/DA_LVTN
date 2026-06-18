@@ -57,7 +57,6 @@ export default function ExamResult() {
                 </div>
             </div>
 
-            {/* Chi tiết đáp án */}
             <div className="space-y-4">
                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 pl-2">
                     <BookOpen className="w-5 h-5 text-blue-600" /> Chi tiết bài làm
@@ -65,7 +64,7 @@ export default function ExamResult() {
                 
                 {details.map((d, index) => {
                     const q = d.question;
-                    const isCorrect = d.is_correct;
+                    const isCorrect = d.is_correct === 1 || d.is_correct === '1' || d.is_correct === true;
                     
                     return (
                         <div key={d.id} className={`bg-white rounded-2xl border-2 p-6 transition ${isCorrect ? 'border-emerald-100' : 'border-red-100'}`}>
