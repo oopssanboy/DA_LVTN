@@ -16,7 +16,7 @@ class QuestionsImport implements ToModel, WithHeadingRow
     public function model(array $row)
     {
         return DB::transaction(function () use ($row) {
-            $subject = Subject::where('code', $row['subject_code'])->first();
+            $subject = Subject::where('code', $row['subject_id'])->first();
             $topic = Topic::where('name', $row['topic_name'])->first();
 
             $question = Question::create([
@@ -26,15 +26,15 @@ class QuestionsImport implements ToModel, WithHeadingRow
                 'difficulty' => $row['difficulty'],
                 'content' => $row['content'],
                 'score' => $row['score'],
-                'correct_answer' => $row['answer'] // Lưu đáp án vào cột chính để dễ xử lý
+                'correct_answer' => $row['answer'] 
             ]);
 
             if ($row['type'] !== 'fill_blank') {
                 $choices = explode(';', $row['choices']);
-                $answers = explode(',', $row['answer']); // VD: A,C
+                $answers = explode(',', $row['answer']); 
                 
                 foreach ($choices as $c) {
-                    $parts = explode(':', $c); // A:Nội dung
+                    $parts = explode(':', $c); 
                     Choice::create([
                         'question_id' => $question->id,
                         'choice_key' => $parts[0],

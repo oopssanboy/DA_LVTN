@@ -51,17 +51,19 @@ export default function ExamMonitor() {
     const setupEcho = () => {
         if (!echoRef.current) {
             try {
-                const appKey = import.meta.env.VITE_REVERB_APP_KEY;
-                if (!appKey) return;
+                const appKey = import.meta.env.VITE_PUSHER_APP_KEY;
+                const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER;
+                
+                if (!appKey) {
+                    console.warn("Thiếu cấu hình Pusher.");
+                    return;
+                }
 
                 echoRef.current = new Echo({
-                    broadcaster: 'reverb',
+                    broadcaster: 'pusher',
                     key: appKey,
-                    wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
-                    wsPort: import.meta.env.VITE_REVERB_PORT || 8000,
-                    wssPort: import.meta.env.VITE_REVERB_PORT || 8000,
-                    forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https',
-                    enabledTransports: ['ws', 'wss'],
+                    cluster: cluster,
+                    forceTLS: true 
                 });
 
                 echoRef.current.channel(`exam.${examId}`)

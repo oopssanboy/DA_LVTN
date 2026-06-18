@@ -35,7 +35,7 @@ export default function ExamRoom() {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
             
-            // Ngắt kết nối toàn bộ Echo khi component bị hủy (học viên rời phòng/f5)
+           
             if (echoRef.current) {
                 echoRef.current.disconnect();
                 echoRef.current = null;
@@ -87,7 +87,7 @@ export default function ExamRoom() {
         }, 1000);
     };
 
-    // 🔥 FIX ĐỒNG HỒ 00:00:00 CHUẨN
+   
     const formatTime = (seconds) => {
         if (seconds === null || isNaN(seconds) || seconds < 0) return '00:00:00';
         const h = Math.floor(seconds / 3600);
@@ -97,26 +97,24 @@ export default function ExamRoom() {
     };
 
     const setupEcho = (examId) => {
-        // 🔥 ĐÃ SỬA: Nếu đang có kết nối cũ thì phải ngắt nó đi trước khi tạo cái mới
         if (echoRef.current) {
             echoRef.current.disconnect();
         }
 
         try {
-            const appKey = import.meta.env.VITE_REVERB_APP_KEY;
+            const appKey = import.meta.env.VITE_PUSHER_APP_KEY;
+            const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER;
+            
             if (!appKey) {
-                console.warn("⚠️ Không tìm thấy cấu hình VITE_REVERB_APP_KEY. Chế độ giám sát Realtime tạm tắt.");
+                console.warn("Không tìm thấy cấu hình VITE_PUSHER_APP_KEY.");
                 return;
             }
 
             echoRef.current = new Echo({
-                broadcaster: 'reverb',
+                broadcaster: 'pusher',
                 key: appKey,
-                wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
-                wsPort: import.meta.env.VITE_REVERB_PORT || 8000,
-                wssPort: import.meta.env.VITE_REVERB_PORT || 8000,
-                forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https',
-                enabledTransports: ['ws', 'wss'],
+                cluster: cluster,
+                forceTLS: true
             });
 
             echoRef.current.channel(`exam.${examId}`)
@@ -128,13 +126,12 @@ export default function ExamRoom() {
                                 navigate(`/student/exam-result/${attemptId}`);
                             });
                         } else if (e.type === 'warning') {
-                            // Cảnh báo chỉ hiện 1 lần duy nhất!
-                            toast.error(`⚠️ Cảnh báo từ Giám thị: ${e.message}`, { duration: 6000 });
+                            toast.error(`Cảnh báo từ Giám thị: ${e.message}`, { duration: 6000 });
                         }
                     }
                 });
         } catch (err) {
-            console.error("❌ Lỗi kết nối Socket Realtime:", err);
+            console.error("Lỗi kết nối Socket Pusher:", err);
         }
     };
 

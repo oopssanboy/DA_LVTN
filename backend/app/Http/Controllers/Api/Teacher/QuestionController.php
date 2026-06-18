@@ -192,12 +192,12 @@ class QuestionController extends Controller
 
 
 
-        
+
         try {
             Excel::import(new QuestionsImport, $request->file('file'));
             return response()->json(['message' => 'Import câu hỏi thành công'], 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Lỗi import file', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Lỗi import file'.$e->getMessage(), 'error' => $e->getMessage()], 500);
         }
     }
 
