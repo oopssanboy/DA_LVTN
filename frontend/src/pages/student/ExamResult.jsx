@@ -87,7 +87,7 @@ export default function ExamResult() {
                                 ) : (
                                     <div className="space-y-2">
                                         {q.choices.map(c => {
-                                            const isSelected = d.choice_id === c.id;
+                                            const isSelected = d.choice_id == c.id;
                                             const isRightChoice = c.is_correct;
                                             let bgClass = "bg-slate-50 border-slate-100 text-slate-600";
                                             
@@ -107,7 +107,7 @@ export default function ExamResult() {
                                 )}
                             </div>
                             
-                            {/* Giải thích nếu có */}
+                          
                             {q.explanation && (
                                 <div className="mt-4 pl-10">
                                     <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm">
