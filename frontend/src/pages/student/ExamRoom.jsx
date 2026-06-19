@@ -185,7 +185,7 @@ export default function ExamRoom() {
             showCancelButton: true,
             confirmButtonColor: '#2563eb',
             cancelButtonColor: '#cbd5e1',
-            confirmButtonText: 'Vâng, Nộp bài'
+            confirmButtonText: 'Xác nhận'
         }).then((result) => {
             if (result.isConfirmed) submitExam();
         });
@@ -211,7 +211,6 @@ export default function ExamRoom() {
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 text-blue-600 animate-spin" /></div>;
 
-    // 🔥 FIX MÀN HÌNH TRẮNG: Trích xuất Text an toàn tuyệt đối ra khỏi Object trước khi render JSX
     const safeSubjectName = typeof exam?.subject === 'object' ? exam?.subject?.name : (exam?.subject || 'Chưa cập nhật');
 
     return (

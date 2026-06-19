@@ -88,7 +88,6 @@ class ClassController extends Controller
         return response()->json(['message' => 'Xóa lớp học thành công'], 200);
     }
 
-    // Gán sinh viên vào lớp học (Import list id sinh viên)
     public function enrollStudents(Request $request, $id)
     {
         $class = Classes::find($id);
@@ -103,7 +102,7 @@ class ClassController extends Controller
 
         DB::beginTransaction();
         try {
-            // Xóa danh sách cũ (đồng bộ lại từ đầu)
+      
             ClassEnrollment::where('class_id', $class->id)->delete();
 
             $enrollments = [];

@@ -17,7 +17,7 @@ export default function ExamForm() {
     const [fetching, setFetching] = useState(isEdit);
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]); 
-    const [allTopics, setAllTopics] = useState([]); // Lưu trữ toàn bộ chủ đề từ cơ sở dữ liệu
+    const [allTopics, setAllTopics] = useState([]);
 
     const { register, control, handleSubmit, watch, reset } = useForm({
         defaultValues: {
@@ -38,83 +38,77 @@ export default function ExamForm() {
 
     const { fields, append, remove } = useFieldArray({ control, name: 'matrices' });
     
-    // Theo dõi các trường để tính toán động
+  
     const watchMatrices = watch('matrices');
     const selectedSubjectId = watch('subject_id'); 
     
-    // Tính tổng số câu hỏi tự động dựa trên ma trận
+
     const totalQuestions = watchMatrices.reduce((sum, current) => sum + (Number(current.quantity) || 0), 0);
 
-    // Lọc danh sách chủ đề động theo Môn học đang được chọn
+
     const filteredTopics = allTopics.filter(
         topic => String(topic.subject_id) === String(selectedSubjectId)
     );
 
     useEffect(() => {
-        fetchDependencies();
-        if (isEdit) fetchExam();
-    }, [id]);
+        const initData = async () => {
+            try {
+         
+                const [classRes, subjectRes, topicRes] = await Promise.all([
+                    api.get(`${apiPrefix}/classes`),
+                    api.get(`${apiPrefix}/subjects`),
+                    api.get(`${apiPrefix}/topics`) 
+                ]);
+                
+                setClasses(classRes.data.data || classRes.data);
+                setSubjects(subjectRes.data.data || subjectRes.data);
+                setAllTopics(topicRes.data.data || topicRes.data);
+                
+             
+                if (isEdit) {
+                    const res = await api.get(`${apiPrefix}/exams/${id}`);
+                    const e = res.data.data || res.data;
+                    
+                    const formatDT = (dt) => dt ? new Date(dt).toISOString().slice(0, 16) : '';
 
-    // Tải danh mục Lớp, Môn học và tất cả Chủ đề
-    const fetchDependencies = async () => {
-        try {
-            const [classRes, subjectRes, topicRes] = await Promise.all([
-                api.get(`${apiPrefix}/classes`),
-                api.get(`${apiPrefix}/subjects`),
-                api.get(`${apiPrefix}/topics`) 
-            ]);
-            
-            setClasses(classRes.data.data || classRes.data);
-            setSubjects(subjectRes.data.data || subjectRes.data);
-            setAllTopics(topicRes.data.data || topicRes.data);
-            
-        } catch (error) {
-            toast.error("Không thể tải danh mục Lớp học / Môn học / Chủ đề");
-        }
-    };
+                    reset({
+                        title: e.title,
+                        subject_id: e.subject_id || e.subject?.id || '', 
+                        class_id: e.class_id,
+                        duration: e.duration,
+                        passing_score: e.passing_score,
+                        shuffle_questions: e.shuffle_questions,
+                        shuffle_options: e.shuffle_options,
+                        is_active: e.is_active,
+                        password: e.password || '',
+                        start_time: formatDT(e.start_time),
+                        end_time: formatDT(e.end_time),
+                        
+                        matrices: e.matrices && e.matrices.length > 0 
+                            ? e.matrices.map(m => ({ 
+                                topic_id: m.topic_id?.toString(), 
+                                difficulty: m.difficulty, 
+                                quantity: m.quantity 
+                            }))
+                            : [{ topic_id: '', difficulty: 'easy', quantity: 1 }]
+                    });
+                }
+            } catch (error) {
+                toast.error('Lỗi khởi tạo dữ liệu kỳ thi');
+                if (isEdit) navigate(`${apiPrefix}/exams`);
+            } finally {
+                setFetching(false);
+            }
+        };
 
-    // Tải thông tin kỳ thi cũ nếu ở chế độ Sửa
-    const fetchExam = async () => {
-        try {
-            const res = await api.get(`${apiPrefix}/exams/${id}`);
-            const e = res.data.data || res.data;
-            
-            const formatDT = (dt) => dt ? new Date(dt).toISOString().slice(0, 16) : '';
-
-            reset({
-                title: e.title,
-                subject_id: e.subject_id || e.subject?.id || '', 
-                class_id: e.class_id,
-                duration: e.duration,
-                passing_score: e.passing_score,
-                shuffle_questions: e.shuffle_questions,
-                shuffle_options: e.shuffle_options,
-                is_active: e.is_active,
-                password: e.password || '',
-                start_time: formatDT(e.start_time),
-                end_time: formatDT(e.end_time),
-                // Map chính xác topic_id từ quan hệ database
-                matrices: e.matrices && e.matrices.length > 0 
-                    ? e.matrices.map(m => ({ 
-                        topic_id: m.topic_id, 
-                        difficulty: m.difficulty, 
-                        quantity: m.quantity 
-                    }))
-                    : [{ topic_id: '', difficulty: 'easy', quantity: 1 }]
-            });
-        } catch (error) {
-            toast.error('Lỗi tải thông tin kỳ thi');
-            navigate(`${apiPrefix}/exams`);
-        } finally {
-            setFetching(false);
-        }
-    };
+        initData();
+    }, [id, isEdit, apiPrefix, reset, navigate]);
 
     const onSubmit = async (data) => {
         setLoading(true);
         const payload = { ...data, total_questions: totalQuestions };
 
-        // Định dạng lại chuỗi thời gian phù hợp với Laravel Validation
+  
         if (payload.start_time) payload.start_time = payload.start_time.replace('T', ' ');
         else payload.start_time = null;
 
@@ -156,7 +150,7 @@ export default function ExamForm() {
             <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-6 md:p-8 space-y-6">
                     
-                    {/* BỘ PHẦN 1: THÔNG TIN CHUNG */}
+                  
                     <div>
                         <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">1. Thông tin chung</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -198,7 +192,6 @@ export default function ExamForm() {
                         </div>
                     </div>
 
-                    {/* BỘ PHẦN 2: THỜI GIAN & CẤU HÌNH TRỘN ĐỀ */}
                     <div>
                         <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">2. Cài đặt thời gian & Quy chế</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
@@ -221,14 +214,14 @@ export default function ExamForm() {
                                 <input type="checkbox" {...register('shuffle_options')} className="w-5 h-5 text-blue-600 rounded border-slate-300" />
                                 <span className="text-sm font-semibold text-slate-700">Xáo trộn đáp án câu hỏi</span>
                             </label>
-                            <label className="flex items-center gap-2.5 cursor-pointer bg-emerald-50 p-3 rounded-xl border border-emerald-200 flex-1 min-w-[200px]">
-                                <input type="checkbox" {...register('is_active')} className="w-5 h-5 text-emerald-600 rounded border-emerald-300" />
-                                <span className="text-sm font-bold text-emerald-700">Kích hoạt mở phòng thi luôn</span>
+                            <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[200px]">
+                                <input type="checkbox" {...register('is_active')} className="w-5 h-5 text-emerald-600 rounded border-slate-300" />
+                                <span className="text-sm font-semibold text-slate-700">Kích hoạt mở phòng thi luôn</span>
                             </label>
                         </div>
                     </div>
 
-                    {/* BỘ PHẦN 3: MA TRẬN ĐỀ THI ĐỘNG */}
+                 
                     <div>
                         <div className="flex justify-between items-end border-b pb-2 mb-4">
                             <h2 className="text-lg font-bold text-slate-800">3. Thiết lập ma trận đề thi</h2>
@@ -286,7 +279,7 @@ export default function ExamForm() {
                     </div>
                 </div>
 
-                {/* THANH HÀNH ĐỘNG DƯỚI CÙNG */}
+              
                 <div className="bg-slate-50 p-5 flex justify-end gap-3 border-t border-slate-200">
                     <button type="button" onClick={() => navigate(`${apiPrefix}/exams`)} className="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-50 font-bold transition">
                         Quay lại

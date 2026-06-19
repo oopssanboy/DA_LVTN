@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // Đăng nhập hệ thống
+    
     public function login(Request $request)
     {
         $request->validate([
@@ -28,7 +28,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.'], 403);
         }
 
-        // Load profile theo quan hệ 1-1
+      
         $user->load(['student', 'teacher', 'proctor']);
         
         $name = 'Quản trị viên';
@@ -61,7 +61,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // Lấy thông tin cá nhân
+ 
     public function me(Request $request)
     {
         try {
@@ -99,14 +99,14 @@ class AuthController extends Controller
         }
     }
 
-    // Đăng xuất
+    
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Đăng xuất thành công'], 200);
     }
 
-    // Đổi mật khẩu
+   
     public function changePassword(Request $request)
     {
         $request->validate([
@@ -124,8 +124,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->new_password)
         ]);
 
-        // Có thể thu hồi tất cả token cũ để bắt đăng nhập lại (tùy chọn)
-        // $user->tokens()->delete();
+       
 
         return response()->json(['message' => 'Đổi mật khẩu thành công'], 200);
     }

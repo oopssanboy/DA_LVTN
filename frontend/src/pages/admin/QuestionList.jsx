@@ -197,7 +197,7 @@ export default function QuestionList() {
                     )}
                 </div>
 
-                {/* Pagination */}
+               
                 {pagination.links && pagination.links.length > 3 && (
                     <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
                         {pagination.links.map((link, idx) => (

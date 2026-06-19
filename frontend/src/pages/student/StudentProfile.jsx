@@ -7,12 +7,11 @@ import toast from 'react-hot-toast';
 export default function StudentProfile() {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
-    
-    // Form đổi mật khẩu
+
     const [passwords, setPasswords] = useState({
         current_password: '',
         new_password: '',
-        new_password_confirmation: '' // Laravel yêu cầu trường confirmed phải có hậu tố _confirmation
+        new_password_confirmation: '' 
     });
 
     const handleUpdatePassword = async (e) => {
@@ -46,7 +45,7 @@ export default function StudentProfile() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* THÔNG TIN CÁ NHÂN */}
+        
                 <div className="md:col-span-1 space-y-6">
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
                         <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
@@ -71,7 +70,7 @@ export default function StudentProfile() {
                     </div>
                 </div>
 
-                {/* ĐỔI MẬT KHẨU */}
+           
                 <div className="md:col-span-2">
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="p-6 border-b border-slate-100 bg-slate-50/50">

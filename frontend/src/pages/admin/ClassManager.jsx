@@ -71,7 +71,6 @@ export default function ClassManager() {
                 id: cls.id,
                 course_id: cls.course_id,
                 name: cls.name,
-                // Cắt lấy YYYY-MM-DD từ chuỗi datetime của backend
                 start_date: cls.start_date ? cls.start_date.substring(0, 10) : '',
                 end_date: cls.end_date ? cls.end_date.substring(0, 10) : ''
             });
@@ -178,7 +177,7 @@ export default function ClassManager() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                {/* Nút này chuẩn bị cho tính năng "Ghi danh sinh viên" ở tương lai */}
+                                             
                                                 <button title="Ghi danh sinh viên" className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
                                                     <Users className="w-5 h-5" />
                                                 </button>
@@ -198,7 +197,7 @@ export default function ClassManager() {
                 </div>
             </div>
 
-            {/* MODAL THÊM / SỬA */}
+           
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">

@@ -7,7 +7,7 @@ export default function TeacherClassManager() {
     const [classesList, setClassesList] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    // States cho chức năng Gán Học Viên
+    
     const [showEnrollModal, setShowEnrollModal] = useState(false);
     const [selectedClass, setSelectedClass] = useState(null);
     const [allStudents, setAllStudents] = useState([]);
@@ -31,23 +31,22 @@ export default function TeacherClassManager() {
         }
     };
 
-    // Mở Modal Gán Học Viên
+   
     const openEnrollModal = async (cls) => {
         setSelectedClass(cls);
         setShowEnrollModal(true);
         setEnrollLoading(true);
         
         try {
-            // 1. Tải danh sách tất cả Sinh viên trong hệ thống
+        
             const studentRes = await api.get('/teacher/students?role=student&is_active=1');
             const studentsData = studentRes.data.data || studentRes.data;
             setAllStudents(studentsData);
 
-            // 2. Tải chi tiết Lớp học để biết ai đã được gán vào từ trước
             const classDetailRes = await api.get(`/teacher/classes/${cls.id}`);
             const currentEnrollments = classDetailRes.data.enrollments || [];
             
-            // Trích xuất mảng ID sinh viên đã có trong lớp
+         
             const enrolledIds = currentEnrollments.map(e => e.student_id);
             setSelectedStudentIds(enrolledIds);
 
@@ -59,7 +58,6 @@ export default function TeacherClassManager() {
         }
     };
 
-    // Xử lý Check/Uncheck Sinh viên
     const toggleStudent = (studentId) => {
         if (selectedStudentIds.includes(studentId)) {
             setSelectedStudentIds(selectedStudentIds.filter(id => id !== studentId));
@@ -68,7 +66,7 @@ export default function TeacherClassManager() {
         }
     };
 
-    // Lưu danh sách ghi danh
+  
     const handleSaveEnrollments = async () => {
         setEnrollLoading(true);
         try {
@@ -77,7 +75,7 @@ export default function TeacherClassManager() {
             });
             toast.success('Đồng bộ danh sách Sinh viên thành công!');
             setShowEnrollModal(false);
-            fetchClasses(); // Load lại để cập nhật sĩ số
+            fetchClasses(); 
         } catch (error) {
             toast.error(error.response?.data?.message || 'Lỗi khi đồng bộ danh sách');
         } finally {
@@ -85,7 +83,7 @@ export default function TeacherClassManager() {
         }
     };
 
-    // Lọc sinh viên theo ô tìm kiếm trong Modal
+  
     const filteredStudents = allStudents.filter(s => {
         const name = s.student?.name?.toLowerCase() || '';
         const code = s.student?.student_code?.toLowerCase() || '';
@@ -131,7 +129,7 @@ export default function TeacherClassManager() {
                                                 <div className="flex items-center gap-2 text-slate-600">
                                                     <Calendar className="w-4 h-4 text-slate-400" />
                                                     <span>{cls.start_date ? cls.start_date.substring(0, 10) : '?'}</span>
-                                                    <span>→</span>
+                                                    <span>-</span>
                                                     <span>{cls.end_date ? cls.end_date.substring(0, 10) : '?'}</span>
                                                 </div>
                                             ) : <span className="text-slate-400 italic">Chưa xác định</span>}
@@ -157,7 +155,7 @@ export default function TeacherClassManager() {
                 </div>
             </div>
 
-            {/* MODAL GÁN HỌC VIÊN */}
+         
             {showEnrollModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">

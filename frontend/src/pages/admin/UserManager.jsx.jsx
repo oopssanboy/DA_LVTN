@@ -11,7 +11,7 @@ export default function UserManager() {
     const [processing, setProcessing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Form state
+
     const [isEdit, setIsEdit] = useState(false);
     const [formData, setFormData] = useState({
         id: null, email: '', password: '', role: 'student', name: '', code: '', department: ''
@@ -48,7 +48,7 @@ export default function UserManager() {
             setFormData({
                 id: user.id,
                 email: user.email,
-                password: '', // Không hiển thị password cũ
+                password: '', 
                 role: user.role,
                 name: profile.name || '',
                 code: profile[`${user.role}_code`] || profile.student_code || profile.teacher_code || profile.proctor_code || '',
@@ -183,7 +183,7 @@ export default function UserManager() {
                 </div>
             </div>
 
-            {/* MODAL THÊM / SỬA USER */}
+          
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -214,7 +214,7 @@ export default function UserManager() {
                                 </select>
                             </div>
 
-                            {/* Chỉ hiện các trường Profile nếu không phải Admin */}
+                 
                             {formData.role !== 'admin' && (
                                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thông tin Hồ sơ (Profile)</p>

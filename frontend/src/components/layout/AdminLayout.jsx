@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, BookOpen, Users, FileText, CheckSquare, BarChart, Eye, LogOut, Menu, X, Layers, GraduationCap, Shield } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, FileText, CheckSquare, BarChart, Eye, LogOut, Menu, X, Layers, GraduationCap, Shield, Bell } from 'lucide-react';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -17,6 +17,7 @@ export default function AdminLayout() {
     { name: 'Ngân hàng Câu hỏi', path: '/admin/questions', icon: FileText },
     { name: 'Quản lý Kỳ thi', path: '/admin/exams', icon: CheckSquare },
     { name: 'Giám sát phòng thi', path: '/admin/monitor', icon: Eye },
+    { name: 'Quản lý thông báo', path: '/admin/notifications', icon: Bell },
     { name: 'Thống kê & Báo cáo', path: '/admin/statistics', icon: BarChart },
   ];
 

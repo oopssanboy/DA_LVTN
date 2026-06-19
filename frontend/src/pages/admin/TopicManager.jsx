@@ -22,7 +22,7 @@ export default function TopicManager() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Lấy song song dữ liệu Chủ đề và Môn học (để chọn lúc thêm/sửa)
+          
             const [topicsRes, subjectsRes] = await Promise.all([
                 api.get('/admin/topics'),
                 api.get('/admin/subjects')
@@ -93,7 +93,7 @@ export default function TopicManager() {
         }
     };
 
-    // Chức năng tìm kiếm Real-time
+    
     const filteredTopics = topics.filter(t => {
         const name = t.name || '';
         const subjectName = t.subject?.name || '';
@@ -168,7 +168,7 @@ export default function TopicManager() {
                 </div>
             </div>
 
-            {/* MODAL THÊM / SỬA */}
+           
             {showModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">

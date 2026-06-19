@@ -15,7 +15,7 @@ export default function TeacherDashboard() {
                     api.get('/teacher/exams')
                 ]);
                 
-                // Hỗ trợ cả chuẩn Resource và Paginate mặc định của Laravel
+               
                 const totalQuestions = qRes.data.meta?.total || qRes.data.total || 0;
                 const totalExams = eRes.data.meta?.total || eRes.data.total || 0;
 

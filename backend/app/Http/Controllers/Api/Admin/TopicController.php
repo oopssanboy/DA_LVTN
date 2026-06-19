@@ -8,12 +8,12 @@ use Illuminate\Http\Request;
 
 class TopicController extends Controller
 {
-    // Lấy danh sách Chủ đề
+
     public function index(Request $request)
     {
         $query = Topic::with('subject')->orderBy('created_at', 'desc');
         
-        // Hỗ trợ lọc chủ đề theo môn học (Nếu sau này form tạo câu hỏi cần lọc)
+     
         if ($request->has('subject_id') && $request->subject_id != '') {
             $query->where('subject_id', $request->subject_id);
         }
@@ -26,7 +26,7 @@ class TopicController extends Controller
         ], 200);
     }
 
-    // Thêm mới Chủ đề
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -42,7 +42,7 @@ class TopicController extends Controller
         ], 201);
     }
 
-    // Cập nhật Chủ đề
+    
     public function update(Request $request, $id)
     {
         $topic = Topic::findOrFail($id);
@@ -60,13 +60,10 @@ class TopicController extends Controller
         ], 200);
     }
 
-    // Xóa Chủ đề
+  
     public function destroy($id)
     {
         $topic = Topic::findOrFail($id);
-        
-        // Do bảng questions có khóa ngoại topic_id, nếu cascade delete được setup ở DB thì nó sẽ tự xóa câu hỏi.
-        // Còn nếu không, bạn có thể kiểm tra xem có câu hỏi nào đang dùng topic này không trước khi xóa.
         
         $topic->delete();
 

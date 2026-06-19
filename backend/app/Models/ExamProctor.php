@@ -15,7 +15,6 @@ class ExamProctor extends Model
 
     public function proctor()
     {
-        // Khóa ngoại proctor_id trỏ tới user_id của bảng proctors
         return $this->belongsTo(Proctor::class, 'proctor_id', 'user_id');
     }
 }

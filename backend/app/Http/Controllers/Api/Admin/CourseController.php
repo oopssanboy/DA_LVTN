@@ -10,7 +10,7 @@ class CourseController extends Controller
 {
     public function index(Request $request)
     {
-        // Trả về khóa học kèm theo tên môn học và tên giảng viên phụ trách
+
         $courses = Course::with(['subject', 'teacher.user'])
             ->orderBy('created_at', 'desc')
             ->get();

@@ -19,7 +19,6 @@ class StatisticsController extends Controller
         $this->middleware('role:teacher,admin');
     }
 
-    // 1. Tổng quan kỳ thi: số lượng, điểm trung bình, tỉ lệ đậu
     public function overview(Exam $exam)
     {
         $attempts = $exam->attempts()->where('status', 'submitted')->get();
@@ -46,7 +45,7 @@ class StatisticsController extends Controller
         ]);
     }
 
-    // 2. Phổ điểm (histogram) – chia thành các khoảng: 0-1, 1-2, ..., 9-10
+   
     public function scoreDistribution(Exam $exam)
     {
         $attempts = $exam->attempts()->where('status', 'submitted')->get();
@@ -65,7 +64,7 @@ class StatisticsController extends Controller
         return response()->json($buckets);
     }
 
-    // 3. Thống kê từng câu hỏi: tỉ lệ đúng, số lần chọn mỗi đáp án (cho single/multiple)
+   
     public function questionStatistics(Exam $exam)
     {
         $questions = $exam->questions()->with('choices')->get();
@@ -111,7 +110,7 @@ class StatisticsController extends Controller
         return response()->json($stats);
     }
 
-    // 4. Phân tích năng lực học viên theo topic (cho một kỳ thi hoặc tổng hợp)
+   
     public function studentSkillAnalysis(Request $request, Exam $exam = null)
     {
         $studentId = $request->input('student_id');
@@ -143,7 +142,6 @@ class StatisticsController extends Controller
         return response()->json($result);
     }
 
-    // 5. Xuất báo cáo PDF (danh sách điểm và phân tích)
     public function exportPdf(Exam $exam)
     {
         $attempts = $exam->attempts()
@@ -164,7 +162,6 @@ class StatisticsController extends Controller
         return $pdf->download("bao-cao-{$exam->id}.pdf");
     }
 
-    // 6. Xuất Excel danh sách điểm chi tiết
     public function exportExcel(Exam $exam)
     {
         return Excel::download(new ExamResultsExport($exam), "ket-qua-{$exam->id}.xlsx");

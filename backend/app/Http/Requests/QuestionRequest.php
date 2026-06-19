@@ -9,7 +9,7 @@ class QuestionRequest extends FormRequest
 {
     public function authorize()
     {
-        // Chỉ giảng viên hoặc admin mới được tạo/sửa câu hỏi
+      
         return auth()->user() && in_array(auth()->user()->role, ['teacher', 'admin']);
     }
 
@@ -23,13 +23,13 @@ class QuestionRequest extends FormRequest
             'type' => 'required|in:multiple_choice,true_false,fill_blank',
         ];
 
-        // Chỉ yêu cầu choices nếu không phải là câu hỏi điền khuyết
+       
         if ($this->type !== 'fill_blank') {
-            $rules['choices'] = 'required|array|min:2'; // Ít nhất 2 đáp án
+            $rules['choices'] = 'required|array|min:2'; 
             $rules['choices.*.content'] = 'required|string';
             $rules['choices.*.is_correct'] = 'required|boolean';
         } else {
-            // Đối với điền khuyết, lưu trực tiếp correct_answer vào bảng questions
+         
             $rules['correct_answer'] = 'required|string';
         }
 

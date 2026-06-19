@@ -135,9 +135,10 @@ export default function ExamManager() {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredExams.map((exam) => {
-                                    const isGenerated = exam.questions_count === exam.total_questions;
+                                    const isGenerated = Number(exam.questions_count) === Number(exam.total_questions) && Number(exam.total_questions) > 0;
+   
+                                    const isActive = exam.is_active === 1 || exam.is_active === '1' || exam.is_active === true;
 
-                                   
                                     const subjectName = typeof exam.subject === 'object' ? exam.subject?.name : exam.subject;
 
                                     return (
@@ -165,8 +166,8 @@ export default function ExamManager() {
                                                 
                                             </td>
                                             <td className="px-6 py-4 space-y-2">
-                                                <button onClick={() => handleToggleStatus(exam.id)} className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max transition ${exam.is_active ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-state-200 text-red-600 hover:bg-slate-300'}`}>
-                                                    {exam.is_active ? <><Unlock className="w-3 h-3" /> Đang Mở</> : <><Lock className="w-3 h-3" /> Đang Khóa</>}
+                                                <button onClick={() => handleToggleStatus(exam.id)} className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max transition ${isActive ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-slate-200 text-red-600 hover:bg-slate-300'}`}>
+                                                    {isActive ? <><Unlock className="w-3 h-3" /> Đang Mở</> : <><Lock className="w-3 h-3" /> Đang Khóa</>}
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4 text-right">
@@ -190,7 +191,7 @@ export default function ExamManager() {
                     )}
                 </div>
 
-                {/* Pagination */}
+         
                 {pagination.links && pagination.links.length > 3 && (
                     <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
                         {pagination.links.map((link, idx) => (

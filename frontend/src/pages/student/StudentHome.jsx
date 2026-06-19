@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { BookOpen, Clock, CheckCircle2, ChevronRight, Search, Loader2, AlertCircle, History, Award, XCircle, CalendarClock } from 'lucide-react';
+
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
@@ -119,6 +120,7 @@ export default function StudentHome() {
                     >
                         <BookOpen className="w-4 h-4" /> Kỳ thi của tôi
                     </button>
+                    
                     <button 
                         onClick={() => setActiveTab('history')}
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${

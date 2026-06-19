@@ -18,7 +18,7 @@ class ExamController extends Controller
     {
         $query = Exam::with(['class', 'matrices']);
         
-        // Nếu là giảng viên, chỉ lấy kỳ thi của lớp mình dạy
+       
         if (auth()->user()->role === 'teacher') {
             $query->whereHas('class.course', function($q) {
                 $q->where('teacher_id', auth()->user()->id);
@@ -45,7 +45,6 @@ class ExamController extends Controller
         $matrices = $data['matrices'];
         unset($data['matrices']);
 
-        // Kiểm tra tổng quantity có bằng total_questions không
         $totalQuantity = collect($matrices)->sum('quantity');
         if ($totalQuantity != $data['total_questions']) {
             return response()->json([
@@ -150,7 +149,7 @@ class ExamController extends Controller
         $exam->delete();
         return response()->json(['message' => 'Xóa kỳ thi thành công']);
     }
-    // Bật/Tắt trạng thái kỳ thi
+  
     public function toggleStatus($id)
     {
         $exam = Exam::findOrFail($id);
@@ -163,4 +162,5 @@ class ExamController extends Controller
             'is_active' => $exam->is_active
         ]);
     }
+    
 }

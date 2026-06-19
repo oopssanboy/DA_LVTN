@@ -26,7 +26,7 @@ export default function ExamStatistics() {
         axios.get(`/teacher/exams/${examId}/statistics/skill`),
       ]);
       setOverview(overviewRes.data);
-      // Chuyển object distribution thành array cho biểu đồ
+    
       const distArray = Object.entries(distRes.data).map(([range, count]) => ({ range, count }));
       setDistribution(distArray);
       setQuestionStats(quesRes.data);
@@ -58,7 +58,7 @@ export default function ExamStatistics() {
         </div>
       </div>
 
-      {/* Tổng quan */}
+    
       {overview && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white p-4 rounded shadow"><div className="text-gray-500">Số sinh viên</div><div className="text-2xl font-bold">{overview.total_students}</div></div>
@@ -69,7 +69,7 @@ export default function ExamStatistics() {
         </div>
       )}
 
-      {/* Biểu đồ phổ điểm */}
+     
       <div className="bg-white p-4 rounded shadow">
         <h3 className="text-xl font-semibold mb-2">Phổ điểm</h3>
         <BarChart width={600} height={300} data={distribution}>
@@ -82,7 +82,7 @@ export default function ExamStatistics() {
         </BarChart>
       </div>
 
-      {/* Biểu đồ năng lực theo chủ đề (Radar) */}
+   
       {skillData.length > 0 && (
         <div className="bg-white p-4 rounded shadow">
           <h3 className="text-xl font-semibold mb-2">Năng lực theo chủ đề</h3>
@@ -96,7 +96,7 @@ export default function ExamStatistics() {
         </div>
       )}
 
-      {/* Bảng thống kê câu hỏi */}
+  
       <div className="bg-white p-4 rounded shadow overflow-x-auto">
         <h3 className="text-xl font-semibold mb-2">Chi tiết câu hỏi</h3>
         <table className="min-w-full border">

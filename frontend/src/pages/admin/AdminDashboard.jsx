@@ -3,7 +3,7 @@ import { Users, GraduationCap, BookOpen, FileCheck, TrendingUp, Loader2 } from "
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import api from '../../services/api';
 
-const COLORS = ['#10b981', '#f43f5e']; // Xanh lá cho Đậu, Đỏ hồng cho Rớt
+const COLORS = ['#10b981', '#f43f5e']; 
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
         <p className="text-slate-500 mt-1">Dữ liệu thống kê trực tiếp từ cơ sở dữ liệu.</p>
       </div>
 
-      {/* Stats Cards */}
+    
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: "Tổng học viên", value: stats.totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lượt thi Chart */}
+    
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">

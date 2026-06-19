@@ -46,7 +46,7 @@ class ExamRequest extends FormRequest
         ];
     }
 
-    // Tùy chọn: có thể thêm phương thức withValidator để kiểm tra tổng quantity == total_questions
+   
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {

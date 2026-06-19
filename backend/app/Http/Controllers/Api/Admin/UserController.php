@@ -13,22 +13,21 @@ use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
-    // Lấy danh sách người dùng (có phân trang và lọc)
+    
     public function index(Request $request)
     {
         $query = User::with(['student', 'teacher', 'proctor']);
 
-        // Lọc theo vai trò nếu có
+       
         if ($request->has('role') && $request->role !== 'all') {
             $query->where('role', $request->role);
         }
 
-        // Lọc theo trạng thái
+
         if ($request->has('is_active')) {
             $query->where('is_active', $request->is_active);
         }
 
-        // Tìm kiếm theo email
         if ($request->has('search')) {
             $query->where('email', 'like', '%' . $request->search . '%');
         }
@@ -38,7 +37,7 @@ class UserController extends Controller
         return response()->json($users, 200);
     }
 
-    // Tạo người dùng mới & Hồ sơ tương ứng
+
     public function store(Request $request)
     {
         $request->validate([
@@ -47,12 +46,12 @@ class UserController extends Controller
             'role' => 'required|in:admin,teacher,proctor,student',
             'name' => 'required_unless:role,admin|string|max:191',
             'code' => 'required_unless:role,admin|string|max:191',
-            'department' => 'nullable|string|max:191' // Chỉ dùng cho teacher
+            'department' => 'nullable|string|max:191' 
         ]);
 
         DB::beginTransaction();
         try {
-            // 1. Tạo tài khoản đăng nhập
+    
             $user = User::create([
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
@@ -60,7 +59,7 @@ class UserController extends Controller
                 'is_active' => true,
             ]);
 
-            // 2. Tạo profile dựa trên role
+          
             if ($request->role === 'student') {
                 Student::create([
                     'user_id' => $user->id,
@@ -84,7 +83,7 @@ class UserController extends Controller
 
             DB::commit();
             
-            // Trả về dữ liệu vừa tạo kèm profile
+         
             $user->load(['student', 'teacher', 'proctor']);
             return response()->json(['message' => 'Tạo người dùng thành công', 'data' => $user], 201);
 
@@ -94,7 +93,7 @@ class UserController extends Controller
         }
     }
 
-    // Xem chi tiết 1 người dùng
+    
     public function show($id)
     {
         $user = User::with(['student', 'teacher', 'proctor'])->find($id);
@@ -106,7 +105,7 @@ class UserController extends Controller
         return response()->json($user, 200);
     }
 
-    // Cập nhật người dùng (Email, Role, Thông tin Profile)
+   
     public function update(Request $request, $id)
     {
         $user = User::find($id);
@@ -123,7 +122,7 @@ class UserController extends Controller
 
         DB::beginTransaction();
         try {
-            // Cập nhật bảng Users
+      
             $user->email = $request->email;
             $user->role = $request->role;
             if ($request->has('password') && !empty($request->password)) {
@@ -131,8 +130,7 @@ class UserController extends Controller
             }
             $user->save();
 
-            // Cập nhật Profile (Nếu có sự thay đổi Role, lý tưởng nhất là báo lỗi hoặc xóa profile cũ tạo profile mới. 
-            // Ở đây giả định User không đổi Role, chỉ cập nhật Name và Code)
+            
             if ($user->role === 'student' && $user->student) {
                 $user->student->update([
                     'student_code' => $request->code,
@@ -161,7 +159,7 @@ class UserController extends Controller
         }
     }
 
-    // Khóa / Mở khóa tài khoản (PATCH Status)
+    
     public function toggleStatus($id)
     {
         $user = User::find($id);

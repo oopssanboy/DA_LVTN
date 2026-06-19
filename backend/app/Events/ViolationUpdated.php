@@ -27,13 +27,13 @@ class ViolationUpdated implements ShouldBroadcastNow
 
     public function broadcastOn()
     {
-        // Channel chung cho toàn bộ một kỳ thi
+        
         return new Channel('exam.' . $this->examId);
     }
 
     public function broadcastAs()
     {
-        // Tên sự kiện lắng nghe trên Frontend
+  
         return 'violation.updated';
     }
 }

@@ -31,7 +31,7 @@ export default function ExamResult() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-20">
-            {/* Header / Score Card */}
+         
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
                 <div className={`h-3 w-full ${isPassed ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                 <div className="p-8 md:p-12 text-center">

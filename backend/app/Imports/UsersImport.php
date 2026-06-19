@@ -11,7 +11,7 @@ class UsersImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        // Bỏ qua nếu email đã tồn tại
+   
         $existingUser = User::where('email', $row['email'])->first();
         if ($existingUser) {
             return null; 

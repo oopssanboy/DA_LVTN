@@ -9,6 +9,6 @@ class SystemSetting extends Model
 {
     use HasFactory;
 
-    // THÊM DÒNG NÀY VÀO ĐỂ MỞ KHÓA TÍNH NĂNG LƯU DỮ LIỆU
+  
     protected $guarded = []; 
 }

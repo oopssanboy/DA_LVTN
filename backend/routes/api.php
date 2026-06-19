@@ -64,7 +64,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::apiResource('questions', QuestionController::class);
 
         Route::apiResource('topics', TopicController::class);
-    
+
+        
         Route::patch('exams/{id}/status', [ExamController::class, 'toggleStatus']);
         Route::get('classes', [ClassController::class, 'index']);
         Route::get('subjects', [SubjectController::class, 'index']);

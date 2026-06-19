@@ -10,7 +10,7 @@ class ExamMatrixResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'topic' => $this->topic,
+            'topic_id' => $this->topic_id,
             'difficulty' => $this->difficulty,
             'quantity' => $this->quantity,
         ];

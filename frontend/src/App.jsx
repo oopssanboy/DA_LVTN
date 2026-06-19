@@ -91,17 +91,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Layouts
+
 import AdminLayout from './components/layout/AdminLayout';
 import TeacherLayout from './components/layout/TeacherLayout';
 import ProctorLayout from './components/layout/ProctorLayout';
 import StudentLayout from './components/layout/StudentLayout';
 
-// Pages
+
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
 
-// Existing Components
+
 import AdminDashboard from './pages/admin/AdminDashboard';
 import QuestionList from './pages/admin/QuestionList';
 import QuestionForm from './pages/admin/QuestionForm';
@@ -123,8 +123,9 @@ import ExamResult from './pages/student/ExamResult';
 import MyExams from './pages/student/MyExams.jsx';
 import ExamHistory from './pages/student/ExamHistory';
 import StudentProfile from './pages/student/StudentProfile';
+import StudentRadar from './pages/student/StudentRadar';
 
-// Middleware Bảo vệ
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   const token = localStorage.getItem('token');
@@ -153,11 +154,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Màn hình tạm cho các chức năng sắp phát triển
+
 const PlaceholderPage = ({ title }) => (
   <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 min-h-[60vh] flex flex-col items-center justify-center">
     <h2 className="text-3xl font-bold text-gray-300 mb-2">{title}</h2>
-    <p className="text-gray-500">Giao diện này đang trong quá trình phát triển...</p>
+    <p className="text-gray-500">Giao diện này chưa làm</p>
   </div>
 );
 
@@ -213,6 +214,7 @@ function App() {
             <Route path="exams" element={<MyExams />} />
             <Route path="history" element={<ExamHistory />} />
             <Route path="profile" element={<StudentProfile />} />
+            <Route path="radar" element={<StudentRadar />} />
           </Route>
           
      

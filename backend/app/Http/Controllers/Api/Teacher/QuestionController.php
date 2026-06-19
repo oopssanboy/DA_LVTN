@@ -15,12 +15,11 @@ use App\Exports\QuestionsExport;
 
 class QuestionController extends Controller
 {
-    // Lấy danh sách câu hỏi (Có bộ lọc)
+ 
     public function index(Request $request)
     {
         $query = Question::with(['subject', 'topic', 'choices', 'fillBlankAnswers']);
-        
-        // Nếu là giảng viên, ưu tiên hiển thị câu hỏi của họ (tùy nghiệp vụ bạn muốn khóa hay mở)
+       
         if (Auth::user()->role === 'teacher') {
             $query->where('teacher_id', Auth::id());
         }
@@ -39,7 +38,7 @@ class QuestionController extends Controller
         return response()->json($questions, 200);
     }
 
-    // Tạo câu hỏi mới và lưu đáp án
+   
     public function store(Request $request)
     {
         $request->validate([
@@ -63,7 +62,7 @@ class QuestionController extends Controller
                 'score' => $request->input('score'),
             ]);
 
-            // Xử lý lưu đáp án trắc nghiệm
+       
             if (in_array($request->input('type'), ['single', 'multiple']) && $request->has('choices')) {
                 foreach ($request->input('choices') as $choiceData) {
                     Choice::create([
@@ -75,7 +74,6 @@ class QuestionController extends Controller
                 }
             }
 
-            // Xử lý lưu đáp án điền khuyết
             if ($request->input('type') === 'fill_blank' && $request->has('fill_blank_answers')) {
                 foreach ($request->input('fill_blank_answers') as $answerText) {
                     FillBlankAnswer::create([
@@ -95,7 +93,6 @@ class QuestionController extends Controller
         }
     }
 
-    // Xem chi tiết câu hỏi
     public function show($id)
     {
         $question = Question::with(['subject', 'topic', 'choices', 'fillBlankAnswers'])->find($id);
@@ -106,7 +103,7 @@ class QuestionController extends Controller
         return response()->json($question, 200);
     }
 
-    // Cập nhật câu hỏi và ghi đè đáp án
+  
     public function update(Request $request, $id)
     {
         $question = Question::find($id);
@@ -134,7 +131,6 @@ class QuestionController extends Controller
                 'score' => $request->input('score'),
             ]);
 
-            // Cập nhật đáp án trắc nghiệm: Xóa cũ tạo mới cho an toàn dữ liệu
             if (in_array($request->input('type'), ['single', 'multiple'])) {
                 Choice::where('question_id', $question->id)->delete();
                 if ($request->has('choices')) {
@@ -149,7 +145,7 @@ class QuestionController extends Controller
                 }
             }
 
-            // Cập nhật đáp án điền khuyết
+         
             if ($request->input('type') === 'fill_blank') {
                 FillBlankAnswer::where('question_id', $question->id)->delete();
                 if ($request->has('fill_blank_answers')) {
@@ -172,7 +168,7 @@ class QuestionController extends Controller
         }
     }
 
-    // Xóa câu hỏi (DB đã cấu hình CASCADE nên các choices sẽ tự xóa theo)
+  
     public function destroy($id)
     {
         $question = Question::find($id);
@@ -186,7 +182,7 @@ class QuestionController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv|max:10240', // max 10MB
+            'file' => 'required|mimes:xlsx,xls,csv|max:10240', 
         ]);
 
 

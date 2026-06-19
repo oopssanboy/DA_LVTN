@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, FileText, CheckSquare, BarChart, LogOut, Menu, X, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, CheckSquare, BarChart, LogOut, Menu, X, BookOpen, Bell } from 'lucide-react';
 
 export default function TeacherLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -13,6 +13,7 @@ export default function TeacherLayout() {
     { name: 'Lớp học của tôi', path: '/teacher/classes', icon: Users },
     { name: 'Ngân hàng Câu hỏi', path: '/teacher/questions', icon: FileText },
     { name: 'Kỳ thi của tôi', path: '/teacher/exams', icon: CheckSquare },
+    { name: 'Quản lý thông báo', path: '/teacher/notifications', icon: Bell },
     { name: 'Thống kê & Báo cáo', path: '/teacher/statistics', icon: BarChart },
   ];
 

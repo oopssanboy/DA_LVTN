@@ -111,7 +111,7 @@ export default function Login() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white text-slate-800 placeholder:text-slate-400 font-medium"
-                    placeholder="VD: admin@stu.edu.vn"
+                    placeholder="VD: student1@stu.edu.vn"
                   />
                 </div>
               </div>

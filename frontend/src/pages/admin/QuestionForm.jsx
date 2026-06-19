@@ -39,7 +39,7 @@ export default function QuestionForm() {
   const [subjects, setSubjects] = useState([]);
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(!!id);
+  const [fetching, setFetching] = useState(true);
 
   const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
@@ -54,65 +54,63 @@ export default function QuestionForm() {
   const { fields, append, remove } = useFieldArray({ control, name: 'choices' });
   const questionType = watch('type');
 
-  // Load danh mục Môn học & Chủ đề
+
   useEffect(() => {
-    const fetchDependencies = async () => {
+    const initData = async () => {
       try {
-        const subRes = await api.get(`${apiPrefix}/subjects`);
+
+        const [subRes, topRes] = await Promise.all([
+          api.get(`${apiPrefix}/subjects`),
+          api.get(`${apiPrefix}/topics`)
+        ]);
+        
         setSubjects(subRes.data.data || subRes.data);
-        // Tạm thời mock data chủ đề (Nếu backend đã có API topics thì thay bằng API)
-        setTopics([{ id: 1, name: 'Chủ đề 1' }, { id: 2, name: 'Chủ đề 2' }]);
+        setTopics(topRes.data.data || topRes.data);
+
+        if (isEdit) {
+          const qRes = await api.get(`${apiPrefix}/questions/${id}`);
+          const q = qRes.data.data || qRes.data;
+          
+        
+          let correctAnsStr = '';
+          if (q.type === 'fill_blank') {
+            correctAnsStr = q.fill_blank_answers?.map(a => a.accepted_text).join('|') || '';
+          } else {
+            const correctChoices = q.choices?.map((c, i) => c.is_correct ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
+            correctAnsStr = correctChoices.join(',');
+          }
+
+          reset({
+            subject_id: q.subject?.id?.toString() || q.subject_id?.toString() || '',
+            topic_id: q.topic?.id?.toString() || q.topic_id?.toString() || '',
+            content: q.content || '',
+            type: q.type || 'single',
+            difficulty: q.difficulty || 'medium',
+            score: q.score || 1,
+            explanation: q.explanation || '',
+            correct_answer: correctAnsStr,
+            choices: q.choices && q.choices.length
+              ? q.choices.map((c, i) => ({ 
+                  key: String.fromCharCode(65 + i), 
+                  text: c.choice_text || c.text 
+                }))
+              : [{ key: 'A', text: '' }, { key: 'B', text: '' }],
+          });
+        }
       } catch (error) {
-        toast.error("Lỗi tải danh mục");
+        toast.error("Không thể khởi tạo dữ liệu câu hỏi");
+      } finally {
+        setFetching(false);
       }
     };
-    fetchDependencies();
-  }, [apiPrefix]);
 
-  // Load chi tiết câu hỏi khi Edit
-  useEffect(() => {
-    if (isEdit) {
-      api.get(`${apiPrefix}/questions/${id}`).then(res => {
-        const q = res.data.data || res.data;
-        
-        // Convert dữ liệu Backend về chuẩn Form UI
-        let correctAnsStr = '';
-        if (q.type === 'fill_blank') {
-          correctAnsStr = q.fill_blank_answers?.map(a => a.accepted_text).join('|') || '';
-        } else {
-          // Lấy ra các key (A, B, C...) của các đáp án đúng
-          const correctChoices = q.choices?.map((c, i) => c.is_correct ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
-          correctAnsStr = correctChoices.join(',');
-        }
-
-        reset({
-          subject_id: q.subject?.id?.toString() || q.subject_id?.toString() || '',
-          topic_id: q.topic?.id?.toString() || q.topic_id?.toString() || '',
-          content: q.content || '',
-          type: q.type || 'single',
-          difficulty: q.difficulty || 'medium',
-          score: q.score || 1,
-          explanation: q.explanation || '',
-          correct_answer: correctAnsStr,
-          choices: q.choices && q.choices.length
-            ? q.choices.map((c, i) => ({ 
-                key: String.fromCharCode(65 + i), 
-                text: c.choice_text || c.text 
-              }))
-            : [{ key: 'A', text: '' }, { key: 'B', text: '' }],
-        });
-      }).catch(err => {
-        toast.error("Không thể tải thông tin câu hỏi");
-      }).finally(() => {
-        setFetching(false);
-      });
-    }
+    initData();
   }, [id, isEdit, reset, apiPrefix]);
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // Map data từ Form UI sang cấu trúc Backend API
+  
       const payload = {
         subject_id: data.subject_id,
         topic_id: data.topic_id,
@@ -124,10 +122,10 @@ export default function QuestionForm() {
       };
 
       if (data.type === 'fill_blank') {
-        // Tách chuỗi "push|đẩy" thành array ['push', 'đẩy']
+     
         payload.fill_blank_answers = data.correct_answer.split('|').map(s => s.trim()).filter(Boolean);
       } else {
-        // Convert [{key: 'A', text: '...'}, ...] thành [{choice_text: '...', is_correct: true/false}]
+       
         const correctKeys = data.correct_answer.split(',');
         payload.choices = data.choices.map(c => ({
           choice_text: c.text,
@@ -157,7 +155,7 @@ export default function QuestionForm() {
       <h1 className="text-2xl font-bold mb-6 text-slate-800">{isEdit ? 'Sửa câu hỏi' : 'Thêm câu hỏi'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         
-        {/* Dòng 1: Môn học và Chủ đề */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block font-medium mb-1 text-slate-700">Môn học</label>
@@ -177,14 +175,13 @@ export default function QuestionForm() {
           </div>
         </div>
 
-        {/* Nội dung câu hỏi */}
+   
         <div>
           <label className="block font-medium mb-1 text-slate-700">Nội dung câu hỏi (có thể nhập HTML)</label>
           <textarea {...register('content')} rows={4} className="w-full border border-slate-200 bg-slate-50 rounded-lg p-3 focus:outline-none focus:ring focus:ring-indigo-200 transition resize-none" placeholder="Nhập nội dung câu hỏi..." />
           <p className="text-red-500 text-sm mt-1">{errors.content?.message}</p>
         </div>
 
-        {/* Dòng 3: Cấu hình kỹ thuật */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block font-medium mb-1 text-slate-700">Loại câu hỏi</label>
@@ -208,13 +205,13 @@ export default function QuestionForm() {
           </div>
         </div>
 
-        {/* PHẦN LỰA CHỌN (Chỉ hiện nếu là trắc nghiệm) */}
+      
         {(questionType === 'single' || questionType === 'multiple') && (
           <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
             <label className="block font-bold mb-4 text-slate-800">Các lựa chọn</label>
             {fields.map((field, idx) => {
               const currentLetter = String.fromCharCode(65 + idx);
-              setValue(`choices.${idx}.key`, currentLetter); // Tự động gắn key A, B, C, D
+              setValue(`choices.${idx}.key`, currentLetter); 
 
               return (
                 <div key={field.id} className="flex gap-3 mb-3 items-center">
@@ -245,7 +242,7 @@ export default function QuestionForm() {
           </div>
         )}
 
-        {/* PHẦN CHỌN ĐÁP ÁN ĐÚNG */}
+        
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100">
           <label className="block font-bold mb-4 text-indigo-900">
             {questionType === 'fill_blank' ? 'Thiết lập phương án đúng' : 'Chọn đáp án đúng'}
@@ -306,7 +303,7 @@ export default function QuestionForm() {
         </div>
 
         <div>
-          <label className="block font-medium mb-1 text-slate-700">Giải thích (Hiển thị sau khi thi xong)</label>
+          <label className="block font-medium mb-1 text-slate-700">Giải thích</label>
           <textarea {...register('explanation')} rows={2} className="w-full border border-slate-200 bg-slate-50 rounded-lg p-3 focus:outline-none focus:ring focus:ring-indigo-200 transition resize-none" placeholder="Giải thích vì sao lại chọn đáp án này..." />
         </div>
 
