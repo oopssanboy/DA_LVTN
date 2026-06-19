@@ -87,8 +87,8 @@ export default function ExamResult() {
                                 ) : (
                                     <div className="space-y-2">
                                         {q.choices.map(c => {
-                                            const isSelected = d.choice_id == c.id;
-                                            const isRightChoice = c.is_correct;
+                                            const isSelected = d.choice_id != null && Number(d.choice_id) === Number(c.id);
+                                            const isRightChoice = Number(c.is_correct) === 1;
                                             let bgClass = "bg-slate-50 border-slate-100 text-slate-600";
                                             
                                             if (isRightChoice) bgClass = "bg-emerald-50 border-emerald-200 text-emerald-700 font-medium";
