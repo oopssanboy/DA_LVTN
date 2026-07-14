@@ -1,15 +1,16 @@
 meta {
-  name: Get History
+  name: Topics Store
   type: http
-  seq: 63
+  seq: 86
 }
-get {
-  url: {{baseUrl}}/api/v1/student/history
+post {
+  url: {{baseUrl}}/api/v1/teacher/topics
   body: none
   auth: bearer
 }
 headers {
   Accept: application/json
+  Content-Type: application/json
 }
 auth:bearer {
   token: {{authToken}}

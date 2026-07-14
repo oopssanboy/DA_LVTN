@@ -57,7 +57,7 @@ export default function AdminLayout() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8">
-          <h1 className="text-xl font-bold text-gray-800">Quản trị Hệ thống</h1>
+          <a href='/' className="text-2xl font-bold text-gray-800 flex items-center gap-2"><GraduationCap className="w-8 h-8 text-blue-600" /> Trang chủ NQ EduTech</a>
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">A</div>
           </div>

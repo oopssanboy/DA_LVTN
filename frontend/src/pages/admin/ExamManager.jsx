@@ -50,12 +50,12 @@ export default function ExamManager() {
         }
     };
 
-   
+
     const handleToggleStatus = async (id) => {
         try {
             const res = await api.patch(`${apiPrefix}/exams/${id}/status`);
             toast.success(res.data.message);
-           
+
             setExams(exams.map(ex => ex.id === id ? { ...ex, is_active: res.data.is_active } : ex));
         } catch (error) {
             toast.error('Lỗi khi cập nhật trạng thái');
@@ -136,7 +136,7 @@ export default function ExamManager() {
                             <tbody className="divide-y divide-slate-100">
                                 {filteredExams.map((exam) => {
                                     const isGenerated = Number(exam.questions_count) === Number(exam.total_questions) && Number(exam.total_questions) > 0;
-   
+
                                     const isActive = exam.is_active === 1 || exam.is_active === '1' || exam.is_active === true;
 
                                     const subjectName = typeof exam.subject === 'object' ? exam.subject?.name : exam.subject;
@@ -163,7 +163,7 @@ export default function ExamManager() {
                                                     </span>
                                                 )}
 
-                                                
+
                                             </td>
                                             <td className="px-6 py-4 space-y-2">
                                                 <button onClick={() => handleToggleStatus(exam.id)} className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max transition ${isActive ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-slate-200 text-red-600 hover:bg-slate-300'}`}>
@@ -175,12 +175,46 @@ export default function ExamManager() {
                                                     <button onClick={() => handleGenerate(exam.id)} disabled={processingId === exam.id} title="Bốc random câu hỏi theo ma trận" className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50">
                                                         {processingId === exam.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlayCircle className="w-5 h-5" />}
                                                     </button>
-                                                    <Link to={`${apiPrefix}/exams/${exam.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                                                        <Edit className="w-5 h-5" />
-                                                    </Link>
-                                                    <button onClick={() => handleDelete(exam.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
-                                                        <Trash2 className="w-5 h-5" />
-                                                    </button>
+
+
+                                                    {exam.in_progress_count > 0 ? (
+                                                        <div className="relative group flex items-center justify-center">
+
+                                                            <button disabled className="p-2 text-slate-800 opacity-40 cursor-not-allowed transition">
+                                                                <Edit className="w-5 h-5" />
+                                                            </button>
+
+                                                            <span className="absolute bottom-full right-1/2 translate-x-1/2 mb-1 hidden group-hover:block w-max bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg z-10 pointer-events-none">
+                                                                Đang có học viên thi không thể thao tác lúc này
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <Link to={`${apiPrefix}/exams/${exam.id}/edit`} title="Sửa kỳ thi" className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                                                            <Edit className="w-5 h-5" />
+                                                        </Link>
+                                                    )}
+
+
+                                                    {exam.in_progress_count > 0 ? (
+                                                        <div className="relative group flex items-center justify-center">
+
+                                                            <button disabled className="p-2 text-slate-800 opacity-40 cursor-not-allowed transition">
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+
+                                                            <span className="absolute bottom-full right-1/2 translate-x-1/2 mb-1 hidden group-hover:block w-max bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg z-10 pointer-events-none">
+                                                                Đang có học viên thi không thể thao tác lúc này
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleDelete(exam.id)}
+                                                            title="Xóa kỳ thi"
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -191,7 +225,7 @@ export default function ExamManager() {
                     )}
                 </div>
 
-         
+
                 {pagination.links && pagination.links.length > 3 && (
                     <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
                         {pagination.links.map((link, idx) => (

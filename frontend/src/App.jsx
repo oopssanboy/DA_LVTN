@@ -124,6 +124,7 @@ import MyExams from './pages/student/MyExams.jsx';
 import ExamHistory from './pages/student/ExamHistory';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentRadar from './pages/student/StudentRadar';
+import LearningPath from './pages/student/LearningPath.jsx';
 
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -215,6 +216,7 @@ function App() {
             <Route path="history" element={<ExamHistory />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="radar" element={<StudentRadar />} />
+            <Route path="learning-path" element={<LearningPath />} />
           </Route>
           
      

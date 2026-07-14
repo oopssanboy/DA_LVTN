@@ -14,9 +14,13 @@ class ExamRequest extends FormRequest
     public function rules()
     {
         return [
-            'class_id' => 'required|exists:classes,id',
+            
             'title' => 'required|string|max:255',
             'subject_id' => 'required|exists:subjects,id',
+            'class_ids' => 'required|array|min:1',
+            'class_ids.*' => 'exists:classes,id',
+            'proctor_ids' => 'nullable|array',
+            'proctor_ids.*' => 'exists:users,id',
             'duration' => 'required|integer|min:1',
             'total_questions' => 'required|integer|min:1',
             'start_time' => 'nullable|date',

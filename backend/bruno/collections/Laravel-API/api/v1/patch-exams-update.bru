@@ -1,7 +1,7 @@
 meta {
   name: Exams Update
   type: http
-  seq: 64
+  seq: 71
 }
 patch {
   url: {{baseUrl}}/api/v1/teacher/exams/{{exam}}
@@ -19,7 +19,7 @@ body:json {
   {
       "class_id": 1,
       "title": "Title",
-      "subject": "Subject",
+      "subject_id": 1,
       "duration": 1,
       "total_questions": 1,
       "start_time": "2024-01-01",

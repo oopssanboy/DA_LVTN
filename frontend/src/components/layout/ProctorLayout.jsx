@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, LogOut, Menu, X, MonitorPlay, Eye } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, X, MonitorPlay, Eye, GraduationCap } from 'lucide-react';
 
 export default function ProctorLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -47,7 +47,7 @@ export default function ProctorLayout() {
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center px-8 shadow-sm">
-          <h1 className="text-xl font-bold text-gray-800">Trạm Giám sát Realtime</h1>
+          <a href='/' className="text-2xl font-bold text-gray-800 flex items-center gap-2"><GraduationCap className="w-8 h-8 text-blue-600" /> Trang chủ NQ EduTech</a>
         </header>
         <div className="flex-1 overflow-y-auto p-8">
           <Outlet />

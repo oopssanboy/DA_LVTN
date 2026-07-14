@@ -1,10 +1,10 @@
 meta {
-  name: Get History
+  name: Topics Destroy
   type: http
-  seq: 63
+  seq: 90
 }
-get {
-  url: {{baseUrl}}/api/v1/student/history
+delete {
+  url: {{baseUrl}}/api/v1/teacher/topics/{{topic}}
   body: none
   auth: bearer
 }

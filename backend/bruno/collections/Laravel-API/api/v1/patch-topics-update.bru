@@ -1,15 +1,16 @@
 meta {
-  name: Get History
+  name: Topics Update
   type: http
-  seq: 63
+  seq: 89
 }
-get {
-  url: {{baseUrl}}/api/v1/student/history
+patch {
+  url: {{baseUrl}}/api/v1/teacher/topics/{{topic}}
   body: none
   auth: bearer
 }
 headers {
   Accept: application/json
+  Content-Type: application/json
 }
 auth:bearer {
   token: {{authToken}}

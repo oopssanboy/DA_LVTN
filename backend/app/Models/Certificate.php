@@ -9,7 +9,7 @@ class Certificate extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['student_id', 'course_id', 'certificate_url', 'issued_date'];
+    protected $fillable = ['student_id', 'course_id', 'issued_date'];
 
     public function student()
     {

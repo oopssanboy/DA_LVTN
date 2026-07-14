@@ -30,10 +30,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::middleware('role:admin')->prefix('admin')->group(function () {
 
         Route::get('dashboard-stats', [DashboardController::class, 'getStats']);
-        Route::get('/users', [UserController::class, 'index']);
-        Route::post('/users', [UserController::class, 'store']);
-        Route::get('/users/{id}', [UserController::class, 'show']);
-        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::apiResource('users', UserController::class);
         Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
 
         Route::apiResource('topics', TopicController::class);
@@ -44,6 +41,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('classes/{id}/enroll', [ClassController::class, 'enrollStudents']);
         Route::post('questions/import', [QuestionController::class, 'import']);
         Route::get('questions/export', [QuestionController::class, 'export']);
+        Route::get('/questions/stats', [QuestionController::class, 'getStats']);
         Route::apiResource('questions', QuestionController::class);
 
         Route::apiResource('exams', ExamController::class);
@@ -61,6 +59,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('exams/{id}/generate', [ExamController::class, 'generateExam']);
         Route::post('questions/import', [QuestionController::class, 'import']);
         Route::get('questions/export', [QuestionController::class, 'export']);
+        Route::get('/questions/stats', [QuestionController::class, 'getStats']);
         Route::apiResource('questions', QuestionController::class);
 
         Route::apiResource('topics', TopicController::class);

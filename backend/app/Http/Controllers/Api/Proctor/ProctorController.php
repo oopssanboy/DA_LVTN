@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB; 
 use App\Events\ViolationUpdated;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class ProctorController extends Controller
@@ -17,18 +18,28 @@ class ProctorController extends Controller
     public function getActiveExams() 
     {
         $now = Carbon::now();
-        $exams = Exam::where('is_active', true)
+        
+        $query = Exam::where('is_active', true)
             ->where(function($q) use ($now) {
                 $q->whereNull('start_time')->orWhere('start_time', '<=', $now);
             })
             ->where(function($q) use ($now) {
                 $q->whereNull('end_time')->orWhere('end_time', '>=', $now);
             })
-            ->with(['class', 'subject'])
+            // Đổi 'class' thành 'classes'
+            ->with(['classes', 'subject'])
             ->withCount(['attempts as active_attempts' => function ($q) {
                 $q->where('status', 'in_progress');
-            }])
-            ->get();
+            }]);
+
+        // Nếu là giám thị thì lọc những phòng được phân công. (Admin sẽ bỏ qua và thấy tất cả).
+        if (Auth::user()->role === 'proctor') {
+            $query->whereHas('proctors', function($q) {
+                $q->where('users.id', Auth::id());
+            });
+        }
+
+        $exams = $query->get();
 
         return response()->json($exams);
     }

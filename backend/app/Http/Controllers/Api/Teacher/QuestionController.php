@@ -205,4 +205,13 @@ class QuestionController extends Controller
             return response()->json(['message' => 'Lỗi export dữ liệu', 'error' => $e->getMessage()], 500);
         }
     }
+    public function getStats()
+    {
+        
+        $stats = Question::select('topic_id', 'difficulty', DB::raw('count(*) as total'))
+            ->groupBy('topic_id', 'difficulty')
+            ->get();
+            
+        return response()->json(['data' => $stats]);
+    }
 }

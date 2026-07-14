@@ -17,7 +17,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with(['student', 'teacher', 'proctor']);
-
+        $query->where('role', '!=', 'admin');
        
         if ($request->has('role') && $request->role !== 'all') {
             $query->where('role', $request->role);

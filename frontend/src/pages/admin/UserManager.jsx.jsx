@@ -210,7 +210,7 @@ export default function UserManager() {
                                     <option value="student">Học viên (Student)</option>
                                     <option value="teacher">Giảng viên (Teacher)</option>
                                     <option value="proctor">Giám thị (Proctor)</option>
-                                    <option value="admin">Quản trị viên (Admin)</option>
+                                    
                                 </select>
                             </div>
 

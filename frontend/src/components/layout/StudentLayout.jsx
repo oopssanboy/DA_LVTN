@@ -74,7 +74,8 @@ export default function StudentLayout() {
       
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8 shadow-sm">
-          <a href='/' className="text-2xl font-bold text-gray-800">Trang chủ NQ EduTech</a>
+          
+          <a href='/' className="text-2xl font-bold text-gray-800 flex items-center gap-2"><GraduationCap className="w-8 h-8 text-blue-600" /> Trang chủ NQ EduTech</a>
    
           <div className="relative" ref={notificationRef}>
             <button 

@@ -10,8 +10,8 @@ class ExamResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'class_id' => $this->class_id,
-            'class_name' => $this->class->name ?? null,
+            'classes' => $this->whenLoaded('classes'),
+            'proctors' => $this->whenLoaded('proctors'),
             'title' => $this->title,
             'subject_name' => $this->subject->name ?? '',
             'subject' => $this->subject,
@@ -26,6 +26,7 @@ class ExamResource extends JsonResource
             'passing_score' => $this->passing_score,
             'matrices' => ExamMatrixResource::collection($this->whenLoaded('matrices')),
             'questions_count' => $this->questions->count(),
+            'in_progress_count' => $this->in_progress_count ?? 0,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

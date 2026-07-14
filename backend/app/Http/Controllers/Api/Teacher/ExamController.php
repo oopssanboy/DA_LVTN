@@ -16,17 +16,21 @@ class ExamController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Exam::with(['class', 'matrices']);
+        $query = Exam::with(['classes', 'matrices'])
+                    ->withCount(['attempts as in_progress_count' => function ($q) {
+                        $q->where('status', 'in_progress');
+                    }]);
         
-       
         if (auth()->user()->role === 'teacher') {
-            $query->whereHas('class.course', function($q) {
+            $query->whereHas('classes.course', function($q) {
                 $q->where('teacher_id', auth()->user()->id);
             });
         }
 
         if ($request->has('class_id')) {
-            $query->where('class_id', $request->input('class_id'));
+            $query->whereHas('classes', function($q) use ($request) {
+                $q->where('classes.id', $request->input('class_id'));
+            });
         }
 
         $exams = $query->latest()->paginate(15);
@@ -35,16 +39,22 @@ class ExamController extends Controller
 
     public function show($id)
     {
-        $exam = Exam::with(['class', 'matrices', 'questions'])->findOrFail($id);
-        return response()->json(new ExamResource($exam));
+        $exam = Exam::with(['classes', 'proctors', 'matrices', 'questions'])->findOrFail($id);
+        return response()->json(['data' => new ExamResource($exam)]);
     }
 
     public function store(ExamRequest $request)
     {
         $data = $request->validated();
-        $matrices = $data['matrices'];
-        unset($data['matrices']);
+        
+        // 1. Tách các mảng ra khỏi data chính để tránh lỗi insert bảng exams
+        $matrices = $data['matrices'] ?? [];
+        $classIds = $data['class_ids'] ?? [];
+        $proctorIds = $data['proctor_ids'] ?? [];
+        
+        unset($data['matrices'], $data['class_ids'], $data['proctor_ids'], $data['class_id']);
 
+        // 2. Validate logic: tổng số câu
         $totalQuantity = collect($matrices)->sum('quantity');
         if ($totalQuantity != $data['total_questions']) {
             return response()->json([
@@ -54,8 +64,18 @@ class ExamController extends Controller
 
         DB::beginTransaction();
         try {
+            // 3. Tạo kỳ thi
             $exam = Exam::create($data);
 
+            // 4. Gắn nhiều lớp và nhiều giám thị qua bảng trung gian
+            if (!empty($classIds)) {
+                $exam->classes()->sync($classIds);
+            }
+            if (!empty($proctorIds)) {
+                $exam->proctors()->sync($proctorIds);
+            }
+
+            // 5. Tạo cấu hình ma trận
             foreach ($matrices as $matrix) {
                 ExamMatrix::create([
                     'exam_id' => $exam->id,
@@ -66,11 +86,11 @@ class ExamController extends Controller
             }
 
             DB::commit();
-            $exam->load('matrices');
+            $exam->load('matrices', 'classes', 'proctors');
             return response()->json(['message' => 'Tạo kỳ thi thành công', 'data' => new ExamResource($exam)], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Lỗi tạo kỳ thi'.$e->getMessage(), 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Lỗi tạo kỳ thi: '.$e->getMessage(), 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -111,7 +131,7 @@ class ExamController extends Controller
             return response()->json(['message' => 'Đã sinh đề thi thành công từ ma trận']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Lỗi sinh đề thi'.$e->getMessage(), 'error' => $e->getMessage()], 400);
+            return response()->json(['message' => 'Lỗi sinh đề thi: '.$e->getMessage(), 'error' => $e->getMessage()], 400);
         }
     }
 
@@ -120,13 +140,30 @@ class ExamController extends Controller
         $exam = Exam::findOrFail($id);
         $data = $request->validated();
         
+        // 1. Tách mảng
+        $matrices = $data['matrices'] ?? null;
+        $classIds = $data['class_ids'] ?? [];
+        $proctorIds = $data['proctor_ids'] ?? [];
+        
+        unset($data['matrices'], $data['class_ids'], $data['proctor_ids'], $data['class_id']);
+        
         DB::beginTransaction();
         try {
+            // 2. Cập nhật bảng exams
             $exam->update($data);
             
-            if (isset($data['matrices'])) {
+            // 3. Đồng bộ lại nhiều lớp và nhiều giám thị
+            if (isset($request->class_ids)) {
+                $exam->classes()->sync($classIds);
+            }
+            if (isset($request->proctor_ids)) {
+                $exam->proctors()->sync($proctorIds);
+            }
+            
+            // 4. Đồng bộ ma trận
+            if ($matrices !== null) {
                 ExamMatrix::where('exam_id', $exam->id)->delete();
-                foreach ($data['matrices'] as $matrix) {
+                foreach ($matrices as $matrix) {
                     ExamMatrix::create([
                         'exam_id' => $exam->id,
                         'topic_id' => $matrix['topic_id'],
@@ -136,6 +173,8 @@ class ExamController extends Controller
                 }
             }
             DB::commit();
+            
+            $exam->load('matrices', 'classes', 'proctors');
             return response()->json(['message' => 'Cập nhật thành công', 'data' => new ExamResource($exam)]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -162,5 +201,4 @@ class ExamController extends Controller
             'is_active' => $exam->is_active
         ]);
     }
-    
 }

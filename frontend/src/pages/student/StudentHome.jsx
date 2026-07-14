@@ -107,7 +107,7 @@ export default function StudentHome() {
                     <h1 className="text-3xl font-extrabold mb-2">Không gian Học tập</h1>
                     <p className="text-blue-100 text-lg max-w-xl">Kiểm tra các kỳ thi đang mở và theo dõi kết quả, lịch sử làm bài của bạn tại đây.</p>
                 </div>
-                <BookOpen className="absolute -right-6 -bottom-6 w-48 h-48 text-white opacity-10" />
+                
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">

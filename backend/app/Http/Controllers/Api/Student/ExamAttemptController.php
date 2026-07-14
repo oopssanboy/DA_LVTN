@@ -26,8 +26,12 @@ class ExamAttemptController extends Controller
         $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id');
         $now = Carbon::now();
 
-        $exams = Exam::with(['subject', 'class'])
-            ->whereIn('class_id', $classIds)
+        // Đổi 'class' thành 'classes'
+        $exams = Exam::with(['subject', 'classes']) 
+            // Thay whereIn('class_id', ...) bằng whereHas('classes', ...)
+            ->whereHas('classes', function($q) use ($classIds) {
+                $q->whereIn('classes.id', $classIds);
+            })
             ->where('is_active', true)
             ->where(function($q) use ($now) {
                 $q->whereNull('start_time')->orWhere('start_time', '<=', $now);

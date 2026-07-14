@@ -182,10 +182,10 @@ export default function QuestionList() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                                                <Link to={`${apiPrefix}/questions/${q.id}/edit`} title="Sửa câu hỏi" className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                                                     <Edit className="w-5 h-5" />
                                                 </Link>
-                                                <button onClick={() => handleDelete(q.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                                                <button onClick={() => handleDelete(q.id)} title="Xóa câu hỏi" className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
                                             </div>
