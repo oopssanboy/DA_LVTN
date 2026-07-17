@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link, Outlet, useLocation, GraduationCap } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, FileText, CheckSquare, BarChart, LogOut, Menu, X, BookOpen, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, CheckSquare, BarChart, LogOut, Menu, X, BookOpen, Bell, GraduationCap } from 'lucide-react';
 
 export default function TeacherLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
