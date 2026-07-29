@@ -41,7 +41,7 @@ export default function ProctorDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        <ShieldCheck className="w-8 h-8 text-indigo-600" /> Hệ thống Giám sát Thi
+                         Hệ thống Giám sát Thi
                     </h1>
                     <p className="text-slate-500 mt-1">Danh sách các kỳ thi đang diễn ra. Chọn một phòng để bắt đầu gác thi.</p>
                 </div>
@@ -62,7 +62,7 @@ export default function ProctorDashboard() {
             ) : filteredExams.length === 0 ? (
                 <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center shadow-sm">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
-                        <ShieldCheck className="w-8 h-8" />
+                        
                     </div>
                     <h3 className="text-lg font-bold text-slate-700">Không có kỳ thi nào đang mở</h3>
                     <p className="text-slate-500 mt-1">Hiện tại không có phòng thi nào đang hoạt động trên hệ thống.</p>
@@ -74,11 +74,11 @@ export default function ProctorDashboard() {
 
                         return (
                             <div key={exam.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col h-full group">
-                                <div className="flex justify-between items-start mb-4">
-                                    <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider line-clamp-1 max-w-[70%]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <span className=" text-black px-3 py-1 rounded-lg text-xm font-bold uppercase tracking-wider line-clamp-1 max-w-[70%]">
                                         {safeSubjectName}
                                     </span>
-                                    <span className="flex items-center gap-1 text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded animate-pulse">
+                                    <span className="flex items-center gap-1 text-emerald-600 font-bold text-xm bg-emerald-100 px-2 py-1  animate-pulse">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Đang mở
                                     </span>
                                 </div>

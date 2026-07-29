@@ -121,7 +121,7 @@ export default function CourseManager() {
                     <h1 className="text-2xl font-bold text-slate-800">Quản lý Khóa học</h1>
                     <p className="text-slate-500 mt-1">Quản lý các khóa học và phân công giảng viên phụ trách.</p>
                 </div>
-                <button onClick={() => openModal()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
+                <button onClick={() => openModal()} className="bg-blue-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
                     <Plus className="w-5 h-5" /> Thêm Khóa học
                 </button>
             </div>
@@ -162,7 +162,7 @@ export default function CourseManager() {
                                             <div className="font-bold text-slate-800">{course.title}</div>
                                             {course.description && <div className="text-xs text-slate-500 mt-1 line-clamp-1 max-w-xs">{course.description}</div>}
                                         </td>
-                                        <td className="px-6 py-4 font-medium text-indigo-600 bg-indigo-50/30">{course.subject?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4 font-medium text-black bg-indigo-50/30">{course.subject?.name || 'N/A'}</td>
                                         <td className="px-6 py-4">
                                             {course.teacher ? (
                                                 <div className="flex flex-col">

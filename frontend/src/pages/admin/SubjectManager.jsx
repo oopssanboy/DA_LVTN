@@ -95,7 +95,7 @@ export default function SubjectManager() {
                     <h1 className="text-2xl font-bold text-slate-800">Quản lý Môn học</h1>
                     <p className="text-slate-500 mt-1">Quản lý danh mục các môn học trong hệ thống đào tạo.</p>
                 </div>
-                <button onClick={() => openModal()} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
+                <button onClick={() => openModal()} className="bg-blue-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
                     <Plus className="w-5 h-5" /> Thêm Môn học
                 </button>
             </div>
@@ -116,7 +116,7 @@ export default function SubjectManager() {
 
                 <div className="overflow-x-auto">
                     {loading ? (
-                        <div className="p-10 flex justify-center"><Loader2 className="w-8 h-8 text-emerald-600 animate-spin" /></div>
+                        <div className="p-10 flex justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
                     ) : (
                         <table className="w-full text-left text-sm text-slate-600">
                             <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs border-b border-slate-200">
@@ -134,9 +134,9 @@ export default function SubjectManager() {
                                         <td className="px-6 py-4 font-medium text-slate-800">{subject.name}</td>
                                         <td className="px-6 py-4 text-xs">
                                             <div className="flex gap-3">
-                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-bold">{subject.courses_count || 0} Khóa học</span>
-                                                <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md font-bold">{subject.topics_count || 0} Chủ đề</span>
-                                                <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded-md font-bold">{subject.questions_count || 0} Câu hỏi</span>
+                                                <span className="bg-blue-50 text-blue-700 px-2 py-1 font-bold">{subject.courses_count || 0} Khóa học</span>
+                                                <span className="bg-purple-50 text-purple-700 px-2 py-1  font-bold">{subject.topics_count || 0} Chủ đề</span>
+                                                <span className="bg-amber-50 text-amber-700 px-2 py-1  font-bold">{subject.questions_count || 0} Câu hỏi</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">

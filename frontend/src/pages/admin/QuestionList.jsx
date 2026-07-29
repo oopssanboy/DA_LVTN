@@ -167,13 +167,13 @@ export default function QuestionList() {
                                         </td>
                                         <td className="px-6 py-4">
                                             {q.type === 'fill_blank' ? (
-                                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Điền khuyết</span>
+                                                <span className="px-3 py-1 bg-purple-100 text-purple-700  text-xs font-bold">Điền khuyết</span>
                                             ) : (
-                                                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Trắc nghiệm</span>
+                                                <span className="px-3 py-1 bg-blue-100 text-blue-700  text-xs font-bold">Trắc nghiệm</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase
+                                            <span className={`px-3 py-1  text-xs font-bold uppercase
                                                 ${q.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' :
                                                     q.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}
                                             >

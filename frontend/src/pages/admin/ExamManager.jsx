@@ -85,7 +85,7 @@ export default function ExamManager() {
     const filteredExams = exams.filter(exam => {
         const title = exam.title || '';
         const subjectName = typeof exam.subject === 'object' ? exam.subject?.name : (exam.subject || '');
-        const className = exam.class_name || '';
+        const classNames = exam.classes ? exam.classes.map(c => c.name).join(', ') : '';
         const q = searchQuery.toLowerCase();
         return title.toLowerCase().includes(q) || subjectName.toLowerCase().includes(q) || className.toLowerCase().includes(q);
     });
@@ -145,7 +145,11 @@ export default function ExamManager() {
                                         <tr key={exam.id} className="hover:bg-slate-50/80 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-800">{exam.title}</td>
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-slate-700">{exam.class_name || `Lớp ID: ${exam.class_id}`}</div>
+                                                <div className="font-medium text-slate-700 max-w-[200px] truncate" title={exam.classes?.map(c => c.name).join(', ')}>
+                                                    {exam.classes && exam.classes.length > 0 
+                                                        ? exam.classes.map(c => c.name).join(', ') 
+                                                        : 'Chưa gán lớp'}
+                                                </div>
                                                 <div className="text-xs text-slate-500 mt-1">{subjectName || 'Chưa cập nhật'}</div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -154,19 +158,19 @@ export default function ExamManager() {
                                             </td>
                                             <td className="px-6 py-4 space-y-2">
                                                 {isGenerated ? (
-                                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold flex items-center gap-1 w-max">
-                                                        <FileCheck className="w-3 h-3" /> Đã có đề
+                                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700  text-xs font-bold flex items-center gap-1 w-max">
+                                                        Đã có đề
                                                     </span>
                                                 ) : (
-                                                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold flex items-center gap-1 w-max">
-                                                        <Loader2 className="w-3 h-3" /> Chưa có đề
+                                                    <span className="px-3 py-1 bg-amber-100 text-amber-700  text-xs font-bold flex items-center gap-1 w-max">
+                                                        Chưa có đề
                                                     </span>
                                                 )}
 
 
                                             </td>
                                             <td className="px-6 py-4 space-y-2">
-                                                <button onClick={() => handleToggleStatus(exam.id)} className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max transition ${isActive ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-slate-200 text-red-600 hover:bg-slate-300'}`}>
+                                                <button onClick={() => handleToggleStatus(exam.id)} className={`px-4 py-1  text-xs font-bold flex items-center gap-1 w-max transition ${isActive ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-slate-200 text-red-600 hover:bg-slate-300'}`}>
                                                     {isActive ? <><Unlock className="w-3 h-3" /> Đang Mở</> : <><Lock className="w-3 h-3" /> Đang Khóa</>}
                                                 </button>
                                             </td>

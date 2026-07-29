@@ -149,7 +149,7 @@ export default function UserManager() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase
+                                                <span className={`px-3 py-1  text-xs font-bold uppercase
                                                     ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
                                                         user.role === 'teacher' ? 'bg-blue-100 text-blue-700' :
                                                             user.role === 'proctor' ? 'bg-amber-100 text-amber-700' :
@@ -198,10 +198,10 @@ export default function UserManager() {
                                     <label className="text-sm font-semibold text-slate-700">Email đăng nhập *</label>
                                     <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
                                 </div>
-                                <div className="space-y-1 col-span-2 md:col-span-1">
+                                {/* <div className="space-y-1 col-span-2 md:col-span-1">
                                     <label className="text-sm font-semibold text-slate-700">{isEdit ? 'Mật khẩu mới (Bỏ trống nếu giữ nguyên)' : 'Mật khẩu *'}</label>
                                     <input required={!isEdit} type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
-                                </div>
+                                </div> */}
                             </div>
 
                             <div className="space-y-1">
@@ -217,7 +217,7 @@ export default function UserManager() {
                  
                             {formData.role !== 'admin' && (
                                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thông tin Hồ sơ (Profile)</p>
+                                    <p className="text-xs font-bold text-black uppercase tracking-wider">Thông tin Hồ sơ (Profile)</p>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-sm font-semibold text-slate-700">Họ và Tên *</label>
@@ -229,7 +229,7 @@ export default function UserManager() {
                                         </div>
                                         {formData.role === 'teacher' && (
                                             <div className="space-y-1 col-span-2">
-                                                <label className="text-sm font-semibold text-slate-700">Khoa / Bộ môn</label>
+                                                <label className="text-sm font-semibold text-slate-700">Khoa</label>
                                                 <input type="text" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
                                             </div>
                                         )}
