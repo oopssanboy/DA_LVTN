@@ -76,7 +76,8 @@ export default function QuestionForm() {
           if (q.type === 'fill_blank') {
             correctAnsStr = q.fill_blank_answers?.map(a => a.accepted_text).join('|') || '';
           } else {
-            const correctChoices = q.choices?.map((c, i) => c.is_correct ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
+            // const correctChoices = q.choices?.map((c, i) => c.is_correct ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
+            const correctChoices = q.choices?.map((c, i) => Number(c.is_correct) === 1 ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
             correctAnsStr = correctChoices.join(',');
           }
 

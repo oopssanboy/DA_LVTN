@@ -3,14 +3,21 @@ meta {
   type: http
   seq: 79
 }
+
 get {
   url: {{baseUrl}}/api/v1/teacher/questions/{{question}}
   body: none
   auth: bearer
 }
+
 headers {
   Accept: application/json
 }
+
 auth:bearer {
   token: {{authToken}}
+}
+
+vars:pre-request {
+  question: 1
 }
