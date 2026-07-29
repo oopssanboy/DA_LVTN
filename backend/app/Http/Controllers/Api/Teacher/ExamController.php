@@ -47,14 +47,14 @@ class ExamController extends Controller
     {
         $data = $request->validated();
         
-        // 1. Tách các mảng ra khỏi data chính để tránh lỗi insert bảng exams
+      
         $matrices = $data['matrices'] ?? [];
         $classIds = $data['class_ids'] ?? [];
         $proctorIds = $data['proctor_ids'] ?? [];
         
         unset($data['matrices'], $data['class_ids'], $data['proctor_ids'], $data['class_id']);
 
-        // 2. Validate logic: tổng số câu
+  
         $totalQuantity = collect($matrices)->sum('quantity');
         if ($totalQuantity != $data['total_questions']) {
             return response()->json([
@@ -64,10 +64,9 @@ class ExamController extends Controller
 
         DB::beginTransaction();
         try {
-            // 3. Tạo kỳ thi
+       
             $exam = Exam::create($data);
 
-            // 4. Gắn nhiều lớp và nhiều giám thị qua bảng trung gian
             if (!empty($classIds)) {
                 $exam->classes()->sync($classIds);
             }
@@ -75,7 +74,6 @@ class ExamController extends Controller
                 $exam->proctors()->sync($proctorIds);
             }
 
-            // 5. Tạo cấu hình ma trận
             foreach ($matrices as $matrix) {
                 ExamMatrix::create([
                     'exam_id' => $exam->id,
@@ -140,7 +138,7 @@ class ExamController extends Controller
         $exam = Exam::findOrFail($id);
         $data = $request->validated();
         
-        // 1. Tách mảng
+    
         $matrices = $data['matrices'] ?? null;
         $classIds = $data['class_ids'] ?? [];
         $proctorIds = $data['proctor_ids'] ?? [];
@@ -149,18 +147,16 @@ class ExamController extends Controller
         
         DB::beginTransaction();
         try {
-            // 2. Cập nhật bảng exams
+    
             $exam->update($data);
-            
-            // 3. Đồng bộ lại nhiều lớp và nhiều giám thị
+    
             if (isset($request->class_ids)) {
                 $exam->classes()->sync($classIds);
             }
             if (isset($request->proctor_ids)) {
                 $exam->proctors()->sync($proctorIds);
             }
-            
-            // 4. Đồng bộ ma trận
+
             if ($matrices !== null) {
                 ExamMatrix::where('exam_id', $exam->id)->delete();
                 foreach ($matrices as $matrix) {
