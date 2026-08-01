@@ -16,4 +16,13 @@ class User extends Authenticatable
     public function student() { return $this->hasOne(Student::class, 'user_id'); }
     public function teacher() { return $this->hasOne(Teacher::class, 'user_id'); }
     public function proctor() { return $this->hasOne(Proctor::class, 'user_id'); }
+    public function teachingClasses()
+    {
+        return $this->belongsToMany(Classes::class, 'class_teacher', 'teacher_id', 'class_id')
+                    ->using(ClassTeacher::class); 
+    }
+    public function studyingClasses()
+    {
+        return $this->belongsToMany(Classes::class, 'class_enrollments', 'student_id', 'class_id');
+    }
 }

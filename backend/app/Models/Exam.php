@@ -7,7 +7,7 @@ class Exam extends Model
     protected $fillable = [
         'subject_id', 'title', 'duration', 'total_questions',
         'password', 'passing_score', 'shuffle_questions', 'shuffle_options',
-        'start_time', 'end_time', 'is_active'
+        'start_time', 'end_time', 'is_active', 'show_answers'
     ];
 
     public function classes() { 

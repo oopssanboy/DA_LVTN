@@ -52,7 +52,7 @@ export default function Login() {
 
       <div className="hidden md:flex flex-1 bg-blue-400 text-white flex-col justify-between p-12 relative overflow-hidden">
 
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-100 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/5/5a/STU_01.jpg')] bg-cover bg-center  mix-blend-multiply"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent"></div>
         
         <div className="relative z-10">

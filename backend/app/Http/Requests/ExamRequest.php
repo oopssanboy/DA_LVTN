@@ -27,6 +27,7 @@ class ExamRequest extends FormRequest
             'end_time' => 'nullable|date|after_or_equal:start_time',
             'password' => 'nullable|string',
             'is_active' => 'boolean',
+            'show_answers' => 'boolean',
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
             'passing_score' => 'required|numeric|min:0|max:10',

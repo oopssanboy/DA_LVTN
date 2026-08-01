@@ -123,7 +123,7 @@ export default function StudentProfile() {
                                 <button 
                                     type="submit" 
                                     disabled={loading}
-                                    className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition flex items-center gap-2 disabled:opacity-70"
+                                    className="bg-blue-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transition flex items-center gap-2 disabled:opacity-70"
                                 >
                                     {loading ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5" />} 
                                     Lưu thay đổi
@@ -137,3 +137,9 @@ export default function StudentProfile() {
         </div>
     );
 }
+
+
+
+
+
+

@@ -26,22 +26,19 @@ class ExamAttemptController extends Controller
         $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id');
         $now = Carbon::now();
 
-        // Đổi 'class' thành 'classes'
         $exams = Exam::with(['subject', 'classes']) 
-            // Thay whereIn('class_id', ...) bằng whereHas('classes', ...)
+          
             ->whereHas('classes', function($q) use ($classIds) {
                 $q->whereIn('classes.id', $classIds);
             })
             ->where('is_active', true)
             ->where(function($q) use ($now) {
-                $q->whereNull('start_time')->orWhere('start_time', '<=', $now);
-            })
-            ->where(function($q) use ($now) {
                 $q->whereNull('end_time')->orWhere('end_time', '>=', $now);
             })
-            ->get();
+            ->orderBy('start_time', 'asc')
+            ->paginate(6);
 
-        $exams = $exams->map(function ($exam) use ($studentId) {
+        $exams->getCollection()->transform(function ($exam) use ($studentId) {
             $attempt = ExamAttempt::where('exam_id', $exam->id)->where('student_id', $studentId)->first();
             $exam->attempt = $attempt;
             return $exam;
@@ -57,7 +54,7 @@ class ExamAttemptController extends Controller
             ->where('student_id', $studentId)
             ->whereIn('status', ['submitted', 'suspended'])
             ->orderBy('ended_at', 'desc')
-            ->get();
+            ->paginate(6);
 
         return response()->json($history);
     }

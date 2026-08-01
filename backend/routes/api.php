@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\SubjectController;
 use App\Http\Controllers\Api\Admin\CourseController;
 use App\Http\Controllers\Api\Admin\ClassController;
+use App\Http\Controllers\Api\Admin\CohortController;
 use App\Http\Controllers\Api\Teacher\QuestionController;
 use App\Http\Controllers\Api\Teacher\ExamController;
 use App\Http\Controllers\Api\Proctor\ProctorController;
@@ -37,6 +38,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
         Route::apiResource('subjects', SubjectController::class);
         Route::apiResource('courses', CourseController::class);
+        Route::apiResource('cohorts', CohortController::class);
         Route::apiResource('classes', ClassController::class);
         Route::post('classes/{id}/enroll', [ClassController::class, 'enrollStudents']);
         Route::post('questions/import', [QuestionController::class, 'import']);
@@ -53,7 +55,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
     Route::middleware('role:admin,teacher')->prefix('teacher')->group(function () {
  
-        Route::apiResource('questions', QuestionController::class);
+        
 
         Route::apiResource('exams', ExamController::class);
         Route::post('exams/{id}/generate', [ExamController::class, 'generateExam']);
@@ -74,6 +76,9 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('classes/{id}/enroll', [ClassController::class, 'enrollStudents']);
         
         Route::get('students', [UserController::class, 'index']);
+        Route::get('users', [UserController::class, 'index']);
+        
+        Route::get('courses', [CourseController::class, 'index']);
     });
 
 

@@ -12,6 +12,7 @@ export default function AdminLayout() {
     { name: 'Tổng quan', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Quản lý Môn học', path: '/admin/subjects', icon: BookOpen },
     { name: 'Quản lý Khóa học', path: '/admin/courses', icon: Layers },
+    { name: 'Quản lý Đợt đăng ký KH', path: '/admin/cohort', icon: Layers },
     { name: 'Quản lý Lớp học', path: '/admin/classes', icon: GraduationCap },
     { name: 'Quản lý Người dùng', path: '/admin/users', icon: Users },
     { name: 'Ngân hàng Câu hỏi', path: '/admin/questions', icon: FileText },

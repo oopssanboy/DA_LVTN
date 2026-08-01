@@ -110,6 +110,7 @@ import ExamForm from './pages/admin/ExamForm';
 import UserManager from './pages/admin/UserManager.jsx';
 import SubjectManager from './pages/admin/SubjectManager.jsx';
 import CourseManager from './pages/admin/CourseManager.jsx';
+import CohortManager from './pages/admin/CohortManager.jsx';
 import ClassManager from './pages/admin/ClassManager.jsx';
 import TopicManager from './pages/admin/TopicManager';
 import ExamStatistics from './pages/teacher/ExamStatistics';
@@ -177,6 +178,7 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="subjects" element={<SubjectManager />} />
             <Route path="courses" element={<CourseManager />} />
+            <Route path="cohort" element={<CohortManager />} />
             <Route path="classes" element={<ClassManager />} />
             <Route path="users" element={<UserManager />} />
             <Route path="questions" element={<QuestionList />} />

@@ -41,6 +41,7 @@ export default function ExamForm() {
             shuffle_questions: true,
             shuffle_options: true,
             is_active: false,
+            show_answers: false,
             password: '',
             start_time: '',
             end_time: '',
@@ -104,6 +105,7 @@ export default function ExamForm() {
                         shuffle_questions: e.shuffle_questions,
                         shuffle_options: e.shuffle_options,
                         is_active: e.is_active,
+                        show_answers: e.show_answers === 1 || e.show_answers === true,
                         password: e.password || '',
                         start_time: formatDT(e.start_time),
                         end_time: formatDT(e.end_time),
@@ -356,6 +358,10 @@ export default function ExamForm() {
                             <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[200px]">
                                 <input type="checkbox" {...register('is_active')} className="w-5 h-5 text-blue-600 rounded border-slate-300" />
                                 <span className="text-sm font-semibold text-slate-700">Kích hoạt mở phòng thi</span>
+                            </label>
+                            <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[200px]">
+                                <input type="checkbox" {...register('show_answers')} className="w-5 h-5 text-blue-600 rounded border-slate-300" />
+                                <span className="text-sm font-semibold text-slate-700">Cho phép học viên xem đáp án</span>
                             </label>
                         </div>
                     </div>
