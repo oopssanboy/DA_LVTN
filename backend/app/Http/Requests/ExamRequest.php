@@ -50,18 +50,32 @@ class ExamRequest extends FormRequest
             'matrices.*.quantity.min' => 'Số lượng câu hỏi phải lớn hơn 0.',
         ];
     }
-
-   
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
             $data = $this->all();
+
             if (isset($data['matrices']) && isset($data['total_questions'])) {
                 $totalQuantity = collect($data['matrices'])->sum('quantity');
                 if ($totalQuantity != $data['total_questions']) {
                     $validator->errors()->add(
                         'total_questions',
                         "Tổng số câu hỏi trong ma trận ({$totalQuantity}) không khớp với tổng số câu hỏi của kỳ thi ({$data['total_questions']})."
+                    );
+                }
+            }
+
+            if (!empty($data['subject_id']) && !empty($data['class_ids'])) {
+                $validClassesCount = \App\Models\Classes::whereIn('id', $data['class_ids'])
+                    ->whereHas('cohort.course.subjects', function($q) use ($data) {
+                        $q->where('subjects.id', $data['subject_id']);
+                    })->count();
+
+            
+                if ($validClassesCount !== count($data['class_ids'])) {
+                    $validator->errors()->add(
+                        'class_ids',
+                        'Lỗi: Bạn đã chọn một hoặc nhiều Lớp không học Môn này trong chương trình đào tạo.'
                     );
                 }
             }

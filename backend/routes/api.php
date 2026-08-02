@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\Admin\ClassController;
 use App\Http\Controllers\Api\Admin\CohortController;
 use App\Http\Controllers\Api\Teacher\QuestionController;
 use App\Http\Controllers\Api\Teacher\ExamController;
+use App\Http\Controllers\Api\Teacher\TeacherDashboardController;
+use App\Http\Controllers\Api\Teacher\StatisticsController;
 use App\Http\Controllers\Api\Proctor\ProctorController;
 use App\Http\Controllers\Api\Student\ExamAttemptController; 
 use App\Http\Controllers\Api\Admin\TopicController;
@@ -79,6 +81,14 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::get('users', [UserController::class, 'index']);
         
         Route::get('courses', [CourseController::class, 'index']);
+
+
+        Route::get('dashboard-stats', [TeacherDashboardController::class, 'getStats']);
+        Route::get('statistics/{exam}/overview', [StatisticsController::class, 'overview']);
+        Route::get('statistics/{exam}/score-distribution', [StatisticsController::class, 'scoreDistribution']);
+        Route::get('statistics/{exam}/questions', [StatisticsController::class, 'questionStatistics']);
+        Route::get('statistics/{exam}/export-pdf', [StatisticsController::class, 'exportPdf']);
+        Route::get('statistics/{exam}/export-excel', [StatisticsController::class, 'exportExcel']);
     });
 
 

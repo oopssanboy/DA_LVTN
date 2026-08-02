@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\StudentAnswer;
+use App\Models\Question; 
+use App\Models\ExamQuestion; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -14,15 +16,12 @@ use App\Exports\ExamResultsExport;
 
 class StatisticsController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('role:teacher,admin');
-    }
-
     public function overview(Exam $exam)
     {
-        $attempts = $exam->attempts()->where('status', 'submitted')->get();
+
+        $attempts = $exam->attempts()->whereIn('status', ['submitted', 'suspended'])->get();
         $count = $attempts->count();
+        
         if ($count == 0) {
             return response()->json([
                 'total_students' => 0,
@@ -48,16 +47,22 @@ class StatisticsController extends Controller
    
     public function scoreDistribution(Exam $exam)
     {
-        $attempts = $exam->attempts()->where('status', 'submitted')->get();
+        $attempts = $exam->attempts()->whereIn('status', ['submitted', 'suspended'])->get();
+
         $buckets = [];
         for ($i = 0; $i <= 9; $i++) {
             $buckets["$i-".($i+1)] = 0;
         }
+
         foreach ($attempts as $attempt) {
             $score = $attempt->total_score;
+            
             $bucketIndex = floor($score);
-            if ($bucketIndex >= 0 && $bucketIndex <= 9) {
-                $key = "$bucketIndex-".($bucketIndex+1);
+            if ($bucketIndex >= 10) $bucketIndex = 9; 
+            if ($bucketIndex < 0) $bucketIndex = 0;
+
+            $key = "$bucketIndex-".($bucketIndex+1);
+            if (isset($buckets[$key])) {
                 $buckets[$key]++;
             }
         }
@@ -67,21 +72,32 @@ class StatisticsController extends Controller
    
     public function questionStatistics(Exam $exam)
     {
-        $questions = $exam->questions()->with('choices')->get();
-        $totalAttempts = $exam->attempts()->where('status', 'submitted')->count();
+        $questionIds = ExamQuestion::where('exam_id', $exam->id)->pluck('question_id');
+        $questions = Question::with('choices')->whereIn('id', $questionIds)->get();
+
+        $attemptIds = $exam->attempts()->whereIn('status', ['submitted', 'suspended'])->pluck('id');
+        $totalAttempts = $attemptIds->count();
+        
         if ($totalAttempts == 0) {
             return response()->json([]);
         }
 
         $stats = [];
         foreach ($questions as $question) {
-            $answers = StudentAnswer::whereIn('attempt_id', $exam->attempts()->pluck('id'))
+    
+            $answers = StudentAnswer::whereIn('attempt_id', $attemptIds)
                 ->where('question_id', $question->id)
                 ->get();
 
             $correctCount = $answers->where('is_correct', true)->count();
-            $wrongCount = $answers->where('is_correct', false)->count();
-            $notAnswered = $totalAttempts - $answers->count();
+            
+   
+            $notAnswered = $answers->filter(function($ans) {
+                return is_null($ans->choice_id) && is_null($ans->answer_text);
+            })->count();
+            
+        
+            $wrongCount = $totalAttempts - $correctCount - $notAnswered;
 
             $choiceStats = [];
             if (in_array($question->type, ['single', 'multiple'])) {
@@ -89,9 +105,12 @@ class StatisticsController extends Controller
                     $choiceStats[$choice->choice_key] = 0;
                 }
                 foreach ($answers as $ans) {
-                    $selectedKeys = explode(',', $ans->answer_text);
-                    foreach ($selectedKeys as $key) {
-                        if (isset($choiceStats[$key])) $choiceStats[$key]++;
+                    if ($ans->choice_id) {
+                        $choice = $question->choices->where('id', $ans->choice_id)->first();
+                        if ($choice) {
+                            $key = $choice->choice_key;
+                            if (isset($choiceStats[$key])) $choiceStats[$key]++;
+                        }
                     }
                 }
             }
@@ -118,7 +137,8 @@ class StatisticsController extends Controller
             ->whereHas('attempt', function ($q) use ($exam, $studentId) {
                 if ($exam) $q->where('exam_id', $exam->id);
                 if ($studentId) $q->where('student_id', $studentId);
-                $q->where('status', 'submitted');
+        
+                $q->whereIn('status', ['submitted', 'suspended']);
             });
 
         $answers = $query->get();
@@ -146,7 +166,7 @@ class StatisticsController extends Controller
     {
         $attempts = $exam->attempts()
             ->with('student')
-            ->where('status', 'submitted')
+            ->whereIn('status', ['submitted', 'suspended'])
             ->orderBy('total_score', 'desc')
             ->get();
 

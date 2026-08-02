@@ -73,8 +73,8 @@ class SubjectController extends Controller
     // }
     public function index()
     {
-        // Lấy danh sách môn học kèm số lượng khóa học đang sử dụng nó
-        $subjects = Subject::withCount('courses')->orderBy('created_at', 'desc')->get();
+        
+        $subjects = Subject::withCount(['courses', 'questions'])->orderBy('created_at', 'desc')->get();
         return response()->json($subjects);
     }
 

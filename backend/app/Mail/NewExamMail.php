@@ -9,32 +9,32 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ExamResultMail extends Mailable implements ShouldQueue 
+class NewExamMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public $attempt;
     public $exam;
+    public $student;
     public $frontendUrl;
 
-    public function __construct($attempt, $exam)
+    public function __construct($exam, $student)
     {
-        $this->attempt = $attempt;
         $this->exam = $exam;
-        $this->frontendUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/student/exam-result/' . $attempt->id;
+        $this->student = $student;
+        $this->frontendUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/student/exams';
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Kết quả bài thi: ' . $this->exam->title,
+            subject: 'Thông báo Kỳ thi mới: ' . $this->exam->title,
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.exam-result', 
+            view: 'emails.new-exam',
         );
     }
 }

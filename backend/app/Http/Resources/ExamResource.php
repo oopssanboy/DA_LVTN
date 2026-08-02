@@ -21,6 +21,7 @@ class ExamResource extends JsonResource
             'end_time' => $this->end_time,
             'password' => $this->password,
             'is_active' => $this->is_active,
+            'show_answers' => $this->show_answers,
             'shuffle_questions' => $this->shuffle_questions,
             'shuffle_options' => $this->shuffle_options,
             'passing_score' => $this->passing_score,

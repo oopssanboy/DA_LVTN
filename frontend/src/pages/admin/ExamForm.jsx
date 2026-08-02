@@ -53,6 +53,12 @@ export default function ExamForm() {
     
     const watchMatrices = watch('matrices') || [];
     const selectedSubjectId = watch('subject_id'); 
+    const validClasses = classes.filter(cls => {
+        if (!selectedSubjectId) 
+            return false; 
+        const courseSubjects = cls.cohort?.course?.subjects || [];
+        return courseSubjects.some(sub => sub.id.toString() === selectedSubjectId.toString());
+    });
     
     const watchClassIds = watch('class_ids') || [];
     const watchProctorIds = watch('proctor_ids') || [];
@@ -63,7 +69,7 @@ export default function ExamForm() {
         topic => String(topic.subject_id || topic.subject?.id) === String(selectedSubjectId)
     );
 
-    const filteredClasses = classes.filter(c => c.name.toLowerCase().includes(classSearch.toLowerCase()));
+    const filteredClasses = validClasses.filter(c => c.name.toLowerCase().includes(classSearch.toLowerCase()));
     const filteredProctors = proctors.filter(p => 
         (p.name && p.name.toLowerCase().includes(proctorSearch.toLowerCase())) || 
         (p.email && p.email.toLowerCase().includes(proctorSearch.toLowerCase()))
@@ -246,7 +252,6 @@ export default function ExamForm() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                            
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-slate-700 flex items-center gap-1">
                                     Lớp học làm bài <span className="text-red-500">*</span>

@@ -17,6 +17,8 @@ use App\Events\ViolationUpdated;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ExamResultMail;
 
 class ExamAttemptController extends Controller
 {
@@ -210,6 +212,9 @@ class ExamAttemptController extends Controller
         $exam = $attempt->exam;
         $answers = StudentAnswer::where('attempt_id', $attempt->id)->get();
         $totalScore = 0;
+        $examQuestions = ExamQuestion::where('exam_id', $exam->id)
+                                     ->get()
+                                     ->keyBy('question_id');
 
         foreach ($answers as $answer) {
             $question = Question::find($answer->question_id);
@@ -217,6 +222,9 @@ class ExamAttemptController extends Controller
 
             $isCorrect = false;
             $scoreEarned = 0;
+            $snapshotScore = isset($examQuestions[$question->id]) 
+                             ? $examQuestions[$question->id]->question_score 
+                             : 0;
 
             if ($question->type === 'fill_blank') {
                 if ($answer->answer_text) {
@@ -226,7 +234,7 @@ class ExamAttemptController extends Controller
                     
                     if (in_array($studentText, $validAnswersLower)) {
                         $isCorrect = true;
-                        $scoreEarned = $question->score;
+                        $scoreEarned = $snapshotScore;
                     }
                 }
             } else {
@@ -234,7 +242,7 @@ class ExamAttemptController extends Controller
                     $choice = Choice::find($answer->choice_id);
                     if ($choice && $choice->is_correct) {
                         $isCorrect = true;
-                        $scoreEarned = $question->score;
+                        $scoreEarned = $snapshotScore;
                     }
                 }
             }
@@ -246,8 +254,8 @@ class ExamAttemptController extends Controller
 
             $totalScore += $scoreEarned;
         }
-
-        $isPassed = $totalScore >= $exam->passing_score;
+        $finalScore = round($totalScore, 2);
+        $isPassed = $finalScore >= $exam->passing_score;
 
         $attempt->update([
             'status' => 'submitted',
@@ -257,6 +265,11 @@ class ExamAttemptController extends Controller
         ]);
 
         broadcast(new ViolationUpdated($exam->id, $attempt->id, 'submitted', 'Sinh viên đã nộp bài'))->toOthers();
+
+        $userEmail = $attempt->student->user->email;
+        if ($userEmail) {
+            Mail::to($userEmail)->send(new ExamResultMail($attempt, $exam));
+        }
 
         return response()->json([
             'message' => 'Nộp bài thành công',

@@ -7,6 +7,9 @@ use App\Models\Exam;
 use App\Models\ExamMatrix;
 use App\Models\ExamQuestion;
 use App\Models\Question;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NewExamMail;
+use App\Models\ClassEnrollment;
 use App\Http\Requests\ExamRequest;
 use App\Http\Resources\ExamResource;
 use Illuminate\Http\Request;
@@ -14,18 +17,25 @@ use Illuminate\Support\Facades\DB;
 
 class ExamController extends Controller
 {
+    private function getAuthorizedExamQuery()
+    {
+        $query = Exam::query();
+        
+        if (auth()->check() && auth()->user()->role === 'teacher') {
+            $query->whereHas('classes.teachers', function($q) {
+                $q->where('users.id', auth()->id());
+            });
+        }
+        
+        return $query;
+    }
     public function index(Request $request)
     {
-        $query = Exam::with(['classes', 'matrices'])
+        $query = $this->getAuthorizedExamQuery()
+                    ->with(['classes', 'matrices'])
                     ->withCount(['attempts as in_progress_count' => function ($q) {
                         $q->where('status', 'in_progress');
                     }]);
-        
-        if (auth()->user()->role === 'teacher') {
-            $query->whereHas('classes.course', function($q) {
-                $q->where('teacher_id', auth()->user()->id);
-            });
-        }
 
         if ($request->has('class_id')) {
             $query->whereHas('classes', function($q) use ($request) {
@@ -39,7 +49,10 @@ class ExamController extends Controller
 
     public function show($id)
     {
-        $exam = Exam::with(['classes', 'proctors', 'matrices', 'questions'])->findOrFail($id);
+        $exam = $this->getAuthorizedExamQuery()
+                    ->with(['classes', 'proctors', 'matrices', 'questions'])
+                    ->findOrFail($id);
+                    
         return response()->json(['data' => new ExamResource($exam)]);
     }
 
@@ -85,6 +98,16 @@ class ExamController extends Controller
 
             DB::commit();
             $exam->load('matrices', 'classes', 'proctors');
+
+            if (!empty($classIds)) {
+                $studentIds = ClassEnrollment::whereIn('class_id', $classIds)->pluck('student_id')->unique();
+                $students = \App\Models\User::whereIn('id', $studentIds)->get();
+
+                foreach ($students as $student) {
+                    Mail::to($student->email)->send(new NewExamMail($exam, $student));
+                }
+            }
+            
             return response()->json(['message' => 'Tạo kỳ thi thành công', 'data' => new ExamResource($exam)], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -94,7 +117,7 @@ class ExamController extends Controller
 
     public function generateExam($id)
     {
-        $exam = Exam::findOrFail($id);
+        $exam = $this->getAuthorizedExamQuery()->findOrFail($id);
         
         DB::beginTransaction();
         try {
@@ -102,6 +125,7 @@ class ExamController extends Controller
             
             $matrices = ExamMatrix::where('exam_id', $exam->id)->get();
             $selectedQuestions = [];
+            $scorePerQuestion = 10 / $exam->total_questions;
             
             foreach ($matrices as $matrix) {
                 $questions = Question::where('topic_id', $matrix->topic_id)
@@ -118,6 +142,7 @@ class ExamController extends Controller
                     $selectedQuestions[] = [
                         'exam_id' => $exam->id, 
                         'question_id' => $q->id,
+                        'question_score' => $scorePerQuestion,
                         'created_at' => now(),
                         'updated_at' => now()
                     ];
@@ -135,7 +160,7 @@ class ExamController extends Controller
 
     public function update(ExamRequest $request, $id)
     {
-        $exam = Exam::findOrFail($id);
+        $exam = $this->getAuthorizedExamQuery()->findOrFail($id);
         $data = $request->validated();
         
     

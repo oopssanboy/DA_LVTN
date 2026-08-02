@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Classes;
 use App\Models\ClassEnrollment;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ClassEnrollmentMail;
 
 class ClassController extends Controller
 {
@@ -126,12 +129,12 @@ class ClassController extends Controller
     // }
     public function index(Request $request)
     {
-        // Load Đợt tuyển sinh (kèm Khóa học) và danh sách Giảng viên
-        $query = Classes::with(['cohort.course', 'teachers'])
+       
+        $query = Classes::with(['cohort.course.subjects', 'teachers'])
             ->withCount('enrollments')
             ->orderBy('created_at', 'desc');
             
-        // Phân quyền: Giảng viên chỉ được xem lớp mình dạy
+
         if (auth()->check() && auth()->user()->role === 'teacher') {
             $query->whereHas('teachers', function($q) {
                 $q->where('users.id', auth()->id());
@@ -253,6 +256,11 @@ class ClassController extends Controller
 
         DB::beginTransaction();
         try {
+            $oldStudentIds = ClassEnrollment::where('class_id', $class->id)->pluck('student_id')->toArray();
+            $newStudentIds = $request->input('student_ids');
+
+            $addedIds = array_diff($newStudentIds, $oldStudentIds);
+            $removedIds = array_diff($oldStudentIds, $newStudentIds);
             ClassEnrollment::where('class_id', $class->id)->delete();
 
             $enrollments = [];
@@ -268,6 +276,15 @@ class ClassController extends Controller
             ClassEnrollment::insert($enrollments);
 
             DB::commit();
+            $addedUsers = User::whereIn('id', $addedIds)->get();
+            foreach ($addedUsers as $user) {
+                Mail::to($user->email)->send(new ClassEnrollmentMail($class, 'added'));
+            }
+
+            $removedUsers = User::whereIn('id', $removedIds)->get();
+            foreach ($removedUsers as $user) {
+                Mail::to($user->email)->send(new ClassEnrollmentMail($class, 'removed'));
+            }
             return response()->json(['message' => 'Đồng bộ danh sách sinh viên vào lớp thành công'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
