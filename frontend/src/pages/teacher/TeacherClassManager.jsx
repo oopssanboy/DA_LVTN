@@ -8,12 +8,12 @@ export default function TeacherClassManager() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     
-   
+    // State Modal Xem chi tiết
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedClassDetails, setSelectedClassDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
-   
+    // State Modal Ghi danh
     const [showEnrollModal, setShowEnrollModal] = useState(false); 
     const [selectedClass, setSelectedClass] = useState(null); 
     const [allStudents, setAllStudents] = useState([]); 
@@ -37,7 +37,6 @@ export default function TeacherClassManager() {
         }
     };
 
- 
     const handleViewDetails = async (id) => {
         setShowDetailsModal(true);
         setLoadingDetails(true);
@@ -52,23 +51,22 @@ export default function TeacherClassManager() {
         }
     };
 
-  
     const openEnrollModal = async (cls) => { 
         setSelectedClass(cls); 
         setShowEnrollModal(true); 
         setEnrollLoading(true); 
+        setSearchStudent(''); // Reset tìm kiếm mỗi lần mở
         
         try { 
-    
-            const studentRes = await api.get('/teacher/users?role=student&is_active=1&per_page=100'); 
+            const studentRes = await api.get('/teacher/users?role=student&is_active=1&per_page=500'); // Nới rộng limit
             const studentsData = studentRes.data.data || studentRes.data; 
             setAllStudents(studentsData); 
 
-     
             const classDetailRes = await api.get(`/teacher/classes/${cls.id}`); 
             const currentEnrollments = classDetailRes.data.enrollments || classDetailRes.data.data?.enrollments || []; 
             
-            const enrolledIds = currentEnrollments.map(e => e.student_id); 
+            // 🔥 ÉP KIỂU VỀ NUMBER Ở ĐÂY ĐỂ ĐỒNG BỘ VỚI CHECKBOX
+            const enrolledIds = currentEnrollments.map(e => Number(e.student_id)); 
             setSelectedStudentIds(enrolledIds); 
 
         } catch (error) { 
@@ -79,25 +77,28 @@ export default function TeacherClassManager() {
         }
     }; 
 
+    // 🔥 ÉP KIỂU id TRONG HÀM TOGGLE ĐỂ KHÔNG BỊ TRÙNG MẢNG
     const toggleStudent = (studentId) => { 
-        if (selectedStudentIds.includes(studentId)) { 
-            setSelectedStudentIds(selectedStudentIds.filter(id => id !== studentId)); 
+        const id = Number(studentId);
+        if (selectedStudentIds.includes(id)) { 
+            setSelectedStudentIds(selectedStudentIds.filter(item => item !== id)); 
         } else { 
-            setSelectedStudentIds([...selectedStudentIds, studentId]); 
+            setSelectedStudentIds([...selectedStudentIds, id]); 
         } 
     }; 
 
     const handleSaveEnrollments = async () => { 
+        const loadingToast = toast.loading('Đang đồng bộ danh sách...');
         setEnrollLoading(true); 
         try { 
             await api.post(`/teacher/classes/${selectedClass.id}/enroll`, { 
                 student_ids: selectedStudentIds 
             }); 
-            toast.success('Đồng bộ danh sách Sinh viên thành công!'); 
+            toast.success('Đồng bộ danh sách Sinh viên thành công!', { id: loadingToast }); 
             setShowEnrollModal(false); 
             fetchClasses(); 
         } catch (error) { 
-            toast.error(error.response?.data?.message || 'Lỗi khi đồng bộ danh sách'); 
+            toast.error(error.response?.data?.message || 'Lỗi khi đồng bộ danh sách', { id: loadingToast }); 
         } finally { 
             setEnrollLoading(false); 
         } 
@@ -170,7 +171,7 @@ export default function TeacherClassManager() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className="font-bold  text-base px-3 py-1 rounded-lg ">
+                                        <span className="font-bold text-base px-3 py-1 rounded-lg">
                                             {cls.enrollments_count || 0}
                                         </span>
                                     </td>
@@ -203,16 +204,16 @@ export default function TeacherClassManager() {
                 )}
             </div>
 
-    
+            {/* Modal Ghi danh */}
             {showEnrollModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50">
                             <div>
-                                <h3 className="text-lg font-bold  flex items-center gap-2">
+                                <h3 className="text-lg font-bold flex items-center gap-2">
                                     Gán danh sách Sinh viên
                                 </h3>
-                                <p className="text-xm font-medium  mt-1">Lớp: {selectedClass?.name}</p>
+                                <p className="text-sm font-medium mt-1">Lớp: {selectedClass?.name}</p>
                             </div>
                             <button onClick={() => setShowEnrollModal(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg transition shadow-sm border border-slate-200">
                                 <X className="w-5 h-5" />
@@ -244,7 +245,8 @@ export default function TeacherClassManager() {
                                         <div className="text-center text-slate-500 py-10 font-medium text-sm">Không tìm thấy sinh viên nào trong hệ thống.</div>
                                     ) : (
                                         filteredStudents.map(student => {
-                                            const isSelected = selectedStudentIds.includes(student.id);
+                                            // 🔥 ÉP KIỂU VỀ NUMBER KHI KIỂM TRA CHECKBOX
+                                            const isSelected = selectedStudentIds.includes(Number(student.id));
                                             return (
                                                 <label 
                                                     key={student.id} 
@@ -276,7 +278,7 @@ export default function TeacherClassManager() {
 
                         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
                             <div className="text-sm font-medium text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                                Đã chọn: <strong className="text-lg mx-1">{selectedStudentIds.length}</strong> Sinh viên
+                                Đã chọn: <strong className="text-lg mx-1 text-emerald-600">{selectedStudentIds.length}</strong> Sinh viên
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => setShowEnrollModal(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition">Hủy</button>
@@ -293,13 +295,13 @@ export default function TeacherClassManager() {
                 </div>
             )}
 
-         
+            {/* Modal Xem chi tiết (Không thay đổi) */}
             {showDetailsModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50">
                             <div>
-                                <h3 className="font-bold text-xl  flex items-center gap-2">
+                                <h3 className="font-bold text-xl flex items-center gap-2">
                                     Lớp: {selectedClassDetails?.name || 'Đang tải...'}
                                 </h3>
                             </div>
@@ -339,7 +341,7 @@ export default function TeacherClassManager() {
                                             </div>
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-slate-500 text-xs font-semibold">Tổng sĩ số hiện tại</span>
-                                                <span className="font-bold  text-lg">{selectedClassDetails.enrollments?.length || 0} học viên</span>
+                                                <span className="font-bold text-lg">{selectedClassDetails.enrollments?.length || 0} học viên</span>
                                             </div>
                                         </div>
                                     </div>
