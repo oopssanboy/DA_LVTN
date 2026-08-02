@@ -12,23 +12,20 @@ export default function ClassList() {
     const [students, setStudents] = useState([]); 
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    
-    // State cho Modal Lớp học (Thêm/Sửa)
+   
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [searchTeacher, setSearchTeacher] = useState(''); // 🔥 Search Giảng viên
+    const [searchTeacher, setSearchTeacher] = useState(''); 
     const { register, handleSubmit, reset } = useForm({
         defaultValues: { teacher_ids: [] }
     });
 
-    // State cho Modal Ghi danh
     const [showEnrollModal, setShowEnrollModal] = useState(false);
     const [selectedClassForEnroll, setSelectedClassForEnroll] = useState(null);
-    const [searchStudent, setSearchStudent] = useState(''); // 🔥 Search Sinh viên
-    const [selectedStudentIds, setSelectedStudentIds] = useState([]); // Chứa ID sinh viên được tick
-    const [enrollLoading, setEnrollLoading] = useState(false); // Hiệu ứng loading lúc lấy danh sách
+    const [searchStudent, setSearchStudent] = useState(''); 
+    const [selectedStudentIds, setSelectedStudentIds] = useState([]); 
+    const [enrollLoading, setEnrollLoading] = useState(false); 
 
-    // State cho Modal Xem chi tiết
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedClassDetails, setSelectedClassDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -44,7 +41,7 @@ export default function ClassList() {
                 api.get('/admin/classes'),
                 api.get('/admin/cohorts'),
                 api.get('/admin/users?role=teacher&is_active=1&per_page=100'),
-                api.get('/admin/users?role=student&is_active=1&per_page=500') // Nới rộng limit để hiển thị nhiều SV
+                api.get('/admin/users?role=student&is_active=1&per_page=500') 
             ]);
             
             setClasses(classesRes.data.data || classesRes.data);
@@ -58,7 +55,7 @@ export default function ClassList() {
         }
     };
 
-    // --- LOGIC XEM CHI TIẾT ---
+  
     const handleViewDetails = async (id) => {
         setShowDetailsModal(true);
         setLoadingDetails(true);
@@ -73,9 +70,9 @@ export default function ClassList() {
         }
     };
 
-    // --- LOGIC THÊM / SỬA LỚP HỌC ---
+   
     const openModal = (cls = null) => {
-        setSearchTeacher(''); // Reset search
+        setSearchTeacher(''); 
         if (cls) {
             setEditingId(cls.id);
             reset({
@@ -109,19 +106,19 @@ export default function ClassList() {
         }
     };
 
-    // --- LOGIC GHI DANH ---
+   
     const openEnrollModal = async (cls) => {
         setSelectedClassForEnroll(cls);
         setShowEnrollModal(true);
         setEnrollLoading(true);
-        setSearchStudent(''); // Reset search
+        setSearchStudent('');
         
         try {
-            // 🔥 Gọi API để lấy danh sách học viên THỰC TẾ đang có trong lớp này
+        
             const res = await api.get(`/admin/classes/${cls.id}`);
             const classDetails = res.data.data || res.data;
             
-            const enrolledIds = classDetails.enrollments?.map(e => e.student_id) || [];
+            const enrolledIds = classDetails.enrollments?.map(e => Number(e.student_id)) || [];
             setSelectedStudentIds(enrolledIds);
         } catch (error) {
             toast.error('Lỗi lấy dữ liệu sĩ số cũ');
@@ -132,10 +129,11 @@ export default function ClassList() {
     };
 
     const toggleStudent = (studentId) => {
-        if (selectedStudentIds.includes(studentId)) {
-            setSelectedStudentIds(selectedStudentIds.filter(id => id !== studentId));
+        const id = Number(studentId); 
+        if (selectedStudentIds.includes(id)) {
+            setSelectedStudentIds(selectedStudentIds.filter(item => item !== id));
         } else {
-            setSelectedStudentIds([...selectedStudentIds, studentId]);
+            setSelectedStudentIds([...selectedStudentIds, id]);
         }
     };
 
@@ -401,7 +399,7 @@ export default function ClassList() {
                                         <div className="text-center text-slate-500 py-10 font-medium text-sm">Không tìm thấy sinh viên nào.</div>
                                     ) : (
                                         filteredStudents.map(student => {
-                                            const isSelected = selectedStudentIds.includes(student.id);
+                                            const isSelected = selectedStudentIds.includes(Number(student.id));
                                             return (
                                                 <label 
                                                     key={student.id} 

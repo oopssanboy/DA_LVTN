@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\SubjectController;
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::put('/password', [AuthController::class, 'changePassword']);
+        Route::get('/notifications', [NotificationController::class, 'myNotifications']);
     });
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
@@ -52,6 +54,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('exams/{id}/generate', [ExamController::class, 'generateExam']);
 
         Route::patch('exams/{id}/status', [ExamController::class, 'toggleStatus']);
+        Route::apiResource('notifications', NotificationController::class);
     });
 
 
@@ -89,6 +92,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::get('statistics/{exam}/questions', [StatisticsController::class, 'questionStatistics']);
         Route::get('statistics/{exam}/export-pdf', [StatisticsController::class, 'exportPdf']);
         Route::get('statistics/{exam}/export-excel', [StatisticsController::class, 'exportExcel']);
+        Route::apiResource('notifications', NotificationController::class);
     });
 
 

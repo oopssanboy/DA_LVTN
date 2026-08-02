@@ -113,6 +113,7 @@ import CourseManager from './pages/admin/CourseManager.jsx';
 import CohortManager from './pages/admin/CohortManager.jsx';
 import ClassManager from './pages/admin/ClassManager.jsx';
 import TopicManager from './pages/admin/TopicManager';
+import NotificationManager from './pages/admin/NotificationManager.jsx';
 import ExamStatistics from './pages/teacher/ExamStatistics';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherClassManager from './pages/teacher/TeacherClassManager.jsx';
@@ -191,6 +192,7 @@ function App() {
             <Route path="/admin/monitor/:examId" element={<ExamMonitor />} />
             <Route path="statistics" element={<ExamStatistics />} />
             <Route path="topics" element={<TopicManager />} />
+            <Route path="notifications" element={<NotificationManager basePath="/admin" />} />
           </Route>
 
           <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
@@ -204,6 +206,7 @@ function App() {
             <Route path="exams/:id/edit" element={<ExamForm />} />
             <Route path="statistics" element={<ExamStatistics />} />
             <Route path="topics" element={<TopicManager />} />
+            <Route path="notifications" element={<NotificationManager basePath="/teacher" />} />
           </Route>
        
           <Route path="/proctor" element={<ProtectedRoute allowedRoles={['proctor']}><ProctorLayout /></ProtectedRoute>}>

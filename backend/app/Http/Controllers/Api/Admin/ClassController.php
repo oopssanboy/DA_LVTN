@@ -257,14 +257,14 @@ class ClassController extends Controller
         DB::beginTransaction();
         try {
             $oldStudentIds = ClassEnrollment::where('class_id', $class->id)->pluck('student_id')->toArray();
-            $newStudentIds = $request->input('student_ids');
+           $newStudentIds = array_unique($request->input('student_ids'));
 
             $addedIds = array_diff($newStudentIds, $oldStudentIds);
             $removedIds = array_diff($oldStudentIds, $newStudentIds);
             ClassEnrollment::where('class_id', $class->id)->delete();
 
             $enrollments = [];
-            foreach ($request->input('student_ids') as $studentId) {
+            foreach ($newStudentIds as $studentId) { 
                 $enrollments[] = [
                     'class_id' => $class->id,
                     'student_id' => $studentId,
