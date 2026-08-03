@@ -10,7 +10,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['email', 'password', 'role', 'is_active'];
+    protected $fillable = ['email', 'password', 'role', 'avatar', 'is_active'];
     protected $hidden = ['password', 'remember_token'];
 
     public function student() { return $this->hasOne(Student::class, 'user_id'); }

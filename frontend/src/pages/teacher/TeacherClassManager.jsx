@@ -8,12 +8,12 @@ export default function TeacherClassManager() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     
-    // State Modal Xem chi tiết
+  
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedClassDetails, setSelectedClassDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
-    // State Modal Ghi danh
+   
     const [showEnrollModal, setShowEnrollModal] = useState(false); 
     const [selectedClass, setSelectedClass] = useState(null); 
     const [allStudents, setAllStudents] = useState([]); 
@@ -55,7 +55,7 @@ export default function TeacherClassManager() {
         setSelectedClass(cls); 
         setShowEnrollModal(true); 
         setEnrollLoading(true); 
-        setSearchStudent(''); // Reset tìm kiếm mỗi lần mở
+        setSearchStudent(''); 
         
         try { 
             const studentRes = await api.get('/teacher/users?role=student&is_active=1&per_page=500'); // Nới rộng limit
@@ -64,8 +64,7 @@ export default function TeacherClassManager() {
 
             const classDetailRes = await api.get(`/teacher/classes/${cls.id}`); 
             const currentEnrollments = classDetailRes.data.enrollments || classDetailRes.data.data?.enrollments || []; 
-            
-            // 🔥 ÉP KIỂU VỀ NUMBER Ở ĐÂY ĐỂ ĐỒNG BỘ VỚI CHECKBOX
+        
             const enrolledIds = currentEnrollments.map(e => Number(e.student_id)); 
             setSelectedStudentIds(enrolledIds); 
 
@@ -77,7 +76,6 @@ export default function TeacherClassManager() {
         }
     }; 
 
-    // 🔥 ÉP KIỂU id TRONG HÀM TOGGLE ĐỂ KHÔNG BỊ TRÙNG MẢNG
     const toggleStudent = (studentId) => { 
         const id = Number(studentId);
         if (selectedStudentIds.includes(id)) { 
@@ -204,7 +202,7 @@ export default function TeacherClassManager() {
                 )}
             </div>
 
-            {/* Modal Ghi danh */}
+         
             {showEnrollModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
@@ -245,7 +243,7 @@ export default function TeacherClassManager() {
                                         <div className="text-center text-slate-500 py-10 font-medium text-sm">Không tìm thấy sinh viên nào trong hệ thống.</div>
                                     ) : (
                                         filteredStudents.map(student => {
-                                            // 🔥 ÉP KIỂU VỀ NUMBER KHI KIỂM TRA CHECKBOX
+                                      
                                             const isSelected = selectedStudentIds.includes(Number(student.id));
                                             return (
                                                 <label 
@@ -295,7 +293,7 @@ export default function TeacherClassManager() {
                 </div>
             )}
 
-            {/* Modal Xem chi tiết (Không thay đổi) */}
+          
             {showDetailsModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
@@ -387,7 +385,7 @@ export default function TeacherClassManager() {
                         
                         <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
                             <button onClick={() => setShowDetailsModal(false)} className="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm">
-                                Đóng lại
+                                Đóng
                             </button>
                         </div>
                     </div>

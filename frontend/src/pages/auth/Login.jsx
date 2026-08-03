@@ -119,7 +119,7 @@ export default function Login() {
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-sm font-semibold text-slate-700">Mật khẩu</label>
-                  <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition">Quên mật khẩu?</a>
+                  <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition">Quên mật khẩu?</Link>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">

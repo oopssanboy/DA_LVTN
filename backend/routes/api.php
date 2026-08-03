@@ -19,17 +19,23 @@ use App\Http\Controllers\Api\Admin\TopicController;
 
 
 
+
 Route::prefix('v1/auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
     Route::prefix('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/profile', [AuthController::class, 'updateProfile']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::put('/password', [AuthController::class, 'changePassword']);
         Route::get('/notifications', [NotificationController::class, 'myNotifications']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     });
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {

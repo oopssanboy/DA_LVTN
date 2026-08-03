@@ -83,16 +83,13 @@ class NotificationController extends Controller
         $query = Notification::query()->orderBy('created_at', 'desc');
 
         if ($user->role === 'admin') {
-    
             $query->whereIn('target_role', ['all', 'admin']);
         } elseif ($user->role === 'teacher') {
-
             $classIds = ClassTeacher::where('teacher_id', $user->id)->pluck('class_id')->toArray();
             $query->where(function($q) use ($classIds) {
                 $q->whereIn('target_role', ['all', 'teacher'])
                   ->orWhere(function($subQ) use ($classIds) {
-                      $subQ->where('target_role', 'class')
-                           ->whereIn('target_class_id', $classIds);
+                      $subQ->where('target_role', 'class')->whereIn('target_class_id', $classIds);
                   });
             });
         } elseif ($user->role === 'student') {
@@ -101,11 +98,40 @@ class NotificationController extends Controller
             $query->where(function($q) use ($classIds) {
                 $q->whereIn('target_role', ['all', 'student'])
                   ->orWhere(function($subQ) use ($classIds) {
-                      $subQ->where('target_role', 'class')
-                           ->whereIn('target_class_id', $classIds);
+                      $subQ->where('target_role', 'class')->whereIn('target_class_id', $classIds);
                   });
             });
+        } elseif ($user->role === 'proctor') {
+            $query->whereIn('target_role', ['all', 'proctor']); 
         }
-        return response()->json($query->limit(10)->get());
+
+        $notifications = $query->limit(15)->get();
+
+        $readIds = \Illuminate\Support\Facades\DB::table('notification_reads')
+            ->where('user_id', $user->id)
+            ->whereIn('notification_id', $notifications->pluck('id'))
+            ->pluck('notification_id')
+            ->toArray();
+
+
+        $notifications->map(function($noti) use ($readIds) {
+            $noti->is_read = in_array($noti->id, $readIds);
+            return $noti;
+        });
+
+        return response()->json($notifications);
+    }
+
+   
+    public function markAsRead($id)
+    {
+        $user = Auth::user();
+        
+        \Illuminate\Support\Facades\DB::table('notification_reads')->updateOrInsert(
+            ['user_id' => $user->id, 'notification_id' => $id],
+            ['created_at' => now()]
+        );
+
+        return response()->json(['message' => 'Đã đánh dấu đọc']);
     }
 }

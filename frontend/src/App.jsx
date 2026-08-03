@@ -100,6 +100,8 @@ import StudentLayout from './components/layout/StudentLayout';
 
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
+import ProfileManager from './pages/auth/ProfileManager.jsx';
+import ForgotPassword from './pages/auth/ForgotPassword.jsx';
 
 
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -124,7 +126,7 @@ import ExamRoom from './pages/student/ExamRoom';
 import ExamResult from './pages/student/ExamResult';
 import MyExams from './pages/student/MyExams.jsx';
 import ExamHistory from './pages/student/ExamHistory';
-import StudentProfile from './pages/student/StudentProfile';
+
 import StudentRadar from './pages/student/StudentRadar';
 import LearningPath from './pages/student/LearningPath.jsx';
 
@@ -174,6 +176,8 @@ function App() {
 
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
     
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
             <Route path="dashboard" element={<AdminDashboard />} />
@@ -207,11 +211,13 @@ function App() {
             <Route path="statistics" element={<ExamStatistics />} />
             <Route path="topics" element={<TopicManager />} />
             <Route path="notifications" element={<NotificationManager basePath="/teacher" />} />
+            <Route path="profile" element={<ProfileManager />} />
           </Route>
        
           <Route path="/proctor" element={<ProtectedRoute allowedRoles={['proctor']}><ProctorLayout /></ProtectedRoute>}>
             <Route path="/proctor/dashboard" element={<ProctorDashboard />} />
             <Route path="/proctor/monitor/:examId" element={<ExamMonitor />} />
+            <Route path="profile" element={<ProfileManager />} />
           </Route>
           
      
@@ -219,9 +225,10 @@ function App() {
             <Route path="dashboard" element={<StudentHome />} />
             <Route path="exams" element={<MyExams />} />
             <Route path="history" element={<ExamHistory />} />
-            <Route path="profile" element={<StudentProfile />} />
+           
             <Route path="radar" element={<StudentRadar />} />
             <Route path="learning-path" element={<LearningPath />} />
+            <Route path="profile" element={<ProfileManager />} />
           </Route>
           
      
