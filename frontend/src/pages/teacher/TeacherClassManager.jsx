@@ -206,7 +206,7 @@ export default function TeacherClassManager() {
             {showEnrollModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                             <div>
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     Gán danh sách Sinh viên
@@ -276,7 +276,7 @@ export default function TeacherClassManager() {
 
                         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
                             <div className="text-sm font-medium text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                                Đã chọn: <strong className="text-lg mx-1 text-emerald-600">{selectedStudentIds.length}</strong> Sinh viên
+                                Đã chọn: <strong className="text-lg mx-1">{selectedStudentIds.length}</strong> Sinh viên
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => setShowEnrollModal(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition">Hủy</button>

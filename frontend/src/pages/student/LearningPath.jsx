@@ -1,180 +1,202 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { BookOpen, Target, AlertTriangle, TrendingUp, ChevronRight, PlayCircle, Loader2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
+import { Target, Loader2, AlertTriangle, ChevronRight, CheckCircle2, Lock, ChevronDown, Circle, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
 
 export default function LearningPath() {
-    const { user } = useAuth();
+    const [courses, setCourses] = useState([]);
+    const [selectedCourse, setSelectedCourse] = useState('');
+    const [data, setData] = useState({ current_course: '', overall_progress: 0, subject_scores: [], weaknesses: [], tree: [] });
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState(null);
+    const [expandedSubjects, setExpandedSubjects] = useState({});
 
+    // Lấy list khóa học dropdown
     useEffect(() => {
-        const fetchLearningPath = async () => {
-            try {
-              
-                const res = await api.get('/student/learning-path');
-                setData(res.data.data || res.data);
-            } catch (error) {
-                console.warn('API chưa sẵn sàng, đang sử dụng dữ liệu giả lập (Mock Data)');
-                
-                setData({
-                    course_name: 'Khóa 2022 (D22)',
-                    overall_progress: 68,
-                    subjects_progress: [
-                        { name: 'Lập trình Web PHP', score: 8.5, max: 10, fill: '#10b981' },
-                        { name: 'Lập trình Di động', score: 4.0, max: 10, fill: '#ef4444' }, 
-                        { name: 'Cơ sở dữ liệu', score: 6.5, max: 10, fill: '#f59e0b' }       
-                    ],
-                    weaknesses: [
-                        {
-                            subject: 'Lập trình Di động',
-                            topic: 'Stateful & Stateless Widget',
-                            score_rate: 30,
-                            recommendation: 'Ôn tập lại vòng đời của Widget và cách quản lý State cơ bản.',
-                            action_link: '/student/practice?topic_id=105' 
-                        },
-                        {
-                            subject: 'Cơ sở dữ liệu',
-                            topic: 'Stored Procedure & Trigger',
-                            score_rate: 45,
-                            recommendation: 'Làm thêm bài tập về Trigger và cách kiểm soát Transaction.',
-                            action_link: '/student/practice?topic_id=107'
-                        }
-                    ]
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLearningPath();
+        api.get('/student/enrolled-courses')
+           .then(res => setCourses(res.data))
+           .catch(() => toast.error('Không thể lấy danh sách khóa học'));
     }, []);
 
-    if (loading) return <div className="p-10 flex justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>;
-    if (!data) return <div className="p-10 text-center text-slate-500">Không có dữ liệu lộ trình học tập.</div>;
-
-    
-    const CustomTooltip = ({ active, payload }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className="bg-slate-800 text-white p-3 rounded-lg shadow-xl border border-slate-700 text-sm">
-                    <p className="font-bold mb-1">{payload[0].payload.name}</p>
-                    <p className="text-slate-300">Điểm trung bình: <span className="text-white font-bold">{payload[0].value}/10</span></p>
-                </div>
-            );
+    // Lấy data lộ trình
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const url = selectedCourse ? `/student/learning-path?course_id=${selectedCourse}` : '/student/learning-path';
+            const res = await api.get(url);
+            setData(res.data);
+        } catch (error) {
+            toast.error('Lỗi tải dữ liệu lộ trình');
+        } finally {
+            setLoading(false);
         }
-        return null;
+    }, [selectedCourse]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const toggleSubject = (subjectId) => {
+        setExpandedSubjects(prev => ({ ...prev, [subjectId]: !prev[subjectId] }));
+    };
+
+    const getBarColor = (score) => {
+        if (score >= 7.0) return '#10b981'; 
+        if (score >= 5.0) return '#f59e0b'; 
+        return '#ef4444'; 
     };
 
     return (
-        <div className="max-w-6xl mx-auto pb-10 font-sans space-y-6">
-            <div className="flex items-center gap-3 mb-8">
-                <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
-                    <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Lộ trình học tập</h1>
-                    <p className="text-slate-500 text-sm">Theo dõi tiến độ và cải thiện điểm yếu của bạn</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 font-sans pb-10">
             
-                <div className="lg:col-span-2 space-y-6">
-                  
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-bold text-slate-500 mb-1">Khóa học hiện tại</p>
-                            <h2 className="text-xl font-bold text-blue-700">{data.course_name}</h2>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-sm font-bold text-slate-500 mb-1">Tiến độ tổng thể</p>
-                            <div className="flex items-center gap-3">
-                                <div className="w-32 h-3 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${data.overall_progress}%` }}></div>
-                                </div>
-                                <span className="font-bold text-lg text-slate-800">{data.overall_progress}%</span>
-                            </div>
-                        </div>
-                    </div>
-
-                  
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Target className="w-5 h-5 text-indigo-600" />
-                            <h3 className="font-bold text-slate-800 text-lg">Mức độ hoàn thành theo môn học</h3>
-                        </div>
-                        
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={data.subjects_progress} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                    <YAxis domain={[0, 10]} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                                    <Bar dataKey="score" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                                        {data.subjects_progress.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100">
-                            <div className="flex items-center gap-2 text-sm text-slate-600"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Khá/Giỏi (≥ 7.0)</div>
-                            <div className="flex items-center gap-2 text-sm text-slate-600"><span className="w-3 h-3 rounded-full bg-amber-500"></span> Trung bình (5.0 - 6.9)</div>
-                            <div className="flex items-center gap-2 text-sm text-slate-600"><span className="w-3 h-3 rounded-full bg-red-500"></span> Yếu (dưới 5.0)</div>
-                        </div>
-                    </div>
+            {/* TOP BAR: TỔNG QUAN & DROPDOWN */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between md:items-center gap-6">
+                <div>
+                    <p className="text-sm font-semibold text-slate-500 mb-1">Khóa học hiện tại</p>
+                    <h2 className="text-xl font-bold text-blue-700">{data.current_course}</h2>
                 </div>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto">
+                    <div className="w-full sm:w-64 relative">
+                        <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <select 
+                            value={selectedCourse} 
+                            onChange={(e) => setSelectedCourse(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm font-bold text-slate-700 appearance-none cursor-pointer"
+                        >
+                            <option value="">-- Tất cả Khóa học --</option>
+                            {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        </select>
+                    </div>
 
-              
-                <div className="space-y-6">
-                    <div className="bg-gradient-to-b from-rose-50 to-white p-6 rounded-2xl border border-rose-100 shadow-sm h-full">
-                        <div className="flex items-center gap-2 mb-6">
-                            <AlertTriangle className="w-5 h-5 text-rose-600" />
-                            <h3 className="font-bold text-slate-800 text-lg">Phân tích Điểm yếu</h3>
+                    <div className="w-full sm:w-48">
+                        <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            <span>Tiến độ tổng thể</span>
+                            <span>{data.overall_progress}%</span>
                         </div>
-
-                        {data.weaknesses.length === 0 ? (
-                            <div className="text-center p-6 bg-white rounded-xl border border-emerald-100 text-emerald-600">
-                                <p className="font-bold">Tuyệt vời!</p>
-                                <p className="text-sm">Bạn đang theo kịp bài ở tất cả các chủ đề.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {data.weaknesses.map((item, idx) => (
-                                    <div key={idx} className="bg-white p-4 rounded-xl border border-rose-100 shadow-sm relative overflow-hidden group">
-                                        <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
-                                        
-                                        <div className="flex justify-between items-start mb-2 pl-2">
-                                            <span className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded-md">
-                                                {item.subject}
-                                            </span>
-                                            <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">
-                                                Tỉ lệ đúng: {item.score_rate}%
-                                            </span>
-                                        </div>
-                                        
-                                        <h4 className="font-bold text-slate-800 mb-2 pl-2 text-sm">{item.topic}</h4>
-                                        <p className="text-xs text-slate-500 mb-4 pl-2 leading-relaxed">
-                                            💡 {item.recommendation}
-                                        </p>
-
-                                        <Link to={item.action_link} className="flex items-center justify-between w-full p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-sm font-bold transition">
-                                            <span className="flex items-center gap-2"><PlayCircle className="w-4 h-4"/> Thi ôn tập ngay</span>
-                                            <ChevronRight className="w-4 h-4" />
-                                        </Link>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <div className="w-full bg-slate-100 rounded-full h-3">
+                            <div className="bg-blue-600 h-3 rounded-full transition-all" style={{ width: `${data.overall_progress}%` }}></div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {loading ? (
+                <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-blue-600"/></div>
+            ) : (
+                <>
+                    {/* BIỂU ĐỒ & ĐIỂM YẾU */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2 flex flex-col">
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
+                                <Target className="w-5 h-5 text-indigo-500" /> Mức độ hoàn thành theo môn học
+                            </h2>
+                            <div className="flex-1 min-h-[250px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={data.subject_scores} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} dy={10} />
+                                        <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <Bar dataKey="score" name="Điểm TB" radius={[6, 6, 0, 0]} barSize={50}>
+                                            {data.subject_scores.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={getBarColor(entry.score)} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="mt-6 flex justify-center gap-6 border-t border-slate-100 pt-4">
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div><span className="text-xs font-bold text-slate-600">Khá/Giỏi (≥ 7.0)</span></div>
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div><span className="text-xs font-bold text-slate-600">Trung bình (5.0 - 6.9)</span></div>
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-500"></div><span className="text-xs font-bold text-slate-600">Yếu (dưới 5.0)</span></div>
+                            </div>
+                        </div>
+
+                        <div className="bg-rose-50/50 rounded-2xl shadow-sm border border-rose-100 p-6 flex flex-col">
+                            <h2 className="text-lg font-bold text-rose-900 flex items-center gap-2 mb-4">
+                                <AlertTriangle className="w-5 h-5 text-rose-500" /> Phân tích Điểm yếu
+                            </h2>
+                            <div className="space-y-4 overflow-y-auto pr-1 flex-1 max-h-[350px]">
+                                {data.weaknesses.length > 0 ? data.weaknesses.map((weak, idx) => (
+                                    <div key={idx} className="bg-white border border-rose-100 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{weak.subject}</span>
+                                            <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">Tỉ lệ đúng: {weak.correct_rate}%</span>
+                                        </div>
+                                        <h3 className="font-bold text-slate-800 text-sm mb-2">{weak.topic}</h3>
+                                        <p className="text-xs text-slate-600 mb-3 flex items-start gap-1">
+                                            <span className="text-amber-500 text-base leading-none">💡</span> {weak.suggestion}
+                                        </p>
+                                        <button className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg transition flex justify-center items-center gap-1 border border-rose-200">
+                                            Thi ôn tập ngay <ChevronRight className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                )) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                                        <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-2 opacity-50" />
+                                        <p className="text-emerald-700 font-bold text-sm">Tuyệt vời!</p>
+                                        <p className="text-emerald-600 text-xs">Hiện tại bạn không có điểm yếu nào đáng kể.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CHI TIẾT CÂY MÔN HỌC */}
+                    <h2 className="text-xl font-bold text-slate-800 mt-10 mb-4 px-2 border-b border-slate-200 pb-3">Chi tiết Cây Lộ trình</h2>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+                        {data.tree.map((course) => (
+                            <div key={course.id} className="relative border-l-2 border-slate-100 ml-3 md:ml-6 space-y-8">
+                                {course.subjects.map((subject) => {
+                                    const isPassed = subject.is_passed;
+                                    const isExpanded = expandedSubjects[subject.id];
+
+                                    return (
+                                        <div key={subject.id} className="relative pl-8 md:pl-10">
+                                            <span className={`absolute -left-[11px] top-1 w-5 h-5 rounded-full flex items-center justify-center bg-white border-2 ${isPassed ? 'border-emerald-500' : 'border-slate-300'}`}>
+                                                {isPassed ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Lock className="w-3 h-3 text-slate-400" />}
+                                            </span>
+                                            <div 
+                                                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition border ${isPassed ? 'bg-emerald-50/50 border-emerald-100 hover:bg-emerald-50' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'}`}
+                                                onClick={() => toggleSubject(subject.id)}
+                                            >
+                                                <div>
+                                                    <h3 className={`font-bold ${isPassed ? 'text-emerald-900' : 'text-slate-700'}`}>
+                                                        {subject.code} - {subject.name}
+                                                    </h3>
+                                                    <p className={`text-xs mt-1 font-medium ${isPassed ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                                        {isPassed ? 'Đã hoàn thành' : 'Chưa hoàn thành'}
+                                                    </p>
+                                                </div>
+                                                <button className="p-2 text-slate-400">
+                                                    {isExpanded ? <ChevronDown className="w-5 h-5"/> : <ChevronRight className="w-5 h-5"/>}
+                                                </button>
+                                            </div>
+
+                                            {isExpanded && (
+                                                <div className="mt-3 ml-4 border-l-2 border-slate-100 pl-6 space-y-3 animate-in slide-in-from-top-2">
+                                                    {subject.topics.length > 0 ? (
+                                                        subject.topics.map(topic => (
+                                                            <div key={topic.id} className="flex items-center gap-3 text-sm text-slate-600 font-medium">
+                                                                <Circle className={`w-2 h-2 fill-current ${isPassed ? 'text-emerald-400' : 'text-slate-300'}`} />
+                                                                {topic.name}
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-xs text-slate-400 italic">Chưa có dữ liệu chủ đề.</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                        {data.tree.length === 0 && <p className="text-center text-slate-500 py-10">Chưa có dữ liệu lộ trình.</p>}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

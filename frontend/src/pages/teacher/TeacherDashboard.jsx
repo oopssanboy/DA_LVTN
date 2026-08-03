@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, FileText, CheckSquare, BarChart, Plus, Loader2, TrendingUp, FileCheck } from 'lucide-react';
+import { BookOpen, FileText, CheckSquare, BarChart, Plus, Loader2, TrendingUp, FileCheck, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import api from '../../services/api';
@@ -72,7 +72,7 @@ export default function TeacherDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><BookOpen className="w-6 h-6" /></div>
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Users className="w-6 h-6" /></div>
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900">{stats.classes}</h3>
                     <p className="text-slate-500 text-sm mt-1">Lớp đang phụ trách</p>

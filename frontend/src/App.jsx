@@ -119,13 +119,16 @@ import NotificationManager from './pages/admin/NotificationManager.jsx';
 import ExamStatistics from './pages/teacher/ExamStatistics';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherClassManager from './pages/teacher/TeacherClassManager.jsx';
+import PostExamManager from './pages/teacher/PostExamManager';
 import ProctorDashboard from './pages/proctor/ProctorDashboard';
 import ExamMonitor from './pages/proctor/ExamMonitor';
+import ReportManager from './pages/proctor/ReportManager';
 import StudentHome from './pages/student/StudentHome';
 import ExamRoom from './pages/student/ExamRoom';
 import ExamResult from './pages/student/ExamResult';
 import MyExams from './pages/student/MyExams.jsx';
 import ExamHistory from './pages/student/ExamHistory';
+import ComplaintManager from './pages/student/ComplaintManager';
 
 import StudentRadar from './pages/student/StudentRadar';
 import LearningPath from './pages/student/LearningPath.jsx';
@@ -211,12 +214,14 @@ function App() {
             <Route path="statistics" element={<ExamStatistics />} />
             <Route path="topics" element={<TopicManager />} />
             <Route path="notifications" element={<NotificationManager basePath="/teacher" />} />
+            <Route path="post-exam" element={<PostExamManager />} />
             <Route path="profile" element={<ProfileManager />} />
           </Route>
        
           <Route path="/proctor" element={<ProtectedRoute allowedRoles={['proctor']}><ProctorLayout /></ProtectedRoute>}>
             <Route path="/proctor/dashboard" element={<ProctorDashboard />} />
             <Route path="/proctor/monitor/:examId" element={<ExamMonitor />} />
+            <Route path="/proctor/reports" element={<ReportManager />} />
             <Route path="profile" element={<ProfileManager />} />
           </Route>
           
@@ -228,6 +233,7 @@ function App() {
            
             <Route path="radar" element={<StudentRadar />} />
             <Route path="learning-path" element={<LearningPath />} />
+            <Route path="complaints" element={<ComplaintManager />} />
             <Route path="profile" element={<ProfileManager />} />
           </Route>
           

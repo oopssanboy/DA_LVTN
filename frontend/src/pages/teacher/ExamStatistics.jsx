@@ -103,17 +103,17 @@ export default function ExamStatistics() {
                 
                 {selectedExamId && (
                     <div className="flex gap-3">
-                        <button onClick={() => handleExport('excel')} className="flex items-center gap-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 px-4 py-2 rounded-xl font-bold border border-emerald-200 transition">
+                        <button onClick={() => handleExport('excel')} className="flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-400 hover:text-white px-4 py-2 rounded-xl font-bold border border-emerald-200 transition">
                             <FileSpreadsheet className="w-4 h-4" /> Xuất Excel
                         </button>
-                        <button onClick={() => handleExport('pdf')} className="flex items-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 px-4 py-2 rounded-xl font-bold border border-rose-200 transition">
+                        <button onClick={() => handleExport('pdf')} className="flex items-center gap-2 bg-amber-600 text-white hover:bg-amber-400 hover:text-white px-4 py-2 rounded-xl font-bold border border-rose-200 transition">
                             <FileText className="w-4 h-4" /> Xuất PDF
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* BỘ LỌC CHỌN KỲ THI */}
+       
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Chọn Kỳ thi để xem báo cáo:</label>
                 <div className="relative max-w-xl">
@@ -157,7 +157,7 @@ export default function ExamStatistics() {
             {selectedExamId && !loadingStats && overview && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     
-                    {/* THẺ TỔNG QUAN */}
+              
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
                             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Users className="w-6 h-6" /></div>

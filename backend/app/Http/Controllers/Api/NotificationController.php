@@ -134,4 +134,13 @@ class NotificationController extends Controller
 
         return response()->json(['message' => 'Đã đánh dấu đọc']);
     }
+    public function markAllAsRead()
+    {
+    
+        Notification::where('user_id', Auth::id())
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return response()->json(['message' => 'Đã đánh dấu đọc tất cả']);
+    }
 }

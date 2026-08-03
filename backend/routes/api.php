@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PostExamController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\SubjectController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\Teacher\TeacherDashboardController;
 use App\Http\Controllers\Api\Teacher\StatisticsController;
 use App\Http\Controllers\Api\Proctor\ProctorController;
 use App\Http\Controllers\Api\Student\ExamAttemptController; 
+use App\Http\Controllers\Api\Student\ProgressController; 
 use App\Http\Controllers\Api\Admin\TopicController;
 
 
@@ -36,6 +38,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::put('/password', [AuthController::class, 'changePassword']);
         Route::get('/notifications', [NotificationController::class, 'myNotifications']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     });
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
@@ -91,6 +94,13 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         
         Route::get('courses', [CourseController::class, 'index']);
 
+        Route::get('post-exams', [PostExamController::class, 'getTeacherPostExams']);
+        Route::put('reports/{id}/resolve', [PostExamController::class, 'resolveReport']);
+        Route::get('reports/{id}/details', [PostExamController::class, 'getReportDetails']);
+        Route::put('attempts/{id}/resolve-violation', [PostExamController::class, 'resolveIndividualViolation']);
+        Route::put('complaints/{id}/resolve', [PostExamController::class, 'resolveComplaint']);
+        Route::get('complaints/{id}/details', [PostExamController::class, 'getComplaintDetails']);
+
 
         Route::get('dashboard-stats', [TeacherDashboardController::class, 'getStats']);
         Route::get('statistics/{exam}/overview', [StatisticsController::class, 'overview']);
@@ -107,6 +117,9 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::get('exams/{examId}/attempts', [ProctorController::class, 'getAttempts']);
         Route::post('attempts/{attemptId}/warn', [ProctorController::class, 'sendWarning']);
         Route::post('attempts/{attemptId}/force-submit', [ProctorController::class, 'forceSubmit']);
+        Route::get('reports', [PostExamController::class, 'getProctorReports']);
+        Route::post('reports', [PostExamController::class, 'storeReport']);
+        Route::get('exams/{examId}/summary', [PostExamController::class, 'getExamSummaryForReport']);
     });
 
 
@@ -119,5 +132,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('attempts/{attemptId}/violation', [ExamAttemptController::class, 'logViolation']);
         Route::get('attempts/{attemptId}/result', [ExamAttemptController::class, 'getResult']);
         Route::get('history', [ExamAttemptController::class, 'getHistory']);
+        Route::get('enrolled-courses', [ProgressController::class, 'getEnrolledCourses']);
+        Route::get('radar-stats', [ProgressController::class, 'getRadarStats']);
+        Route::get('learning-path', [ProgressController::class, 'getLearningPath']);
+        Route::get('complaints', [PostExamController::class, 'getStudentComplaints']);
+        Route::post('complaints', [PostExamController::class, 'storeComplaint']);
     });
 });

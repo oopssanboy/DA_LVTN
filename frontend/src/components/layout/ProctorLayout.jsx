@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { LayoutDashboard, LogOut, Menu, User, X, MonitorPlay, Eye, GraduationCap, Bell, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, User, X, MonitorPlay, Eye, GraduationCap, Bell, CheckCircle2, FileWarning, CheckCheck } from 'lucide-react';
 
 export default function ProctorLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -29,9 +29,18 @@ export default function ProctorLayout() {
     e.stopPropagation();
     try {
       await api.post(`/auth/notifications/${notiId}/read`);
-      setNotifications(notifications.map(n => n.id === notiId ? { ...n, is_read: true } : n));
+      setNotifications(prev => prev.map(n => n.id === notiId ? { ...n, is_read: 1 } : n));
     } catch (error) {
       console.error('Lỗi đánh dấu đọc:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+        await api.put('/auth/notifications/read-all');
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+    } catch (error) {
+        console.error("Lỗi khi cập nhật thông báo", error);
     }
   };
 
@@ -40,6 +49,7 @@ export default function ProctorLayout() {
   const menuItems = [
     { name: 'Tổng quan', path: '/proctor/dashboard', icon: LayoutDashboard },
     { name: 'Danh sách lớp giám sát', path: '/proctor/monitor', icon: MonitorPlay },
+    { name: 'Lập Biên bản', path: '/proctor/reports', icon: FileWarning },
     { name: 'Hồ sơ cá nhân', path: 'profile', icon: User },
   ];
 
@@ -90,52 +100,73 @@ export default function ProctorLayout() {
         <header className="h-16 bg-white border-b flex items-center justify-between px-8 shadow-sm">
           <a href='/' className="text-2xl font-bold text-gray-800 flex items-center gap-2"><GraduationCap className="w-8 h-8 text-blue-600" /> Trang chủ NQ EduTech</a>
           
-      
           <div className="relative" ref={notificationRef}>
-            <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors focus:outline-none">
-                <Bell className="w-6 h-6" />
+            <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2.5 text-slate-500 hover:text-blue-600 transition bg-slate-100 hover:bg-blue-50 rounded-full"
+            >
+                <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
+                        {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
-                    <div className="p-4 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center">
-                        <h3 className="font-bold text-slate-800 text-base">Thông báo hệ thống</h3>
-                        {unreadCount > 0 && <span className="bg-teal-100 text-teal-700 text-xs font-bold px-2 py-0.5 rounded-full">{unreadCount} mới</span>}
+                <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 flex flex-col">
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                        <h3 className="font-bold text-slate-800">Thông báo</h3>
+                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">{unreadCount} Mới</span>
                     </div>
-                    <div className="max-h-[350px] overflow-y-auto">
+
+                    <div className="overflow-y-auto max-h-[260px] custom-scrollbar bg-slate-50/50">
                         {notifications.length > 0 ? (
-                            <div className="divide-y divide-slate-100">
-                                {notifications.map(noti => (
-                                    <div key={noti.id} className={`p-4 transition-colors ${!noti.is_read ? 'bg-teal-50/40 hover:bg-teal-50/80' : 'hover:bg-slate-50'}`}>
-                                        <div className="flex justify-between items-start gap-2 mb-1">
-                                            <div className={`font-bold text-sm ${!noti.is_read ? 'text-teal-900' : 'text-slate-800'}`}>{noti.title}</div>
-                                            {!noti.is_read && (
-                                                <button onClick={(e) => handleMarkAsRead(e, noti.id)} className="text-teal-500 hover:text-teal-700 shrink-0" title="Đánh dấu đã đọc">
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                </button>
-                                            )}
+                            <div className="divide-y divide-slate-100/50">
+                                {notifications.map((notif) => (
+                                    <div
+                                        key={notif.id}
+                                        onClick={(e) => handleMarkAsRead(e, notif.id)}
+                                        className={`p-4 hover:bg-white cursor-pointer transition flex items-start gap-3 border-l-4 ${
+                                            !notif.is_read ? 'bg-white border-emerald-500 shadow-sm' : 'border-transparent opacity-75 hover:opacity-100'
+                                        }`}
+                                    >
+                                        <div className="flex-1">
+                                            <p className={`text-sm ${!notif.is_read ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                                                {notif.title}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{notif.content}</p>
+                                            <p className="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-wide">
+                                                {new Date(notif.created_at).toLocaleString('vi-VN')}
+                                            </p>
                                         </div>
-                                        <div className={`text-sm line-clamp-2 ${!noti.is_read ? 'text-teal-800/80' : 'text-slate-600'}`}>{noti.content}</div>
-                                        <div className={`text-xs mt-2 font-medium ${!noti.is_read ? 'text-teal-600' : 'text-slate-400'}`}>
-                                            {new Date(noti.created_at).toLocaleString('vi-VN')}
-                                        </div>
+                                        {!notif.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>}
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-8 text-center flex flex-col items-center"><Bell className="w-8 h-8 text-slate-300 mb-3" /><p className="text-slate-800 font-bold mb-1">Chưa có thông báo nào</p></div>
+                            <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center">
+                                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                                    <Bell className="w-6 h-6 text-slate-300" />
+                                </div>
+                                Chưa có thông báo nào.
+                            </div>
                         )}
                     </div>
+
+                    {unreadCount > 0 && (
+                        <div className="p-3 bg-white border-t border-slate-100 shrink-0">
+                            <button
+                                onClick={markAllAsRead}
+                                className="w-full py-2.5 text-sm font-bold text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition flex items-center justify-center gap-2"
+                            >
+                                <CheckCheck className="w-4 h-4" /> Đánh dấu đã đọc tất cả
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
           </div>
-
         </header>
         <div className="flex-1 overflow-y-auto p-8">
           <Outlet />
