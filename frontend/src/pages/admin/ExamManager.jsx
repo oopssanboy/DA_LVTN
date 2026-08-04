@@ -11,10 +11,10 @@ export default function ExamManager() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // View mode: 'classes' (Màn hình Card) | 'exams' (Màn hình Danh sách)
+
   const [viewMode, setViewMode] = useState('classes');
   
-  // States cho Lớp học
+ 
   const [classes, setClasses] = useState([]);
   const [classLoading, setClassLoading] = useState(true);
   const [classSearch, setClassSearch] = useState('');
@@ -22,7 +22,7 @@ export default function ExamManager() {
   const [classTotalPages, setClassTotalPages] = useState(1);
   const [selectedClass, setSelectedClass] = useState(null);
 
-  // States cho Kỳ thi
+ 
   const [exams, setExams] = useState([]);
   const [examLoading, setExamLoading] = useState(false);
   const [examSearch, setExamSearch] = useState('');
@@ -37,11 +37,11 @@ export default function ExamManager() {
     if (viewMode === 'exams' && selectedClass) fetchExams();
   }, [examPage, examSearch, selectedClass, viewMode]);
 
-  // --- API LỚP HỌC ---
+
   const fetchClasses = async () => {
     setClassLoading(true);
     try {
-      // Dùng endpoint classes của teacher/admin
+   
       const endpoint = user.role === 'admin' ? '/admin/classes' : '/teacher/classes';
       const res = await api.get(endpoint, {
         params: { search: classSearch, page: classPage, per_page: 8 }
@@ -62,7 +62,6 @@ export default function ExamManager() {
     setViewMode('exams');
   };
 
-  // --- API KỲ THI ---
   const fetchExams = async () => {
     setExamLoading(true);
     try {
@@ -127,9 +126,7 @@ export default function ExamManager() {
   return (
     <div className="space-y-6">
       
-      {/* ---------------------------------------------------- */}
-      {/* MÀN HÌNH 1: CARD LỚP HỌC */}
-      {/* ---------------------------------------------------- */}
+     
       {viewMode === 'classes' && (
         <div className="animate-in fade-in zoom-in-95 duration-300">
           <div className="flex justify-between items-center mb-6">
@@ -139,7 +136,7 @@ export default function ExamManager() {
               </h1>
               <p className="text-gray-500 mt-1">Chọn lớp học để xem và cấu hình kỳ thi.</p>
             </div>
-            {/* Nút Tạo Kỳ Thi (Dẫn thẳng sang trang tạo chung) */}
+        
             <button onClick={() => navigate('create')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 transition shadow-sm">
               <Plus size={20} /> Tạo Kỳ thi mới
             </button>
@@ -187,7 +184,7 @@ export default function ExamManager() {
             </div>
           )}
 
-          {/* Phân trang Lớp học */}
+      
           {classTotalPages > 1 && (
             <div className="flex justify-end gap-2 mt-6">
               <button disabled={classPage === 1} onClick={() => setClassPage(p => p - 1)} className="px-4 py-2 border rounded-xl disabled:opacity-50 font-medium hover:bg-gray-50">Trước</button>
@@ -199,13 +196,11 @@ export default function ExamManager() {
       )}
 
 
-      {/* ---------------------------------------------------- */}
-      {/* MÀN HÌNH 2: DANH SÁCH KỲ THI TRONG LỚP */}
-      {/* ---------------------------------------------------- */}
+     
       {viewMode === 'exams' && selectedClass && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in slide-in-from-right-8 duration-300">
           
-          {/* Header Bảng */}
+    
           <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between gap-4 items-center">
             <div className="flex items-center gap-4">
               <button onClick={() => setViewMode('classes')} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-xl transition shadow-sm">
@@ -230,7 +225,7 @@ export default function ExamManager() {
             </div>
           </div>
 
-          {/* Table Kỳ Thi */}
+        
           {examLoading ? (
             <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>
           ) : exams.length > 0 ? (
@@ -247,7 +242,7 @@ export default function ExamManager() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {exams.map((item) => {
-                    const isOwner = user.role === 'admin' || item.teacher_id === user.id;
+                      const isOwner = user.role === 'admin' || String(item.teacher_id) === String(user.id);
 
                     return (
                       <tr key={item.id} className={`hover:bg-gray-50 transition ${!isOwner ? 'bg-slate-50/50' : ''}`}>
