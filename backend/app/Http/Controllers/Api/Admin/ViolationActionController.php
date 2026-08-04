@@ -56,14 +56,14 @@ class ViolationActionController extends Controller
                 'status' => $request->status,
                 'approved_by' => Auth::id(),
                 'approved_at' => now(),
-                'reason' => $violationAction->reason . ($request->admin_note ? "\n[Ghi chú từ BQT: {$request->admin_note}]" : "")
+                'reason' => $violationAction->reason . ($request->admin_note ? "\n[Ghi chú từ Quản trị viên: {$request->admin_note}]" : "")
             ]);
 
             $attempt = $violationAction->attempt;
             $examTitle = $attempt->exam->title ?? 'Bài thi';
             $studentEmail = $attempt->student->user->email ?? null;
             if ($request->status === 'approved') {
-                $emailContent = "Chào bạn,\n\nBan quản trị đã phê duyệt quyết định kỷ luật học vụ đối với bài thi môn {$examTitle} của bạn.\nLý do: {$violationAction->reason}\n";
+                $emailContent = "Chào bạn,\n\nQuản trị viên đã phê duyệt quyết định kỷ luật học vụ đối với bài thi môn {$examTitle} của bạn.\nLý do: {$violationAction->reason}\n";
                 $notiContent = "Lý do: {$violationAction->reason}. ";
 
                 if ($violationAction->action === 'cancel_exam') {

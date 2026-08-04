@@ -16,7 +16,7 @@ class ClassController extends Controller
    public function index(Request $request)
     {
     $query = Classes::with(['cohort.course', 'teachers'])
-        ->withCount('enrollments')
+        ->withCount(['enrollments', 'exams'])
         ->orderBy('created_at', 'desc');
 
 

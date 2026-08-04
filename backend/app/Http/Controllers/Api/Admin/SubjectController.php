@@ -11,8 +11,15 @@ class SubjectController extends Controller
     
     public function index(Request $request)
 {
-    $query = Subject::withCount(['courses', 'questions', 'topics'])
-        ->orderBy('created_at', 'desc');
+    $query = Subject::withCount([
+            'courses', 
+            'topics',
+            'questions' => function ($q) {
+                if (auth()->check() && auth()->user()->role === 'teacher') {
+                    $q->where('teacher_id', auth()->id());
+                }
+            }
+        ])->orderBy('created_at', 'desc');
 
     if ($request->has('search') && $request->search != '') {
         $search = $request->search;
@@ -21,6 +28,12 @@ class SubjectController extends Controller
               ->orWhere('name', 'like', '%' . $search . '%');
         });
     }
+    if (auth()->check() && auth()->user()->role === 'teacher') {
+            $teacherId = auth()->id();
+            $query->whereHas('courses.cohorts.classes.teachers', function($q) use ($teacherId) {
+                $q->where('users.id', $teacherId);
+            });
+        }
 
     $perPage = $request->input('per_page', 10);
     $subjects = $query->paginate($perPage);

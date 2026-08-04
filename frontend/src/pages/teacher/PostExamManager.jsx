@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Search, Loader2, Eye, ArrowLeft, Send, ShieldAlert, AlertTriangle, MessageSquare, Users, FileIcon, X } from 'lucide-react';
+import { Search, Loader2, Eye, ArrowLeft, Send, ShieldAlert, AlertTriangle, MessageSquare, Users, FileIcon, X, Info } from 'lucide-react';
 
 export default function PostExamManager() {
     // --- STATES CHO DANH SÁCH & TAB ---
@@ -70,14 +70,14 @@ export default function PostExamManager() {
         e.preventDefault();
         const loadingToast = toast.loading('Đang xử lý & Gửi email...');
         try {
-            await api.put(`/teacher/complaints/${selectedComplaint.id}/resolve`, { 
+            await api.patch(`/teacher/complaints/${selectedComplaint.id}/resolve`, { 
                 action, new_score: newScore, reason 
             });
             toast.success('Xử lý thành công!', { id: loadingToast });
             setSelectedComplaint(null);
             fetchData();
         } catch (error) { 
-            toast.error('Lỗi xử lý', { id: loadingToast }); 
+            toast.error(error.response?.data?.message || 'Lỗi xử lý', { id: loadingToast }); 
         }
     };
 
@@ -104,29 +104,33 @@ export default function PostExamManager() {
         e.preventDefault();
         const loadingToast = toast.loading('Đang lưu quyết định chung...');
         try {
-            await api.put(`/teacher/reports/${selectedReport.id}/resolve`, { 
-                action: reportAction, resolution: reportResolution, penalty_points: reportPenaltyPoints 
+            await api.patch(`/teacher/reports/${selectedReport.id}/resolve`, { 
+                status: reportAction === 'warn' ? 'reviewing' : 'completed', 
+                resolution: reportResolution 
             });
             toast.success('Đã xử lý biên bản chung!', { id: loadingToast });
             setSelectedReport(null);
             fetchData();
         } catch (error) { 
-            toast.error('Lỗi xử lý', { id: loadingToast }); 
+            toast.error(error.response?.data?.message || 'Lỗi xử lý', { id: loadingToast }); 
         }
     };
 
     const submitViolatorResolution = async (e) => {
         e.preventDefault();
-        const loadingToast = toast.loading('Đang xử lý & Gửi email học viên...');
+        const loadingToast = toast.loading('Đang gửi đề xuất kỷ luật...');
         try {
-            await api.put(`/teacher/attempts/${selectedViolator.attempt_id}/resolve-violation`, { 
-                action: violatorAction, new_score: violatorNewScore, reason: violatorReason 
+            await api.post(`/teacher/attempts/${selectedViolator.attempt_id}/resolve-violation`, { 
+                action: violatorAction, 
+                penalty_points: violatorNewScore, 
+                reason: violatorReason,
+                report_id: selectedReport.id 
             });
-            toast.success('Đã xử lý vi phạm cá nhân!', { id: loadingToast });
+            toast.success('Đã gửi đề xuất thành công!', { id: loadingToast });
             setSelectedViolator(null);
             handleOpenReport(selectedReport);
         } catch (error) { 
-            toast.error('Lỗi xử lý cá nhân', { id: loadingToast }); 
+            toast.error(error.response?.data?.message || 'Lỗi xử lý cá nhân', { id: loadingToast }); 
         }
     };
 
@@ -165,10 +169,8 @@ export default function PostExamManager() {
                 <p className="text-slate-500 mt-1">Nơi Giảng viên phân xử khiếu nại và xem báo cáo tổng kết ca thi.</p>
             </div>
 
-            {/* DANH SÁCH & TABS (GIAO DIỆN MỚI) */}
+            {/* DANH SÁCH & TABS */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                
-                {/* TABS HEADER */}
                 <div className="flex border-b border-slate-100">
                     <button 
                         onClick={() => setActiveTab('reports')} 
@@ -275,27 +277,23 @@ export default function PostExamManager() {
                 )}
             </div>
 
-            {/* MODAL BIÊN BẢN (GIAO DIỆN CŨ) */}
+            {/* MODAL BIÊN BẢN */}
             {selectedReport && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-6xl h-[95vh] flex flex-col shadow-2xl overflow-hidden">
-                        
+                    <div className="bg-white rounded-2xl w-full max-w-6xl h-[95vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-5 border-b flex justify-between items-center bg-white shrink-0">
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">{selectedReport.title}</h2>
                             <button onClick={() => setSelectedReport(null)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5"/></button>
                         </div>
                         
                         <div className="flex-1 flex overflow-hidden">
-                            {/* Cột trái: Chi tiết / Danh sách vi phạm */}
                             <div className="flex-1 border-r border-slate-200 bg-slate-50/50 flex flex-col overflow-hidden relative">
-                
                                 {selectedViolator ? (
-                                    <div className="flex flex-col h-full absolute inset-0 bg-white z-10 animate-in slide-in-from-right-full duration-300">
+                                    <div className="flex flex-col h-full absolute inset-0 bg-white z-10 animate-in slide-in-from-right-8 duration-300">
                                         <div className="p-5 border-b border-slate-100 shrink-0 flex items-center gap-3">
                                             <button onClick={() => setSelectedViolator(null)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition"><ArrowLeft className="w-4 h-4 text-slate-700" /></button>
                                             <h3 className="font-bold text-lg text-slate-800">Chi tiết vi phạm cá nhân</h3>
                                         </div>
-                                        
                                         <div className="flex-1 p-6 overflow-y-auto">
                                             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6 flex justify-between items-center">
                                                 <div>
@@ -307,7 +305,6 @@ export default function PostExamManager() {
                                                     <p className="text-sm">Điểm số: <span className="font-bold text-xl">{selectedViolator.current_score}</span></p>
                                                 </div>
                                             </div>
-
                                             <h4 className="font-bold text-sm text-slate-700 mb-4">Lịch sử ghi nhận ({selectedViolator.violation_count} lần):</h4>
                                             <div className="space-y-3">
                                                 {selectedViolator.logs?.map((log, lIdx) => (
@@ -353,7 +350,7 @@ export default function PostExamManager() {
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100">
                                                         {reportDetails.violators.map((v, i) => (
-                                                            <tr key={i} onClick={() => { setSelectedViolator(v); setViolatorAction('cancel_exam'); setViolatorNewScore(''); setViolatorReason(''); }} className="hover:bg-blue-100 cursor-pointer transition group">
+                                                            <tr key={i} onClick={() => { setSelectedViolator(v); setViolatorAction('warn'); setViolatorNewScore(''); setViolatorReason(''); }} className="hover:bg-blue-100 cursor-pointer transition group">
                                                                 <td className="px-6 py-4">
                                                                     <p className="font-bold text-slate-800 text-sm transition">{v.student_name}</p>
                                                                     <p className="text-xs text-slate-500">{v.student_code}</p>
@@ -381,7 +378,6 @@ export default function PostExamManager() {
                                 )}
                             </div>
 
-                            {/* Cột phải: Form Xử lý */}
                             <div className="w-full lg:w-[400px] bg-white shrink-0 shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.05)] z-10 flex flex-col">
                                 {selectedViolator ? (
                                     <div className="p-6 flex flex-col h-full bg-white">
@@ -390,60 +386,47 @@ export default function PostExamManager() {
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-2">Hành động áp dụng</label>
                                                 <select value={violatorAction} onChange={e => setViolatorAction(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none bg-slate-50 font-bold text-sm">
-                                                    <option value="cancel_exam">Hủy bài thi(0 điểm)</option>
-                                                    <option value="adjust_score">Điều chỉnh lại điểm thi</option>
+                                                    <option value="warn">Cảnh cáo (Không trừ điểm)</option>
+                                                    <option value="deduct_points">Trừ điểm bài thi</option>
+                                                    <option value="cancel_exam">Hủy bài thi (0 điểm)</option>
                                                     <option value="request_expulsion">Tạo Yêu cầu Đuổi học</option>
                                                 </select>
                                             </div>
-
-                                            {violatorAction === 'adjust_score' && (
+                                            {violatorAction === 'deduct_points' && (
                                                 <div className="animate-in fade-in slide-in-from-top-2">
-                                                    <label className="block text-sm font-bold mb-2">Nhập điểm mới</label>
-                                                    <input type="number" step="0.1" required min="0" max="10" value={violatorNewScore} onChange={e => setViolatorNewScore(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none font-bold text-lg" placeholder=""/>
+                                                    <label className="block text-sm font-bold mb-2">Số điểm cần trừ</label>
+                                                    <input type="number" step="0.5" required min="0.5" max="10" value={violatorNewScore} onChange={e => setViolatorNewScore(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none font-bold text-lg" placeholder=""/>
                                                 </div>
                                             )}
-
                                             <div>
-                                                <label className="block text-sm font-bold text-slate-700 mb-2">Phản hồi và Giải thích</label>
-                                                <textarea required rows="6" value={violatorReason} onChange={e => setViolatorReason(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none bg-slate-50 text-sm resize-none" placeholder="Viết chi tiết lý do xử phạt..."></textarea>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Lý do trình lên BQT</label>
+                                                <textarea required rows="6" value={violatorReason} onChange={e => setViolatorReason(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none bg-slate-50 text-sm resize-none" placeholder="Viết chi tiết lý do đề xuất kỷ luật..."></textarea>
                                             </div>
-
-                                            <div className="p-4 rounded-xl">
-                                                <p className="text-xs font-medium">Hệ thống sẽ gửi thông báo quyết định đến <strong className="font-bold">{selectedViolator.student_name}</strong>.</p>
+                                            <div className="p-4 rounded-xl bg-orange-50 border border-orange-100">
+                                                <p className="text-xs font-medium text-orange-800">Đề xuất sẽ được gửi đến Ban quản trị để chờ duyệt. Chưa trừ điểm ngay lập tức.</p>
                                             </div>
-
                                             <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md mt-auto">
-                                                Lưu & Gửi Email Phản Hồi
+                                                Gửi Đề xuất Lên BQT
                                             </button>
                                         </form>
                                     </div>
                                 ) : (
                                     <div className="p-6 flex flex-col h-full bg-white">
-                                        <h3 className="font-bold text-lg mb-6 text-slate-800">Quyết định xử lý chung</h3>
+                                        <h3 className="font-bold text-lg mb-6 text-slate-800">Cập nhật Biên bản</h3>
                                         <form onSubmit={submitReportResolution} className="space-y-5 flex-1 overflow-y-auto pr-1">
                                             <div>
-                                                <label className="block text-sm font-bold text-slate-700 mb-2">Hành động hệ thống</label>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Trạng thái xử lý</label>
                                                 <select value={reportAction} onChange={e => setReportAction(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 bg-slate-50 font-bold text-sm text-slate-700">
-                                                    <option value="warn">Xác nhận báo cáo (Giữ nguyên KQ)</option>
-                                                    <option value="deduct_points">Trừ điểm toàn bộ Học viên có vi phạm</option>
-                                                    <option value="cancel_exam">Hủy toàn bộ ca thi (Cho thi lại)</option>
+                                                    <option value="warn">Đang xem xét (Reviewing)</option>
+                                                    <option value="completed">Đã xử lý xong (Completed)</option>
                                                 </select>
                                             </div>
-
-                                            {reportAction === 'deduct_points' && (
-                                                <div className="animate-in fade-in slide-in-from-top-2">
-                                                    <label className="block text-sm font-bold mb-2">Số điểm trừ cho mỗi SV vi phạm</label>
-                                                    <input type="number" step="0.5" required min="0" max="10" value={reportPenaltyPoints} onChange={e => setReportPenaltyPoints(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none font-bold text-lg" placeholder=""/>
-                                                </div>
-                                            )}
-
                                             <div>
-                                                <label className="block text-sm font-bold text-slate-700 mb-2">Phản hồi cho Giám thị</label>
-                                                <textarea required rows="6" value={reportResolution} onChange={e => setReportResolution(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-sm resize-none" placeholder="Ghi chú xác nhận đã xử lý..."></textarea>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Ghi chú (Tùy chọn)</label>
+                                                <textarea rows="6" value={reportResolution} onChange={e => setReportResolution(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-sm resize-none" placeholder="Ghi chú xác nhận đã đọc/xử lý..."></textarea>
                                             </div>
-
-                                            <button type="submit" disabled={selectedReport.status === 'processed'} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md disabled:opacity-50 mt-auto">
-                                                Lưu & Phản hồi
+                                            <button type="submit" disabled={selectedReport.status === 'closed'} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md disabled:opacity-50 mt-auto">
+                                                Lưu Trạng Thái
                                             </button>
                                         </form>
                                     </div>
@@ -454,10 +437,10 @@ export default function PostExamManager() {
                 </div>
             )}
 
-            {/* MODAL KHIẾU NẠI (GIAO DIỆN CŨ) */}
+            {/* MODAL KHIẾU NẠI */}
             {selectedComplaint && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-6xl h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full max-w-6xl h-[95vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-5 border-b flex justify-between items-center bg-white shrink-0">
                             <h2 className="text-xl font-bold text-slate-800">Xử lý khiếu nại: {selectedComplaint.student_user?.student?.name}</h2>
                             <button onClick={() => setSelectedComplaint(null)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5"/></button>
@@ -467,10 +450,21 @@ export default function PostExamManager() {
                             {/* Cột trái: Chi tiết khiếu nại & Bài làm */}
                             <div className="flex-1 p-6 border-r border-slate-200 bg-white flex flex-col overflow-hidden">
                                 <h3 className="font-bold text-lg mb-4 text-slate-800 shrink-0">Nội dung khiếu nại</h3>
-                                <div className="bg-white p-4 mb-6 shrink-0 border border-slate-200 rounded-xl">
-                                    <p className="text-sm text-slate-700">{selectedComplaint.content}</p>
+                                
+                                {/* Bối cảnh từ Report (Biên bản) - Đã được thêm mới */}
+                                {complaintDetails?.report_context && (
+                                    <div className="bg-slate-50 p-4 mb-3 shrink-0 border border-slate-200 rounded-xl relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-slate-400"></div>
+                                        <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1"><Info className="w-3 h-3"/> Ghi chú từ Giám thị (Bối cảnh):</h4>
+                                        <p className="text-sm text-slate-700 font-medium">"{complaintDetails.report_context.content || 'Không có mô tả vi phạm nào trong ca thi.'}"</p>
+                                    </div>
+                                )}
+
+                                <div className="bg-orange-50 p-4 mb-6 shrink-0 border border-orange-100 rounded-xl relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-orange-400"></div>
+                                    <p className="text-sm text-slate-700 font-medium italic">"{selectedComplaint.content}"</p>
                                     {selectedComplaint.evidence_url && (
-                                        <a href={selectedComplaint.evidence_url} target="_blank" rel="noreferrer" className="text-blue-600 text-sm font-bold flex items-center gap-1 mt-3 pt-3 border-t border-slate-100">
+                                        <a href={selectedComplaint.evidence_url} target="_blank" rel="noreferrer" className="text-blue-600 text-sm font-bold flex items-center gap-1 mt-3 pt-3 border-t border-orange-200/50">
                                             <FileIcon className="w-4 h-4"/> Xem minh chứng đính kèm
                                         </a>
                                     )}
@@ -497,8 +491,8 @@ export default function PostExamManager() {
                                                     {ans.question?.type !== 'fill_blank' && ans.question?.choices && (
                                                         <div className="space-y-2 mb-4">
                                                             {ans.question.choices.map(choice => {
-                                                                const isStudentChoice = choice.id === ans.choice_id;
-                                                                const isCorrectChoice = choice.is_correct === 1;
+                                                                const isStudentChoice = String(choice.id) === String(ans.choice_id);
+                                                                const isCorrectChoice = choice.is_correct == 1 || choice.is_correct === true;
                                                                 
                                                                 let choiceClass = "p-3 rounded-xl border text-sm flex items-center justify-between transition-colors ";
                                                                 if (isStudentChoice) {
@@ -546,11 +540,10 @@ export default function PostExamManager() {
                                 <h3 className="font-bold text-lg mb-6 text-slate-800">Quyết định xử lý</h3>
                                 <form onSubmit={submitComplaintResolution} className="space-y-5 flex-1 overflow-y-auto pr-1">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Hành động hệ thống</label>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Hành động</label>
                                         <select value={action} onChange={e => setAction(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none bg-slate-50 font-bold text-sm text-slate-700">
                                             <option value="none">Chỉ gửi email giải thích (Giữ nguyên điểm)</option>
                                             <option value="adjust_score">Cập nhật lại điểm số mới</option>
-                                            <option value="cancel_exam">Hủy bài thi (0 điểm)</option>
                                         </select>
                                     </div>
 

@@ -11,6 +11,7 @@ class ChoiceResource extends JsonResource
         return [
             'key' => $this->choice_key,
             'text' => $this->choice_text,
+            'is_correct' => (bool) $this->is_correct,
         ];
     }
 }

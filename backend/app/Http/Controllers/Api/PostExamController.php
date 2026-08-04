@@ -108,8 +108,8 @@ class PostExamController extends Controller
         $teacherId = Auth::id();
         $reports = Report::with(['exam.subject', 'proctor'])->where('teacher_id', $teacherId)->latest()->get();
         $complaints = Complaint::with(['studentUser.student', 'exam.subject'])
-            ->whereHas('exam.classes.teachers', function($q) use ($teacherId) {
-                $q->where('users.id', $teacherId);
+            ->whereHas('exam', function($q) use ($teacherId) {
+                $q->where('teacher_id', $teacherId);
             })->latest()->get();
 
         return response()->json(['reports' => $reports, 'complaints' => $complaints]);
@@ -244,13 +244,20 @@ class PostExamController extends Controller
             $answers = StudentAnswer::with(['question.choices', 'question.fillBlankAnswers'])->where('attempt_id', $attempt->id)->get();
         }
 
-        return response()->json(['complaint' => $complaint, 'attempt' => $attempt, 'answers' => $answers]);
+        $report = Report::with('proctor')->where('exam_id', $complaint->exam_id)->first();
+
+        return response()->json([
+            'complaint' => $complaint, 
+            'attempt' => $attempt, 
+            'answers' => $answers,
+            'report_context' => $report 
+        ]);
     }
 
     public function resolveComplaint(Request $request, $id)
     {
         $request->validate([
-            'action' => 'required|in:none,cancel_exam,adjust_score',
+            'action' => 'required|in:none,adjust_score',
             'reason' => 'required|string',
             'new_score' => 'nullable|numeric|min:0|max:10'
         ]);
@@ -260,13 +267,9 @@ class PostExamController extends Controller
 
         DB::beginTransaction();
         try {
-            if ($attempt) {
-                if ($request->action === 'cancel_exam') {
-                    $attempt->update(['total_score' => 0, 'is_passed' => false, 'status' => 'suspended']);
-                } elseif ($request->action === 'adjust_score') {
-                    $isPassed = $request->new_score >= $complaint->exam->passing_score;
-                    $attempt->update(['total_score' => $request->new_score, 'is_passed' => $isPassed]);
-                }
+            if ($attempt && $request->action === 'adjust_score') {
+                $isPassed = $request->new_score >= $complaint->exam->passing_score;
+                $attempt->update(['total_score' => $request->new_score, 'is_passed' => $isPassed]);
             }
 
             $complaint->update(['response' => $request->reason, 'status' => 'resolved']);
@@ -274,16 +277,15 @@ class PostExamController extends Controller
             $emailContent = "Chào bạn,\n\nGiảng viên đã xử lý khiếu nại môn {$complaint->exam->title}.\nPhản hồi từ Giảng viên: {$request->reason}\n";
             $notiContent = "Phản hồi từ Giảng viên: {$request->reason}. ";
 
-            if ($request->action === 'cancel_exam') {
-                $emailContent .= "Kết quả: BÀI THI BỊ HỦY (0 điểm).";
-                $notiContent .= "Kết quả: BÀI THI BỊ HỦY (0 điểm).";
-            }
+         
             if ($request->action === 'adjust_score') {
                 $emailContent .= "Kết quả: Điểm được điều chỉnh thành {$request->new_score}.";
                 $notiContent .= "Kết quả: Điểm được điều chỉnh thành {$request->new_score}.";
+            } else {
+                $emailContent .= "Kết quả: Giữ nguyên điểm số.";
+                $notiContent .= "Kết quả: Giữ nguyên điểm số.";
             }
 
-          
             Mail::to($complaint->studentUser->email)->send(new ViolationResolutionMail($emailContent, 'Kết quả xử lý khiếu nại - NQ EduTech'));
 
             Notification::create([
@@ -310,7 +312,7 @@ class PostExamController extends Controller
         return response()->json($complaints);
     }
 
-    public function storeComplaint(Request $request)
+   public function storeComplaint(Request $request)
     {
         $request->validate([
             'exam_id' => 'required|exists:exams,id',
@@ -318,6 +320,19 @@ class PostExamController extends Controller
             'content' => 'required|string',
             'evidence' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:20480'
         ]);
+
+        $attempt = ExamAttempt::where('exam_id', $request->input('exam_id'))
+            ->where('student_id', Auth::id())
+            ->first();
+
+        if (!$attempt || $attempt->status !== 'submitted' || !$attempt->ended_at) {
+            return response()->json(['message' => 'Không tìm thấy bài thi hoặc bài thi chưa được nộp hợp lệ.'], 400);
+        }
+
+        $hoursPassed = \Carbon\Carbon::parse($attempt->ended_at)->diffInHours(now());
+        if ($hoursPassed > 72) {
+            return response()->json(['message' => 'Đã quá thời hạn 72 giờ để gửi khiếu nại cho bài thi này.'], 403);
+        }
 
         $evidenceUrl = null;
         if ($request->hasFile('evidence')) {

@@ -54,7 +54,6 @@ export default function TeacherLayout() {
     { name: 'Tổng quan', path: '/teacher/dashboard', icon: LayoutDashboard },
     { name: 'Lớp học của tôi', path: '/teacher/classes', icon: Users },
     { name: 'Ngân hàng Câu hỏi', path: '/teacher/questions', icon: FileText },
-    { name: 'Quản lý Chủ đề', path: '/teacher/topics', icon: Bookmark },
     { name: 'Kỳ thi của tôi', path: '/teacher/exams', icon: CheckSquare },
     { name: 'Quản lý thông báo', path: '/teacher/notifications', icon: Bell },
     { name: 'Thống kê & Báo cáo', path: '/teacher/statistics', icon: BarChart },

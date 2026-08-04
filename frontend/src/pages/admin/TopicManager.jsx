@@ -6,32 +6,27 @@ import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
 export default function TopicManager() {
-    // State cho danh sách môn học (không phân trang, lấy tất cả)
     const [subjects, setSubjects] = useState([]);
     const [loadingSubjects, setLoadingSubjects] = useState(true);
     const [subjectSearch, setSubjectSearch] = useState('');
 
-    // State cho môn học được chọn
     const [selectedSubject, setSelectedSubject] = useState(null);
 
-    // State cho danh sách chủ đề (có phân trang)
     const [topics, setTopics] = useState([]);
     const [topicPagination, setTopicPagination] = useState({});
     const [loadingTopics, setLoadingTopics] = useState(false);
     const [topicSearch, setTopicSearch] = useState('');
 
-    // Modal thêm/sửa chủ đề
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const { register, handleSubmit, reset } = useForm({
         defaultValues: { subject_id: '', name: '' }
     });
 
-    // Lấy danh sách môn học (tất cả, không phân trang)
     const fetchSubjects = useCallback(async () => {
         setLoadingSubjects(true);
         try {
-            const res = await api.get('/teacher/subjects');
+            const res = await api.get('/admin/subjects');
             setSubjects(res.data.data || res.data);
         } catch (error) {
             toast.error('Lỗi tải danh sách môn học');
@@ -40,8 +35,7 @@ export default function TopicManager() {
         }
     }, []);
 
-    // Lấy danh sách chủ đề (có phân trang và tìm kiếm theo subject_id)
-    const fetchTopics = useCallback(async (url = '/teacher/topics', params = {}) => {
+    const fetchTopics = useCallback(async (url = '/admin/topics', params = {}) => {
         setLoadingTopics(true);
         try {
             const res = await api.get(url, { params });
@@ -61,23 +55,20 @@ export default function TopicManager() {
         fetchSubjects();
     }, [fetchSubjects]);
 
-    // Khi chọn môn học, tải chủ đề
     useEffect(() => {
         if (selectedSubject) {
-            fetchTopics('/teacher/topics', {
+            fetchTopics('/admin/topics', {
                 subject_id: selectedSubject.id,
                 search: topicSearch
             });
         }
     }, [selectedSubject, topicSearch, fetchTopics]);
 
-    // Lọc môn học (client-side vì danh sách ít)
     const filteredSubjects = subjects.filter(sub =>
         sub.name.toLowerCase().includes(subjectSearch.toLowerCase()) ||
         sub.code.toLowerCase().includes(subjectSearch.toLowerCase())
     );
 
-    // Mở modal thêm/sửa chủ đề
     const openModal = (topic = null) => {
         if (topic) {
             setEditingId(topic.id);
@@ -99,19 +90,18 @@ export default function TopicManager() {
         const loadingToast = toast.loading('Đang lưu dữ liệu...');
         try {
             if (editingId) {
-                await api.put(`/teacher/topics/${editingId}`, data);
+                await api.put(`/admin/topics/${editingId}`, data);
                 toast.success('Cập nhật thành công!', { id: loadingToast });
             } else {
-                await api.post('/teacher/topics', data);
+                await api.post('/admin/topics', data);
                 toast.success('Thêm mới thành công!', { id: loadingToast });
             }
             setShowModal(false);
-            // Refresh lại danh sách chủ đề
-            fetchTopics('/teacher/topics', {
+            fetchTopics('/admin/topics', {
                 subject_id: selectedSubject.id,
                 search: topicSearch
             });
-            // Refresh lại danh sách môn học để cập nhật số lượng chủ đề
+         
             fetchSubjects();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Có lỗi xảy ra', { id: loadingToast });
@@ -130,9 +120,9 @@ export default function TopicManager() {
         });
         if (result.isConfirmed) {
             try {
-                await api.delete(`/teacher/topics/${id}`);
+                await api.delete(`/admin/topics/${id}`);
                 toast.success('Xóa chủ đề thành công');
-                fetchTopics('/teacher/topics', {
+                fetchTopics('/admin/topics', {
                     subject_id: selectedSubject.id,
                     search: topicSearch
                 });
@@ -143,7 +133,7 @@ export default function TopicManager() {
         }
     };
 
-    // Nếu chưa chọn môn học -> hiển thị danh sách môn học
+   
     if (!selectedSubject) {
         return (
             <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
@@ -206,7 +196,7 @@ export default function TopicManager() {
         );
     }
 
-    // Đã chọn môn học -> hiển thị danh sách chủ đề
+
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans animate-in slide-in-from-right-8 duration-300">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
@@ -322,7 +312,7 @@ export default function TopicManager() {
                 )}
             </div>
 
-            {/* Modal thêm/sửa chủ đề */}
+       
             {showModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">

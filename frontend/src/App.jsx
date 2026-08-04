@@ -115,7 +115,7 @@ import CourseManager from './pages/admin/CourseManager.jsx';
 import CohortManager from './pages/admin/CohortManager.jsx';
 import ClassManager from './pages/admin/ClassManager.jsx';
 import ExpulsionManager from './pages/admin/ExpulsionManager.jsx';
-import TopicManager from './pages/teacher/TopicManager.jsx';
+import TopicManager from './pages/admin/TopicManager.jsx';
 import NotificationManager from './pages/admin/NotificationManager.jsx';
 import ExamStatistics from './pages/teacher/ExamStatistics';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
@@ -215,7 +215,7 @@ function App() {
             <Route path="exams/create" element={<ExamForm />} />
             <Route path="exams/:id/edit" element={<ExamForm />} />
             <Route path="statistics" element={<ExamStatistics />} />
-            <Route path="topics" element={<TopicManager />} />
+            
             <Route path="notifications" element={<NotificationManager basePath="/teacher" />} />
             <Route path="post-exam" element={<PostExamManager />} />
             <Route path="profile" element={<ProfileManager />} />

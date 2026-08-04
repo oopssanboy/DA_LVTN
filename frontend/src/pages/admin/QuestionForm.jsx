@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -54,35 +54,53 @@ export default function QuestionForm() {
   const { fields, append, remove } = useFieldArray({ control, name: 'choices' });
   const questionType = watch('type');
 
+  // Hàm tải Chủ đề (Tách riêng để gọi linh hoạt)
+  const fetchTopics = useCallback(async (subjectId) => {
+    if (!subjectId) {
+      setTopics([]);
+      return;
+    }
+    try {
+      const res = await api.get(`${apiPrefix}/topics`, { 
+        params: { subject_id: subjectId, per_page: 100 } 
+      });
+      setTopics(res.data.data || res.data);
+    } catch (e) {
+      toast.error('Lỗi tải danh sách chủ đề');
+    }
+  }, [apiPrefix]);
 
+  // 1. TẢI MÔN HỌC & CHI TIẾT CÂU HỎI KHI VÀO TRANG
   useEffect(() => {
     const initData = async () => {
       try {
-
-        const [subRes, topRes] = await Promise.all([
-          api.get(`${apiPrefix}/subjects`),
-          api.get(`${apiPrefix}/topics`)
-        ]);
-        
+        // Lấy danh sách môn học
+        const subRes = await api.get(`${apiPrefix}/subjects`, { params: { per_page: 100 } });
         setSubjects(subRes.data.data || subRes.data);
-        setTopics(topRes.data.data || topRes.data);
 
         if (isEdit) {
+          // Lấy chi tiết câu hỏi
           const qRes = await api.get(`${apiPrefix}/questions/${id}`);
           const q = qRes.data.data || qRes.data;
           
-        
+          const currentSubjectId = q.subject?.id?.toString() || q.subject_id?.toString() || '';
+          
+          // Bắt buộc phải lấy Chủ đề của môn học này XONG TRƯỚC KHI reset form
+          if (currentSubjectId) {
+            await fetchTopics(currentSubjectId);
+          }
+          
           let correctAnsStr = '';
           if (q.type === 'fill_blank') {
-            correctAnsStr = q.fill_blank_answers?.map(a => a.accepted_text).join('|') || '';
+            correctAnsStr = q.fill_blank_answers?.map(a => a.accepted_text).join(' | ') || '';
           } else {
-            // const correctChoices = q.choices?.map((c, i) => c.is_correct ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
-            const correctChoices = q.choices?.map((c, i) => Number(c.is_correct) === 1 ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
+            const correctChoices = q.choices?.map((c, i) => (c.is_correct == 1 || c.is_correct === true) ? String.fromCharCode(65 + i) : null).filter(Boolean) || [];
             correctAnsStr = correctChoices.join(',');
           }
 
+          // Reset toàn bộ Form (Chủ đề sẽ tự động match vì state topics đã có data)
           reset({
-            subject_id: q.subject?.id?.toString() || q.subject_id?.toString() || '',
+            subject_id: currentSubjectId,
             topic_id: q.topic?.id?.toString() || q.topic_id?.toString() || '',
             content: q.content || '',
             type: q.type || 'single',
@@ -106,12 +124,12 @@ export default function QuestionForm() {
     };
 
     initData();
-  }, [id, isEdit, reset, apiPrefix]);
+  }, [id, isEdit, reset, apiPrefix, fetchTopics]);
+
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-  
       const payload = {
         subject_id: data.subject_id,
         topic_id: data.topic_id,
@@ -123,10 +141,8 @@ export default function QuestionForm() {
       };
 
       if (data.type === 'fill_blank') {
-     
         payload.fill_blank_answers = data.correct_answer.split('|').map(s => s.trim()).filter(Boolean);
       } else {
-       
         const correctKeys = data.correct_answer.split(',');
         payload.choices = data.choices.map(c => ({
           choice_text: c.text,
@@ -156,11 +172,19 @@ export default function QuestionForm() {
       <h1 className="text-2xl font-bold mb-6 text-slate-800">{isEdit ? 'Sửa câu hỏi' : 'Thêm câu hỏi'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block font-medium mb-1 text-slate-700">Môn học</label>
-            <select {...register('subject_id')} className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-indigo-200 transition">
+            {/* THÊM SỰ KIỆN onChange ĐỂ BẮT HÀNH ĐỘNG ĐỔI MÔN HỌC BẰNG TAY CỦA NGƯỜI DÙNG */}
+            <select 
+              {...register('subject_id', {
+                onChange: (e) => {
+                  fetchTopics(e.target.value);
+                  setValue('topic_id', ''); // Reset chủ đề khi đổi môn
+                }
+              })} 
+              className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-indigo-200 transition"
+            >
               <option value="">-- Chọn môn học --</option>
               {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -176,7 +200,6 @@ export default function QuestionForm() {
           </div>
         </div>
 
-   
         <div>
           <label className="block font-medium mb-1 text-slate-700">Nội dung câu hỏi (có thể nhập HTML)</label>
           <textarea {...register('content')} rows={4} className="w-full border border-slate-200 bg-slate-50 rounded-lg p-3 focus:outline-none focus:ring focus:ring-indigo-200 transition resize-none" placeholder="Nhập nội dung câu hỏi..." />
@@ -206,7 +229,6 @@ export default function QuestionForm() {
           </div>
         </div>
 
-      
         {(questionType === 'single' || questionType === 'multiple') && (
           <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
             <label className="block font-bold mb-4 text-slate-800">Các lựa chọn</label>
@@ -230,7 +252,7 @@ export default function QuestionForm() {
                 </div>
               );
             })}
-            {fields.length < 4 && (
+            {fields.length < 6 && (
               <button 
                 type="button" 
                 onClick={() => append({ key: String.fromCharCode(65 + fields.length), text: '' })} 
@@ -243,7 +265,6 @@ export default function QuestionForm() {
           </div>
         )}
 
-        
         <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-100">
           <label className="block font-bold mb-4 text-indigo-900">
             {questionType === 'fill_blank' ? 'Thiết lập phương án đúng' : 'Chọn đáp án đúng'}

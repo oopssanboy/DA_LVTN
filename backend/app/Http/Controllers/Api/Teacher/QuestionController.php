@@ -221,10 +221,13 @@ class QuestionController extends Controller
     }
     public function getStats()
     {
+        $query = Question::select('topic_id', 'difficulty', DB::raw('count(*) as total'));
         
-        $stats = Question::select('topic_id', 'difficulty', DB::raw('count(*) as total'))
-            ->groupBy('topic_id', 'difficulty')
-            ->get();
+        if (Auth::check() && Auth::user()->role === 'teacher') {
+            $query->where('teacher_id', Auth::id());
+        }
+        
+        $stats = $query->groupBy('topic_id', 'difficulty')->get();
             
         return response()->json(['data' => $stats]);
     }
