@@ -47,8 +47,7 @@ export default function ProctorLayout() {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const menuItems = [
-    { name: 'Tổng quan', path: '/proctor/dashboard', icon: LayoutDashboard },
-    { name: 'Danh sách lớp giám sát', path: '/proctor/monitor', icon: MonitorPlay },
+    { name: 'Danh sách lớp giám sát', path: '/proctor/dashboard', icon: MonitorPlay },
     { name: 'Lập Biên bản', path: '/proctor/reports', icon: FileWarning },
     { name: 'Hồ sơ cá nhân', path: 'profile', icon: User },
   ];

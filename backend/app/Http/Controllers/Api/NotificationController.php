@@ -17,8 +17,10 @@ class NotificationController extends Controller
     {
         $user = Auth::user();
    
-        $query = Notification::whereNotNull('target_role')->orderBy('created_at', 'desc');
+    
+        $query = Notification::where('type', 'broadcast')->orderBy('created_at', 'desc');
 
+   
         if ($user->role === 'teacher') {
             $query->where('sender_id', $user->id);
         }
@@ -82,37 +84,41 @@ class NotificationController extends Controller
         $user = Auth::user();
         $query = Notification::query()->orderBy('created_at', 'desc');
 
-        if ($user->role === 'admin') {
-            $query->whereIn('target_role', ['all', 'admin']);
-        } elseif ($user->role === 'teacher') {
-            $classIds = ClassTeacher::where('teacher_id', $user->id)->pluck('class_id')->toArray();
-            $query->where(function($q) use ($classIds) {
-                $q->whereIn('target_role', ['all', 'teacher'])
-                  ->orWhere(function($subQ) use ($classIds) {
-                      $subQ->where('target_role', 'class')->whereIn('target_class_id', $classIds);
-                  });
-            });
-        } elseif ($user->role === 'student') {
-            $studentId = $user->student->user_id ?? $user->id;
-            $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id')->toArray();
-            $query->where(function($q) use ($classIds) {
-                $q->whereIn('target_role', ['all', 'student'])
-                  ->orWhere(function($subQ) use ($classIds) {
-                      $subQ->where('target_role', 'class')->whereIn('target_class_id', $classIds);
-                  });
-            });
-        } elseif ($user->role === 'proctor') {
-            $query->whereIn('target_role', ['all', 'proctor']); 
-        }
+        $query->where(function($q) use ($user) {
+         
+            $q->where('user_id', $user->id)
+            
+              
+              ->orWhere('target_role', 'all')
+              
+              
+              ->orWhere(function($subQ) use ($user) {
+                  $subQ->where('target_role', $user->role)
+                       ->whereNull('user_id'); 
+              });
+
+            if ($user->role === 'teacher') {
+                $classIds = ClassTeacher::where('teacher_id', $user->id)->pluck('class_id')->toArray();
+                $q->orWhere(function($subQ) use ($classIds) {
+                    $subQ->where('target_role', 'class')->whereIn('target_class_id', $classIds);
+                });
+            } elseif ($user->role === 'student') {
+                $studentId = $user->student->user_id ?? $user->id;
+                $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id')->toArray();
+                $q->orWhere(function($subQ) use ($classIds) {
+                    $subQ->where('target_role', 'class')->whereIn('target_class_id', $classIds);
+                });
+            }
+        });
 
         $notifications = $query->limit(15)->get();
 
+   
         $readIds = \Illuminate\Support\Facades\DB::table('notification_reads')
             ->where('user_id', $user->id)
             ->whereIn('notification_id', $notifications->pluck('id'))
             ->pluck('notification_id')
             ->toArray();
-
 
         $notifications->map(function($noti) use ($readIds) {
             $noti->is_read = in_array($noti->id, $readIds);

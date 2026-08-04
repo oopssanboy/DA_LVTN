@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\Admin\SubjectController;
 use App\Http\Controllers\Api\Admin\CourseController;
 use App\Http\Controllers\Api\Admin\ClassController;
 use App\Http\Controllers\Api\Admin\CohortController;
+use App\Http\Controllers\Api\Admin\TopicController;
+use App\Http\Controllers\Api\Admin\ExpulsionController;
 use App\Http\Controllers\Api\Teacher\QuestionController;
 use App\Http\Controllers\Api\Teacher\ExamController;
 use App\Http\Controllers\Api\Teacher\TeacherDashboardController;
@@ -17,7 +19,7 @@ use App\Http\Controllers\Api\Teacher\StatisticsController;
 use App\Http\Controllers\Api\Proctor\ProctorController;
 use App\Http\Controllers\Api\Student\ExamAttemptController; 
 use App\Http\Controllers\Api\Student\ProgressController; 
-use App\Http\Controllers\Api\Admin\TopicController;
+
 
 
 
@@ -63,6 +65,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('exams/{id}/generate', [ExamController::class, 'generateExam']);
 
         Route::patch('exams/{id}/status', [ExamController::class, 'toggleStatus']);
+        Route::get('expulsions', [ExpulsionController::class, 'index']);
+        Route::put('expulsions/{id}/resolve', [ExpulsionController::class, 'resolve']);
         Route::apiResource('notifications', NotificationController::class);
     });
 

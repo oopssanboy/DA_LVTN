@@ -114,11 +114,13 @@ import SubjectManager from './pages/admin/SubjectManager.jsx';
 import CourseManager from './pages/admin/CourseManager.jsx';
 import CohortManager from './pages/admin/CohortManager.jsx';
 import ClassManager from './pages/admin/ClassManager.jsx';
-import TopicManager from './pages/admin/TopicManager';
+import ExpulsionManager from './pages/admin/ExpulsionManager.jsx';
+import TopicManager from './pages/teacher/TopicManager.jsx';
 import NotificationManager from './pages/admin/NotificationManager.jsx';
 import ExamStatistics from './pages/teacher/ExamStatistics';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherClassManager from './pages/teacher/TeacherClassManager.jsx';
+
 import PostExamManager from './pages/teacher/PostExamManager';
 import ProctorDashboard from './pages/proctor/ProctorDashboard';
 import ExamMonitor from './pages/proctor/ExamMonitor';
@@ -199,6 +201,7 @@ function App() {
             <Route path="/admin/monitor/:examId" element={<ExamMonitor />} />
             <Route path="statistics" element={<ExamStatistics />} />
             <Route path="topics" element={<TopicManager />} />
+            <Route path="expulsions" element={<ExpulsionManager />} />
             <Route path="notifications" element={<NotificationManager basePath="/admin" />} />
           </Route>
 

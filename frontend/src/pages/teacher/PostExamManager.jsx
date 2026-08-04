@@ -95,7 +95,7 @@ export default function PostExamManager() {
 
     return (
         <div className="space-y-6 font-sans pb-10">
-            <div><h1 className="text-2xl font-bold text-slate-800">Xử lý Hậu kiểm (Post-Exam)</h1><p className="text-slate-500 mt-1">Nơi Giảng viên phân xử khiếu nại và xem báo cáo tổng kết ca thi.</p></div>
+            <div><h1 className="text-2xl font-bold text-slate-800">Xử lý Hậu kiểm</h1><p className="text-slate-500 mt-1">Nơi Giảng viên phân xử khiếu nại và xem báo cáo tổng kết ca thi.</p></div>
 
             <div className="flex gap-4 border-b border-slate-200">
                 <button onClick={() => setActiveTab('reports')} className={`pb-3 px-4 font-bold border-b-2 transition ${activeTab === 'reports' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Báo cáo Ca thi (Giám thị)</button>
@@ -108,12 +108,12 @@ export default function PostExamManager() {
                         <div key={r.id} className="bg-white p-6 rounded-2xl border border-slate-200 flex justify-between items-start hover:shadow-md transition">
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.status === 'processed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{r.status === 'processed' ? 'Đã duyệt' : 'Chờ duyệt'}</span>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.status === 'processed' ? 'text-emerald-700' : 'text-amber-700'}`}>{r.status === 'processed' ? 'Đã duyệt' : 'Chờ duyệt'}</span>
                                     <span className="text-sm font-bold text-slate-400">{new Date(r.created_at).toLocaleString('vi-VN')}</span>
                                 </div>
-                                <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-rose-500"/> Báo cáo: {r.exam?.title || r.title}</h3>
-                                <p className="text-sm mt-2 text-slate-600">Giám thị báo cáo: <strong className="text-slate-800">{r.proctor?.name}</strong></p>
-                                <div className="mt-3 bg-rose-50 border border-rose-100 p-4 rounded-xl text-sm text-rose-900 font-medium">
+                                <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><MessageSquareWarning className="w-5 h-5 text-blue-500"/> Báo cáo: {r.exam?.title || r.title}</h3>
+                                <p className="text-sm mt-2 text-slate-600">Giám thị báo cáo: <strong className="text-slate-800">{r.proctor?.email}</strong></p>
+                                <div className="mt-3 bg-slate-100 border border-slate-100 p-4 rounded-xl text-sm  font-medium">
                                     {r.content ? r.content : 'Không có nội dung mô tả từ giám thị.'}
                                 </div>
                             </div>
@@ -132,7 +132,7 @@ export default function PostExamManager() {
                         <div key={c.id} className="bg-white p-6 rounded-2xl border border-slate-200 flex justify-between items-start hover:shadow-md transition">
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{c.status === 'resolved' ? 'Đã giải quyết' : 'Đang chờ xử lý'}</span>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${c.status === 'resolved' ? 'text-emerald-700' : 'text-amber-700'}`}>{c.status === 'resolved' ? 'Đã giải quyết' : 'Đang chờ xử lý'}</span>
                                     <span className="text-sm font-bold text-slate-400">{new Date(c.created_at).toLocaleString('vi-VN')}</span>
                                 </div>
                                 <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><MessageSquareWarning className="w-5 h-5 text-blue-500"/> Kỳ thi: {c.exam?.title}</h3>
@@ -154,7 +154,7 @@ export default function PostExamManager() {
                         
 
                         <div className="p-5 border-b flex justify-between items-center bg-white shrink-0">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">Xử lý báo cáo: {selectedReport.title}</h2>
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">{selectedReport.title}</h2>
                             <button onClick={() => setSelectedReport(null)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5"/></button>
                         </div>
                         
@@ -176,20 +176,20 @@ export default function PostExamManager() {
                                                     <p className="text-sm text-slate-500 mt-1">{selectedViolator.student_code}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-sm text-slate-500 mb-1">Trạng thái: <span className="font-bold text-emerald-600">{selectedViolator.status === 'submitted' ? 'Đã nộp' : (selectedViolator.status === 'suspended' ? 'Đình chỉ' : 'Đang thi')}</span></p>
-                                                    <p className="text-sm text-slate-500">Điểm số: <span className="font-bold text-slate-800 text-xl">{selectedViolator.current_score}</span></p>
+                                                    <p className="text-sm  mb-1">Trạng thái: <span className="font-bold ">{selectedViolator.status === 'submitted' ? 'Đã nộp' : (selectedViolator.status === 'suspended' ? 'Đình chỉ' : 'Đang thi')}</span></p>
+                                                    <p className="text-sm ">Điểm số: <span className="font-bold  text-xl">{selectedViolator.current_score}</span></p>
                                                 </div>
                                             </div>
 
                                             <h4 className="font-bold text-sm text-slate-700 mb-4">Lịch sử ghi nhận ({selectedViolator.violation_count} lần):</h4>
                                             <div className="space-y-3">
                                                 {selectedViolator.logs.map((log, lIdx) => (
-                                                    <div key={lIdx} className="border border-rose-100 bg-rose-50 p-4 rounded-xl flex items-start gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0"><AlertTriangle className="w-4 h-4"/></div>
+                                                    <div key={lIdx} className="border-2 border-slate-200  p-4 rounded-xl flex items-start gap-3">
+                                                        <div className="w-8 h-8 rounded-full  text-rose-600 flex items-center justify-center shrink-0"><AlertTriangle className="w-4 h-4"/></div>
                                                         <div className="flex-1">
                                                             <div className="flex justify-between items-center mb-1">
-                                                                <span className="font-bold text-sm text-rose-700">{log.type}</span>
-                                                                <span className="text-xs font-bold text-slate-400">{log.time}</span>
+                                                                <span className="font-bold text-sm ">{log.type}</span>
+                                                                <span className="text-xs font-bold ">{log.time}</span>
                                                             </div>
                                                             <p className="text-sm text-slate-600">{log.detail}</p>
                                                         </div>
@@ -204,10 +204,10 @@ export default function PostExamManager() {
                                         <div className="p-6 pb-4 shrink-0 border-b border-slate-200 bg-white">
                                             <h3 className="font-bold text-slate-800 text-lg mb-2">Đánh giá của giám thị</h3>
                                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                                <p className="text-slate-700 text-sm">"{selectedReport.content}"</p>
-                                                <div className="mt-3 flex gap-4 text-sm text-slate-500 font-medium">
-                                                    <span className="flex items-center gap-1"><Users className="w-4 h-4"/> Tham gia: {reportDetails?.participated_count || 0} HS</span>
-                                                    <span className="flex items-center gap-1 text-rose-600"><AlertTriangle className="w-4 h-4"/> Vi phạm: {reportDetails?.violators.length || 0} HS</span>
+                                                <p className=" text-sm">"{selectedReport.content}"</p>
+                                                <div className="mt-3 flex gap-4 text-sm  font-medium">
+                                                    <span className="flex items-center gap-1"><Users className="w-4 h-4"/> Tham gia: {reportDetails?.participated_count || 0} Học viên</span>
+                                                    <span className="flex items-center gap-1 text-rose-600"><AlertTriangle className="w-4 h-4"/> Vi phạm: {reportDetails?.violators.length || 0} Học viên</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -219,7 +219,7 @@ export default function PostExamManager() {
                                             ) : reportDetails?.violators.length > 0 ? (
                                                 <table className="w-full text-left border-collapse">
                                                     <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                                                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-200">
+                                                        <tr className="text-xs  uppercase border-b border-slate-200">
                                                             <th className="px-6 py-4 font-bold">Sinh viên</th>
                                                             <th className="px-6 py-4 font-bold text-center">Trạng thái</th>
                                                             <th className="px-6 py-4 font-bold text-center">Số lần vi phạm</th>
@@ -228,18 +228,18 @@ export default function PostExamManager() {
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100">
                                                         {reportDetails.violators.map((v, i) => (
-                                                            <tr key={i} onClick={() => { setSelectedViolator(v); setViolatorAction('cancel_exam'); setViolatorNewScore(''); setViolatorReason(''); }} className="hover:bg-blue-50/50 cursor-pointer transition group">
+                                                            <tr key={i} onClick={() => { setSelectedViolator(v); setViolatorAction('cancel_exam'); setViolatorNewScore(''); setViolatorReason(''); }} className="hover:bg-blue-100 cursor-pointer transition group">
                                                                 <td className="px-6 py-4">
-                                                                    <p className="font-bold text-slate-800 text-sm group-hover:text-blue-700 transition">{v.student_name}</p>
+                                                                    <p className="font-bold text-slate-800 text-sm  transition">{v.student_name}</p>
                                                                     <p className="text-xs text-slate-500">{v.student_code}</p>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-center">
-                                                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${v.status === 'submitted' ? 'bg-emerald-100 text-emerald-700' : (v.status === 'suspended' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}`}>
+                                                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${v.status === 'submitted' ? 'text-emerald-700' : (v.status === 'suspended' ? 'text-rose-700' : 'text-amber-700')}`}>
                                                                         {v.status === 'submitted' ? 'Đã nộp' : (v.status === 'suspended' ? 'Đình chỉ' : 'Đang thi')}
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-center">
-                                                                    <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-lg text-xs font-bold">{v.violation_count}</span>
+                                                                    <span className="  px-3 py-1 rounded-lg text-xs font-bold">{v.violation_count}</span>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-center font-bold text-slate-800 text-base">
                                                                     {v.current_score}
@@ -249,7 +249,7 @@ export default function PostExamManager() {
                                                     </tbody>
                                                 </table>
                                             ) : (
-                                                <div className="flex justify-center items-center h-full text-slate-400 italic text-sm p-10">Ca thi an toàn. Không có sinh viên vi phạm.</div>
+                                                <div className="flex justify-center items-center h-full text-slate-400 italic text-sm p-10">Không có sinh viên vi phạm.</div>
                                             )}
                                         </div>
                                     </div>
@@ -264,27 +264,27 @@ export default function PostExamManager() {
                                         <form onSubmit={submitViolatorResolution} className="space-y-5 flex-1 overflow-y-auto pr-1">
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-2">Hành động áp dụng</label>
-                                                <select value={violatorAction} onChange={e => setViolatorAction(e.target.value)} className="w-full border-2 border-rose-200 p-3 rounded-xl outline-none focus:border-rose-500 bg-slate-50 font-bold text-sm text-slate-700">
-                                                    <option value="cancel_exam">Hủy bài thi của SV này (0 điểm)</option>
+                                                <select value={violatorAction} onChange={e => setViolatorAction(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none  bg-slate-50 font-bold text-sm ">
+                                                    <option value="cancel_exam">Hủy bài thi(0 điểm)</option>
                                                     <option value="adjust_score">Điều chỉnh lại điểm thi</option>
-                                                    <option value="request_expulsion">Tạo Yêu cầu Đuổi học (Gửi Admin)</option>
+                                                    <option value="request_expulsion">Tạo Yêu cầu Đuổi học</option>
                                                 </select>
                                             </div>
 
                                             {violatorAction === 'adjust_score' && (
                                                 <div className="animate-in fade-in slide-in-from-top-2">
-                                                    <label className="block text-sm font-bold text-rose-700 mb-2">Nhập điểm mới</label>
-                                                    <input type="number" step="0.1" required min="0" max="10" value={violatorNewScore} onChange={e => setViolatorNewScore(e.target.value)} className="w-full border-2 border-rose-200 focus:border-rose-500 p-3 rounded-xl outline-none font-bold text-lg text-rose-700" placeholder="VD: 0"/>
+                                                    <label className="block text-sm font-bold  mb-2">Nhập điểm mới</label>
+                                                    <input type="number" step="0.1" required min="0" max="10" value={violatorNewScore} onChange={e => setViolatorNewScore(e.target.value)} className="w-full border-2 border-slate-200  p-3 rounded-xl outline-none font-bold text-lg " placeholder=""/>
                                                 </div>
                                             )}
 
                                             <div>
-                                                <label className="block text-sm font-bold text-slate-700 mb-2">Phản hồi & Giải thích (Gửi Email SV)</label>
-                                                <textarea required rows="6" value={violatorReason} onChange={e => setViolatorReason(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-rose-500 bg-slate-50 text-sm resize-none" placeholder="Viết chi tiết lý do xử phạt..."></textarea>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Phản hồi và Giải thích</label>
+                                                <textarea required rows="6" value={violatorReason} onChange={e => setViolatorReason(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none bg-slate-50 text-sm resize-none" placeholder="Viết chi tiết lý do xử phạt..."></textarea>
                                             </div>
 
-                                            <div className="bg-rose-50 p-4 rounded-xl border border-rose-100">
-                                                <p className="text-xs text-rose-800 font-medium">Hệ thống sẽ gửi thông báo quyết định đến <strong className="font-bold">{selectedViolator.student_name}</strong>.</p>
+                                            <div className=" p-4 rounded-xl ">
+                                                <p className="text-xs  font-medium">Hệ thống sẽ gửi thông báo quyết định đến <strong className="font-bold">{selectedViolator.student_name}</strong>.</p>
                                             </div>
 
                                             <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md">
@@ -307,8 +307,8 @@ export default function PostExamManager() {
 
                                             {reportAction === 'deduct_points' && (
                                                 <div className="animate-in fade-in slide-in-from-top-2">
-                                                    <label className="block text-sm font-bold text-amber-600 mb-2">Số điểm trừ cho mỗi SV vi phạm</label>
-                                                    <input type="number" step="0.5" required min="0" max="10" value={reportPenaltyPoints} onChange={e => setReportPenaltyPoints(e.target.value)} className="w-full border-2 border-amber-200 focus:border-amber-500 p-3 rounded-xl outline-none font-bold text-lg text-amber-700" placeholder="VD: 2.5"/>
+                                                    <label className="block text-sm font-bold mb-2">Số điểm trừ cho mỗi SV vi phạm</label>
+                                                    <input type="number" step="0.5" required min="0" max="10" value={reportPenaltyPoints} onChange={e => setReportPenaltyPoints(e.target.value)} className="w-full border-2 border-slate-200  p-3 rounded-xl outline-none font-bold text-lg " placeholder=""/>
                                                 </div>
                                             )}
 
@@ -342,7 +342,7 @@ export default function PostExamManager() {
                         
                             <div className="flex-1 p-6 border-r border-slate-200 bg-white flex flex-col overflow-hidden">
                                 <h3 className="font-bold text-lg mb-4 text-slate-800 shrink-0">Nội dung khiếu nại</h3>
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6 shrink-0 shadow-sm">
+                                <div className="bg-white p-4  mb-6 shrink-0 ">
                                     <p className="text-sm text-slate-700">{selectedComplaint.content}</p>
                                     {selectedComplaint.evidence_url && <a href={selectedComplaint.evidence_url} target="_blank" rel="noreferrer" className="text-blue-600 text-sm font-bold flex items-center gap-1 mt-3 pt-3 border-t border-slate-100"><FileIcon className="w-4 h-4"/> Xem minh chứng đính kèm</a>}
                                 </div>
@@ -352,7 +352,7 @@ export default function PostExamManager() {
                                     <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>
                                 ) : complaintDetails?.attempt ? (
                                     <div className="flex flex-col flex-1 overflow-hidden">
-                                        <div className="flex justify-between bg-blue-50 text-blue-900 p-4 rounded-xl font-bold mb-4 shrink-0 shadow-inner">
+                                        <div className="flex justify-between p-4 rounded-xl font-bold mb-4 shrink-0 shadow-inner">
                                             <span>Điểm hiện tại: {complaintDetails.attempt.total_score}</span>
                                             <span>Vi phạm: {complaintDetails.attempt.violation_count} lần</span>
                                         </div>
@@ -360,7 +360,7 @@ export default function PostExamManager() {
                                     
                                         <div className="flex-1 overflow-y-auto pr-3 space-y-4 custom-scrollbar">
                                             {complaintDetails.answers.map((ans, i) => (
-                                                <div key={i} className={`p-5 rounded-xl border bg-white shadow-sm ${ans.is_correct ? 'border-emerald-200' : 'border-rose-200'}`}>
+                                                <div key={i} className={`p-5 rounded-xl border bg-white shadow-sm ${ans.is_correct ? 'border-emerald-600' : 'border-rose-600'}`}>
                                                     <div className="font-bold text-sm text-slate-800 mb-4 flex items-start gap-2">
                                                         <span className="shrink-0 text-slate-500">Câu {i+1}:</span>
                                                         <span dangerouslySetInnerHTML={{__html: ans.question?.content}}></span>
@@ -374,17 +374,17 @@ export default function PostExamManager() {
                                                                 
                                                                 let choiceClass = "p-3 rounded-xl border text-sm flex items-center justify-between transition-colors ";
                                                                 if (isStudentChoice) {
-                                                                    choiceClass += isCorrectChoice ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-bold" : "bg-slate-50 border-slate-200 text-slate-800 font-bold";
+                                                                    choiceClass += isCorrectChoice ? "bg-emerald-100 border-emerald-200 text-emerald-900 font-bold" : "bg-slate-50 border-rose-400 text-slate-800 font-bold";
                                                                 } else {
-                                                                    choiceClass += "bg-white border-slate-100 text-slate-600";
+                                                                    choiceClass += "bg-white border-slate-300 text-slate-600";
                                                                 }
 
                                                                 return (
                                                                     <div key={choice.id} className={choiceClass}>
                                                                         <span className="flex-1">{choice.choice_key}. {choice.choice_text}</span>
                                                                         <div className="shrink-0 flex items-center gap-2">
-                                                                            {isStudentChoice && <span className="text-[10px] px-2 py-1 rounded bg-white border border-slate-200 shadow-sm font-bold">👋 Đã chọn</span>}
-                                                                            {isCorrectChoice && !isStudentChoice && <span className="text-[10px] px-2 py-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 font-bold">✓ Đáp án đúng</span>}
+                                                                            {isStudentChoice && <span className="text-[10px] px-2 py-1 rounded bg-white border border-slate-200 shadow-sm font-bold">Đã chọn</span>}
+                                                                            {isCorrectChoice && !isStudentChoice && <span className="text-[10px] px-2 py-1 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 font-bold">Đáp án đúng</span>}
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -405,9 +405,7 @@ export default function PostExamManager() {
                                                         </div>
                                                     )}
 
-                                                    <div className="text-right mt-3 border-t border-slate-100 pt-3">
-                                                        <span className="text-xs font-bold text-slate-500">ĐIỂM: <span className={ans.is_correct ? "text-emerald-600" : "text-rose-600"}>{ans.score_earned} / {ans.question?.score || 0}</span></span>
-                                                    </div>
+                                                    
                                                 </div>
                                             ))}
                                         </div>
@@ -423,27 +421,27 @@ export default function PostExamManager() {
                                 <form onSubmit={submitComplaintResolution} className="space-y-5 flex-1 overflow-y-auto pr-1">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-2">Hành động hệ thống</label>
-                                        <select value={action} onChange={e => setAction(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 bg-slate-50 font-bold text-sm text-slate-700">
+                                        <select value={action} onChange={e => setAction(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none  bg-slate-50 font-bold text-sm text-slate-700">
                                             <option value="none">Chỉ gửi email giải thích (Giữ nguyên điểm)</option>
                                             <option value="adjust_score">Cập nhật lại điểm số mới</option>
-                                            <option value="cancel_exam">Hủy toàn bộ bài thi (0 điểm)</option>
+                                            <option value="cancel_exam">Hủy bài thi (0 điểm)</option>
                                         </select>
                                     </div>
 
                                     {action === 'adjust_score' && (
                                         <div className="animate-in fade-in slide-in-from-top-2">
-                                            <label className="block text-sm font-bold text-blue-700 mb-2">Nhập điểm mới</label>
-                                            <input type="number" step="0.1" required min="0" max="10" value={newScore} onChange={e => setNewScore(e.target.value)} className="w-full border-2 border-blue-200 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-lg text-blue-700" placeholder="VD: 8.5"/>
+                                            <label className="block text-sm font-bold  mb-2">Nhập điểm mới</label>
+                                            <input type="number" step="0.1" required min="0" max="10" value={newScore} onChange={e => setNewScore(e.target.value)} className="w-full border-2  border-slate-200 p-3 rounded-xl outline-none font-bold text-lg " placeholder=""/>
                                         </div>
                                     )}
 
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Phản hồi & Giải thích (Gửi Email SV)</label>
-                                        <textarea required rows="6" value={reason} onChange={e => setReason(e.target.value)} className="w-full border-2 border-slate-200 p-4 rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-sm text-slate-700 resize-none" placeholder="Viết phản hồi chi tiết tại đây..."></textarea>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Phản hồi và Giải thích</label>
+                                        <textarea required rows="6" value={reason} onChange={e => setReason(e.target.value)} className="w-full border-2 border-slate-200  p-4 rounded-xl outline-none focus:border-blue-500 bg-slate-50 text-sm text-slate-700 resize-none" placeholder="Viết phản hồi chi tiết tại đây..."></textarea>
                                     </div>
 
-                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
-                                        <p className="text-xs text-blue-800 font-medium">Hệ thống sẽ tự động gửi 1 Email phản hồi đến địa chỉ của <strong className="font-bold">{selectedComplaint.student_user?.student?.name}</strong>.</p>
+                                    <div className=" p-4 rounded-xl  mb-4">
+                                        <p className="text-xs font-medium">Hệ thống sẽ tự động gửi 1 Email phản hồi đến địa chỉ của <strong className="font-bold">{selectedComplaint.student_user?.student?.name}</strong>.</p>
                                     </div>
 
                                     <button type="submit" disabled={selectedComplaint.status === 'resolved'} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-md mt-auto">
