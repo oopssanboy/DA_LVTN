@@ -53,12 +53,6 @@ export default function ExamForm() {
     
     const watchMatrices = watch('matrices') || [];
     const selectedSubjectId = watch('subject_id'); 
-    const validClasses = classes.filter(cls => {
-        if (!selectedSubjectId) 
-            return false; 
-        const courseSubjects = cls.cohort?.course?.subjects || [];
-        return courseSubjects.some(sub => sub.id.toString() === selectedSubjectId.toString());
-    });
     
     const watchClassIds = watch('class_ids') || [];
     const watchProctorIds = watch('proctor_ids') || [];
@@ -69,24 +63,26 @@ export default function ExamForm() {
         topic => String(topic.subject_id || topic.subject?.id) === String(selectedSubjectId)
     );
 
-    const filteredClasses = validClasses.filter(c => c.name.toLowerCase().includes(classSearch.toLowerCase()));
+    // Lọc classes dựa trên mảng classes đã được backend trả về chuẩn xác
+    const filteredClasses = classes.filter(c => c.name.toLowerCase().includes(classSearch.toLowerCase()));
+    
     const filteredProctors = proctors.filter(p => 
         (p.name && p.name.toLowerCase().includes(proctorSearch.toLowerCase())) || 
         (p.email && p.email.toLowerCase().includes(proctorSearch.toLowerCase()))
     );
 
+    // 1. TẢI CÁC DỮ LIỆU TĨNH KHÔNG PHỤ THUỘC VÀO MÔN HỌC
     useEffect(() => {
         const initData = async () => {
             try {
-                const [classRes, subjectRes, topicRes, statsRes, proctorRes] = await Promise.all([
-                    api.get(`${apiPrefix}/classes`),
-                    api.get(`${apiPrefix}/subjects`),
-                    api.get(`${apiPrefix}/topics`),
+                // Đã thêm per_page=100 để tránh lỗi ẩn dữ liệu ở trang 2
+                const [subjectRes, topicRes, statsRes, proctorRes] = await Promise.all([
+                    api.get(`${apiPrefix}/subjects?per_page=100`),
+                    api.get(`${apiPrefix}/topics?per_page=100`),
                     api.get(`${apiPrefix}/questions/stats`).catch(() => ({ data: [] })), 
                     api.get(`${apiPrefix}/users?role=proctor&per_page=100`).catch(() => ({ data: [] }))
                 ]);
                 
-                setClasses(classRes.data?.data || classRes.data || []);
                 setSubjects(subjectRes.data?.data || subjectRes.data || []);
                 setAllTopics(topicRes.data?.data || topicRes.data || []);
                 setQuestionStats(statsRes.data?.data || statsRes.data || []);
@@ -130,7 +126,6 @@ export default function ExamForm() {
                         setFetching(false);
                     }, 200);
                 } else {
-                  
                     replace([{ topic_id: '', difficulty: '', quantity: 1 }]);
                     setFetching(false);
                 }
@@ -144,17 +139,36 @@ export default function ExamForm() {
         initData();
     }, [id, isEdit, apiPrefix, reset, replace, navigate]);
 
+    // 2. GỌI API LỚP HỌC MỖI KHI MÔN HỌC THAY ĐỔI
+    useEffect(() => {
+        if (selectedSubjectId) {
+            // Truyền subject_id lên Backend để lấy chính xác các Lớp có học Môn này
+            api.get(`${apiPrefix}/classes`, { 
+                params: { subject_id: selectedSubjectId, per_page: 100 } 
+            })
+            .then(res => {
+                setClasses(res.data?.data || res.data || []);
+            })
+            .catch(() => toast.error('Lỗi tải danh sách lớp học'));
+            
+            // Xóa Lớp đã chọn nếu người dùng đổi sang Môn học khác (ngoại trừ lúc mới tải Form Edit)
+            if (!fetching && !isEdit) {
+                setValue('class_ids', []);
+            }
+        } else {
+            setClasses([]);
+        }
+    }, [selectedSubjectId, apiPrefix, fetching, isEdit, setValue]);
+
     const onSubmit = async (data) => {
         setLoading(true);
 
-     
         if (!data.class_ids || data.class_ids.length === 0) {
             toast.error('Vui lòng chọn ít nhất 1 Lớp học!');
             setLoading(false);
             return;
         }
 
-     
         const matrixSet = new Set();
         let hasDuplicate = false;
         let hasInvalidQuantity = false;
@@ -162,7 +176,6 @@ export default function ExamForm() {
         for (const m of data.matrices) {
             if (!m.topic_id || !m.difficulty) continue;
             
-           
             const key = `${m.topic_id}-${m.difficulty}`;
             if (matrixSet.has(key)) {
                 hasDuplicate = true;
@@ -170,7 +183,6 @@ export default function ExamForm() {
             }
             matrixSet.add(key);
 
-           
             const stat = questionStats.find(s => String(s.topic_id) === String(m.topic_id) && s.difficulty === m.difficulty);
             const max = stat ? Number(stat.total) : 0;
             if (max === 0 || Number(m.quantity) > max) {
@@ -190,7 +202,6 @@ export default function ExamForm() {
             return;
         }
 
-        
         const payload = { ...data, total_questions: totalQuestions };
 
         if (payload.start_time) payload.start_time = payload.start_time.replace('T', ' ');
@@ -235,7 +246,7 @@ export default function ExamForm() {
                 <div className="p-6 md:p-8 space-y-6">
                     
                     <div>
-                        <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">1. Thông tin chung</h2>
+                        <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">1. Thông vị chung</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                             <div className="space-y-1">
                                 <label className="text-sm font-semibold text-slate-700">Tên kỳ thi <span className="text-red-500">*</span></label>
@@ -259,7 +270,13 @@ export default function ExamForm() {
                                 
                                 <button 
                                     type="button" 
-                                    onClick={() => setShowClassModal(true)}
+                                    onClick={() => {
+                                        if(!selectedSubjectId) {
+                                            toast.error('Vui lòng chọn Môn học trước!');
+                                            return;
+                                        }
+                                        setShowClassModal(true)
+                                    }}
                                     className="w-full flex justify-between items-center p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-blue-300 transition"
                                 >
                                     <span className={watchClassIds.length > 0 ? "font-bold text-black" : "text-slate-500 font-medium"}>
@@ -279,7 +296,6 @@ export default function ExamForm() {
                                 )}
                             </div>
 
-                         
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-slate-700 flex items-center gap-1">
                                      Phân công Giám thị
@@ -374,7 +390,7 @@ export default function ExamForm() {
                     <div>
                         <div className="flex justify-between items-end border-b pb-2 mb-4">
                             <h2 className="text-lg font-bold text-slate-800">3. Thiết lập ma trận đề thi</h2>
-                            <div className="text-sm font-bold text-black  px-3 py-1 ">
+                            <div className="text-sm font-bold text-black px-3 py-1">
                                 Tổng số câu hỏi: {totalQuestions} câu
                             </div>
                         </div>
@@ -398,7 +414,6 @@ export default function ExamForm() {
                                     const stat = questionStats.find(s => String(s.topic_id) === String(tId) && s.difficulty === diff);
                                     const maxQty = stat ? Number(stat.total) : 0; 
 
-                                
                                     const isDuplicate = watchMatrices.some((m, i) => i !== idx && m.topic_id && m.difficulty && String(m.topic_id) === String(tId) && m.difficulty === diff);
                                     const hasZeroError = tId && diff && maxQty === 0;
                                     const rowClass = (isDuplicate || hasZeroError) ? 'bg-red-50 border-red-300' : 'bg-white border-slate-200';
@@ -422,7 +437,6 @@ export default function ExamForm() {
 
                                                         let label = level === 'easy' ? 'Mức độ Dễ' : level === 'medium' ? 'Mức độ TB' : 'Mức độ Khó';
                                                         
-                                                       
                                                         if (tId) {
                                                             if (levelMax === 0) return <option key={level} value={level} disabled className="text-slate-400">{label} (0 câu)</option>;
                                                             if (isUsedByOther) return <option key={level} value={level} disabled className="text-slate-400">{label} - Đã chọn</option>;
@@ -438,7 +452,6 @@ export default function ExamForm() {
                                                 <input required type="number" min="1" max={maxQty > 0 ? maxQty : undefined} {...register(`matrices.${idx}.quantity`)} placeholder="Nhập số lượng" className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm text-center" />
                                               
                                                 {tId && diff && maxQty === 0 && <p className="text-[10px] text-red-600 font-bold text-center mt-1">Chủ đề này đã hết câu hỏi!</p>}
-                                                
                                                 {isDuplicate && <p className="text-[10px] text-red-600 font-bold text-center mt-1">Dòng này bị trùng lặp!</p>}
                                             </div>
 
@@ -469,7 +482,7 @@ export default function ExamForm() {
                 </div>
             </form>
 
-          
+            {/* MODAL LỚP HỌC */}
             {showClassModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
@@ -508,7 +521,7 @@ export default function ExamForm() {
                                     );
                                 })
                             ) : (
-                                <div className="text-center py-10 text-slate-400 text-sm font-medium">Không tìm thấy lớp học nào phù hợp.</div>
+                                <div className="text-center py-10 text-slate-400 text-sm font-medium">Không tìm thấy lớp học nào thuộc môn này.</div>
                             )}
                         </div>
                         
@@ -521,7 +534,7 @@ export default function ExamForm() {
                 </div>
             )}
 
-          
+            {/* MODAL GIÁM THỊ */}
             {showProctorModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">

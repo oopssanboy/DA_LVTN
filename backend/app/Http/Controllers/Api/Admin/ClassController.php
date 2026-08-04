@@ -41,6 +41,12 @@ class ClassController extends Controller
               });
         });
     }
+    if ($request->has('subject_id') && $request->subject_id != '') {
+            $subjectId = $request->subject_id;
+            $query->whereHas('cohort.course.subjects', function ($q) use ($subjectId) {
+                $q->where('subjects.id', $subjectId);
+            });
+        }
 
     $perPage = $request->input('per_page', 10);
     $classes = $query->paginate($perPage);
