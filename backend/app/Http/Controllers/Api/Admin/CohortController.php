@@ -9,14 +9,25 @@ class CohortController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Cohort::with(['course'])->withCount('classes');
-        
-      
-        if ($request->has('course_id')) {
-            $query->where('course_id', $request->course_id);
+        $query = Cohort::with(['course'])
+            ->withCount('classes')
+            ->orderBy('created_at', 'desc');
+
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhereHas('course', function ($q2) use ($search) {
+                      $q2->where('title', 'like', '%' . $search . '%')
+                         ->orWhere('code', 'like', '%' . $search . '%');
+                  });
+            });
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get());
+        $perPage = $request->input('per_page', 10);
+        $cohorts = $query->paginate($perPage);
+
+        return response()->json($cohorts);
     }
 
     public function store(Request $request)

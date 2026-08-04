@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\ClassController;
 use App\Http\Controllers\Api\Admin\CohortController;
 use App\Http\Controllers\Api\Admin\TopicController;
 use App\Http\Controllers\Api\Admin\ExpulsionController;
+use App\Http\Controllers\Api\Admin\ViolationActionController;
 use App\Http\Controllers\Api\Teacher\QuestionController;
 use App\Http\Controllers\Api\Teacher\ExamController;
 use App\Http\Controllers\Api\Teacher\TeacherDashboardController;
@@ -67,6 +68,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::patch('exams/{id}/status', [ExamController::class, 'toggleStatus']);
         Route::get('expulsions', [ExpulsionController::class, 'index']);
         Route::put('expulsions/{id}/resolve', [ExpulsionController::class, 'resolve']);
+        Route::get('violation-actions', [ViolationActionController::class, 'index']);
+        Route::patch('violation-actions/{id}/resolve', [ViolationActionController::class, 'resolve']);
         Route::apiResource('notifications', NotificationController::class);
     });
 
@@ -84,26 +87,22 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
         Route::apiResource('topics', TopicController::class);
 
-        
         Route::patch('exams/{id}/status', [ExamController::class, 'toggleStatus']);
         Route::get('classes', [ClassController::class, 'index']);
         Route::get('subjects', [SubjectController::class, 'index']);
-
         Route::get('classes', [ClassController::class, 'index']);
         Route::get('classes/{id}', [ClassController::class, 'show']);
         Route::post('classes/{id}/enroll', [ClassController::class, 'enrollStudents']);
-        
         Route::get('students', [UserController::class, 'index']);
         Route::get('users', [UserController::class, 'index']);
-        
         Route::get('courses', [CourseController::class, 'index']);
 
         Route::get('post-exams', [PostExamController::class, 'getTeacherPostExams']);
-        Route::put('reports/{id}/resolve', [PostExamController::class, 'resolveReport']);
         Route::get('reports/{id}/details', [PostExamController::class, 'getReportDetails']);
-        Route::put('attempts/{id}/resolve-violation', [PostExamController::class, 'resolveIndividualViolation']);
-        Route::put('complaints/{id}/resolve', [PostExamController::class, 'resolveComplaint']);
+        Route::patch('reports/{id}/resolve', [PostExamController::class, 'resolveReport']);
+        Route::post('attempts/{attemptId}/resolve-violation', [PostExamController::class, 'resolveIndividualViolation']);
         Route::get('complaints/{id}/details', [PostExamController::class, 'getComplaintDetails']);
+        Route::patch('complaints/{id}/resolve', [PostExamController::class, 'resolveComplaint']);
 
 
         Route::get('dashboard-stats', [TeacherDashboardController::class, 'getStats']);

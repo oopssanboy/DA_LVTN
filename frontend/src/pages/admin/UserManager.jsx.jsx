@@ -1,41 +1,55 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Lock, Unlock, Loader2, Shield } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Edit, Lock, Unlock, Loader2, Shield } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
 export default function UserManager() {
     const [users, setUsers] = useState([]);
+    const [pagination, setPagination] = useState({});
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
     const [showModal, setShowModal] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-
-
     const [isEdit, setIsEdit] = useState(false);
     const [formData, setFormData] = useState({
         id: null, email: '', password: '', role: 'student', name: '', code: '', department: ''
     });
 
-    useEffect(() => { fetchUsers(); }, []);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async (url = '/admin/users', params = {}) => {
         setLoading(true);
         try {
-            const res = await api.get('/admin/users');
+            const res = await api.get(url, { params });
             setUsers(res.data.data || res.data);
+            setPagination({
+                links: res.data.meta?.links || res.data.links,
+                meta: res.data.meta || res.data
+            });
         } catch (error) {
             toast.error('Lỗi tải danh sách người dùng');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
+
+    // Debounce search + role filter
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchUsers('/admin/users', { search: searchQuery, role: roleFilter });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery, roleFilter, fetchUsers]);
 
     const handleToggleStatus = async (id) => {
         try {
             const res = await api.patch(`/admin/users/${id}/status`);
             toast.success(res.data.message);
-            setUsers(users.map(u => u.id === id ? { ...u, is_active: res.data.is_active } : u));
+            fetchUsers('/admin/users', { search: searchQuery, role: roleFilter });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Lỗi cập nhật trạng thái');
         }
@@ -48,7 +62,7 @@ export default function UserManager() {
             setFormData({
                 id: user.id,
                 email: user.email,
-                password: '', 
+                password: '',
                 role: user.role,
                 name: profile.name || '',
                 code: profile[`${user.role}_code`] || profile.student_code || profile.teacher_code || profile.proctor_code || '',
@@ -73,7 +87,7 @@ export default function UserManager() {
                 toast.success('Tạo tài khoản thành công');
             }
             setShowModal(false);
-            fetchUsers();
+            fetchUsers('/admin/users', { search: searchQuery, role: roleFilter });
         } catch (error) {
             const errs = error.response?.data?.errors;
             if (errs) Object.values(errs).forEach(e => toast.error(e[0]));
@@ -82,15 +96,6 @@ export default function UserManager() {
             setProcessing(false);
         }
     };
-    const filteredUsers = users.filter(user => {
-        const profile = user[user.role];
-        const code = profile?.[`${user.role}_code`] || profile?.student_code || profile?.teacher_code || profile?.proctor_code || '';
-        const name = profile?.name || '';
-        const email = user.email || '';
-        const q = searchQuery.toLowerCase();
-
-        return email.toLowerCase().includes(q) || name.toLowerCase().includes(q) || code.toLowerCase().includes(q);
-    });
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -105,8 +110,8 @@ export default function UserManager() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex gap-4">
-                    <div className="relative max-w-md flex-1">
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-center">
+                    <div className="relative max-w-md flex-1 min-w-[200px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
                             type="text"
@@ -116,74 +121,119 @@ export default function UserManager() {
                             className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500"
                         />
                     </div>
+                    <div className="relative">
+                        <select 
+                            value={roleFilter} 
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="px-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 bg-white text-slate-700"
+                        >
+                            <option value="all">Tất cả vai trò</option>
+                            <option value="student">Học viên</option>
+                            <option value="teacher">Giảng viên</option>
+                            <option value="proctor">Giám thị</option>
+                            
+                        </select>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
                     {loading ? (
                         <div className="p-10 flex justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
                     ) : (
-                        <table className="w-full text-left text-sm text-slate-600">
-                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs border-b border-slate-200">
-                                <tr>
-                                    <th className="px-6 py-4">Tài khoản</th>
-                                    <th className="px-6 py-4">Hồ sơ (Profile)</th>
-                                    <th className="px-6 py-4">Vai trò</th>
-                                    <th className="px-6 py-4">Trạng thái</th>
-                                    <th className="px-6 py-4 text-right">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredUsers.map(user => {
-                                    const profile = user[user.role];
-                                    const code = profile?.[`${user.role}_code`] || profile?.student_code || profile?.teacher_code || profile?.proctor_code || 'N/A';
-
-                                    return (
-                                        <tr key={user.id} className="hover:bg-slate-50/80">
-                                            <td className="px-6 py-4 font-medium text-slate-800">{user.email}</td>
-                                            <td className="px-6 py-4">
-                                                {user.role === 'admin' ? <span className="text-slate-400 italic">Hệ thống</span> : (
-                                                    <>
-                                                        <div className="font-bold text-slate-800">{profile?.name || 'Chưa cập nhật'}</div>
-                                                        <div className="text-xs text-slate-500">{code}</div>
-                                                    </>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-3 py-1  text-xs font-bold uppercase
-                                                    ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                                                        user.role === 'teacher' ? 'bg-blue-100 text-blue-700' :
-                                                            user.role === 'proctor' ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-emerald-100 text-emerald-700'}`}>
-                                                    {user.role}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {user.is_active ? (
-                                                    <span className="text-emerald-600 font-bold flex items-center gap-1"><Unlock className="w-4 h-4" /> Đang hoạt động</span>
-                                                ) : (
-                                                    <span className="text-red-600 font-bold flex items-center gap-1"><Lock className="w-4 h-4" /> Bị khóa</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button onClick={() => handleToggleStatus(user.id)} className={`p-2 rounded-lg transition ${user.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
-                                                        {user.is_active ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
-                                                    </button>
-                                                    <button onClick={() => openModal(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                                                        <Edit className="w-5 h-5" />
-                                                    </button>
-                                                </div>
+                        <>
+                            <table className="w-full text-left text-sm text-slate-600">
+                                <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th className="px-6 py-4">Tài khoản</th>
+                                        <th className="px-6 py-4">Hồ sơ (Profile)</th>
+                                        <th className="px-6 py-4">Vai trò</th>
+                                        <th className="px-6 py-4">Trạng thái</th>
+                                        <th className="px-6 py-4 text-right">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {users.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-8 text-center text-slate-500">
+                                                Không tìm thấy người dùng nào.
                                             </td>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        users.map(user => {
+                                            const profile = user[user.role];
+                                            const code = profile?.[`${user.role}_code`] || profile?.student_code || profile?.teacher_code || profile?.proctor_code || 'N/A';
+
+                                            return (
+                                                <tr key={user.id} className="hover:bg-slate-50/80">
+                                                    <td className="px-6 py-4 font-medium text-slate-800">{user.email}</td>
+                                                    <td className="px-6 py-4">
+                                                        {user.role === 'admin' ? <span className="text-slate-400 italic">Hệ thống</span> : (
+                                                            <>
+                                                                <div className="font-bold text-slate-800">{profile?.name || 'Chưa cập nhật'}</div>
+                                                                <div className="text-xs text-slate-500">{code}</div>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-3 py-1 text-xs font-bold uppercase
+                                                            ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                                                user.role === 'teacher' ? 'bg-blue-100 text-blue-700' :
+                                                                user.role === 'proctor' ? 'bg-amber-100 text-amber-700' :
+                                                                'bg-emerald-100 text-emerald-700'}`}>
+                                                            {user.role}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {user.is_active ? (
+                                                            <span className="text-emerald-600 font-bold flex items-center gap-1"><Unlock className="w-4 h-4" /> Đang hoạt động</span>
+                                                        ) : (
+                                                            <span className="text-red-600 font-bold flex items-center gap-1"><Lock className="w-4 h-4" /> Bị khóa</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => handleToggleStatus(user.id)} className={`p-2 rounded-lg transition ${user.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
+                                                                {user.is_active ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+                                                            </button>
+                                                            <button onClick={() => openModal(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                                                                <Edit className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+
+                            {pagination.links && pagination.links.length > 3 && (
+                                <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
+                                    {pagination.links.map((link, idx) => (
+                                        <button
+                                            key={idx}
+                                            disabled={!link.url}
+                                            onClick={() => fetchUsers(link.url)}
+                                            className={`px-4 py-2 text-sm font-medium rounded-xl transition border
+                                                ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
+                                                ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
+                                            `}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                            {pagination.meta && (
+                                <div className="px-6 py-3 text-sm text-slate-500 border-t border-slate-100">
+                                    Hiển thị {users.length} trên tổng số {pagination.meta.total || users.length} người dùng
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
 
-          
+           
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -198,10 +248,10 @@ export default function UserManager() {
                                     <label className="text-sm font-semibold text-slate-700">Email đăng nhập *</label>
                                     <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
                                 </div>
-                                {/* <div className="space-y-1 col-span-2 md:col-span-1">
+                                <div className="space-y-1 col-span-2 md:col-span-1">
                                     <label className="text-sm font-semibold text-slate-700">{isEdit ? 'Mật khẩu mới (Bỏ trống nếu giữ nguyên)' : 'Mật khẩu *'}</label>
                                     <input required={!isEdit} type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
-                                </div> */}
+                                </div>
                             </div>
 
                             <div className="space-y-1">
@@ -210,11 +260,9 @@ export default function UserManager() {
                                     <option value="student">Học viên (Student)</option>
                                     <option value="teacher">Giảng viên (Teacher)</option>
                                     <option value="proctor">Giám thị (Proctor)</option>
-                                    
                                 </select>
                             </div>
 
-                 
                             {formData.role !== 'admin' && (
                                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
                                     <p className="text-xs font-bold text-black uppercase tracking-wider">Thông tin Hồ sơ (Profile)</p>

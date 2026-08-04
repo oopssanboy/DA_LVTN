@@ -13,19 +13,35 @@ use Illuminate\Support\Facades\Auth;
 class NotificationController extends Controller
 {
   
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-   
-    
-        $query = Notification::where('type', 'broadcast')->orderBy('created_at', 'desc');
 
-   
+        $query = Notification::with(['sender', 'targetClass'])
+            ->where('type', 'broadcast')
+            ->orderBy('created_at', 'desc');
+
+      
         if ($user->role === 'teacher') {
             $query->where('sender_id', $user->id);
         }
 
-        return response()->json($query->paginate(20));
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('content', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->has('target_role') && $request->target_role != '') {
+            $query->where('target_role', $request->target_role);
+        }
+
+        $perPage = $request->input('per_page', 10);
+        $notifications = $query->paginate($perPage);
+
+        return response()->json($notifications);
     }
 
     public function store(Request $request)

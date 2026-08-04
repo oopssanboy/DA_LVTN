@@ -19,23 +19,37 @@ class QuestionController extends Controller
     public function index(Request $request)
     {
         $query = Question::with(['subject', 'topic', 'choices', 'fillBlankAnswers']);
-       
+
         if (Auth::user()->role === 'teacher') {
             $query->where('teacher_id', Auth::id());
         }
 
-        if ($request->has('subject_id')) {
-            $query->where('subject_id', $request->input('subject_id'));
+        if ($request->has('subject_id') && $request->subject_id != '') {
+            $query->where('subject_id', $request->subject_id);
         }
-        if ($request->has('topic_id')) {
-            $query->where('topic_id', $request->input('topic_id'));
+
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('content', 'like', '%' . $search . '%')
+                  ->orWhereHas('topic', function ($q2) use ($search) {
+                      $q2->where('name', 'like', '%' . $search . '%');
+                  });
+            });
         }
-        if ($request->has('difficulty')) {
-            $query->where('difficulty', $request->input('difficulty'));
+
+        if ($request->has('difficulty') && $request->difficulty != '') {
+        $query->where('difficulty', $request->difficulty);
+    }
+
+        if ($request->has('type') && $request->type != '') {
+            $query->where('type', $request->type);
         }
-        
-        $questions = $query->orderBy('created_at', 'desc')->paginate(15);
-        return response()->json($questions, 200);
+
+        $perPage = $request->input('per_page', 10);
+        $questions = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json($questions);
     }
 
    

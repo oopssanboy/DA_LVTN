@@ -1,41 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import api from '../../services/api';
-import { Search, Plus, Edit, Trash2, Loader2, X, GraduationCap, Layers } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Loader2, X, Layers, BookOpen, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
-export default function CourseList() {
+export default function CourseManager() {
     const [courses, setCourses] = useState([]);
-    const [subjects, setSubjects] = useState([]);
+    const [pagination, setPagination] = useState({});
     const [loading, setLoading] = useState(true);
-    
-    // Modal State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [subjects, setSubjects] = useState([]);
+
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const { register, handleSubmit, reset, setValue, watch } = useForm({
+    const { register, handleSubmit, reset, watch } = useForm({
         defaultValues: { subject_ids: [] }
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchCourses = useCallback(async (url = '/admin/courses', params = {}) => {
         setLoading(true);
         try {
-            const [coursesRes, subjectsRes] = await Promise.all([
-                api.get('/admin/courses'),
-                api.get('/admin/subjects')
-            ]);
-            setCourses(coursesRes.data.data || coursesRes.data);
-            setSubjects(subjectsRes.data.data || subjectsRes.data);
+            const res = await api.get(url, { params });
+            setCourses(res.data.data || res.data);
+            setPagination({
+                links: res.data.links || res.data.meta?.links,
+                meta: res.data.meta || res.data
+            });
         } catch (error) {
-            toast.error('Lỗi tải dữ liệu');
+            toast.error('Lỗi tải danh sách khóa học');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    const fetchSubjects = useCallback(async () => {
+        try {
+            const res = await api.get('/admin/subjects');
+            setSubjects(res.data.data || res.data);
+        } catch (error) {
+            toast.error('Lỗi tải danh sách môn học');
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchCourses();
+        fetchSubjects();
+    }, [fetchCourses, fetchSubjects]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchCourses('/admin/courses', { search: searchQuery });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery, fetchCourses]);
 
     const openModal = (course = null) => {
         if (course) {
@@ -44,8 +62,7 @@ export default function CourseList() {
                 code: course.code,
                 title: course.title,
                 description: course.description || '',
-                // Lấy mảng ID các môn học đang có trong Khóa
-                subject_ids: course.subjects ? course.subjects.map(s => s.id.toString()) : [] 
+                subject_ids: course.subjects ? course.subjects.map(s => s.id.toString()) : []
             });
         } else {
             setEditingId(null);
@@ -65,7 +82,7 @@ export default function CourseList() {
                 toast.success('Thêm mới thành công!', { id: loadingToast });
             }
             setShowModal(false);
-            fetchData();
+            fetchCourses('/admin/courses', { search: searchQuery });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Có lỗi xảy ra', { id: loadingToast });
         }
@@ -73,22 +90,21 @@ export default function CourseList() {
 
     const handleDelete = async (id) => {
         const result = await Swal.fire({
-            title: 'Xóa Chương trình đào tạo?',
-            text: "Các Đợt tuyển sinh và Lớp học bên trong sẽ bị xóa theo!",
+            title: 'Xóa khóa học?',
+            text: "Các đợt tuyển sinh và lớp học liên quan sẽ bị ảnh hưởng. Không thể hoàn tác!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
             confirmButtonText: 'Xóa',
             cancelButtonText: 'Hủy'
         });
-
         if (result.isConfirmed) {
             try {
                 await api.delete(`/admin/courses/${id}`);
-                toast.success('Đã xóa chương trình');
-                fetchData();
+                toast.success('Đã xóa khóa học');
+                fetchCourses('/admin/courses', { search: searchQuery });
             } catch (error) {
-                toast.error('Lỗi khi xóa chương trình');
+                toast.error('Lỗi khi xóa khóa học');
             }
         }
     };
@@ -97,105 +113,161 @@ export default function CourseList() {
         <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Chương trình Đào tạo</h1>
-                    <p className="text-slate-500 mt-1">Thiết lập các Khóa học và cấu trúc môn học bên trong.</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Quản lý Khóa học</h1>
+                    <p className="text-slate-500 mt-1">Quản lý các chương trình đào tạo và cấu trúc môn học.</p>
                 </div>
                 <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm">
-                    <Plus className="w-5 h-5" /> Thêm Chương trình
+                    <Plus className="w-5 h-5" /> Thêm Khóa học
                 </button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 border-b border-slate-100 bg-slate-50">
+                    <div className="relative max-w-md">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Tìm theo mã hoặc tên khóa học..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium bg-white"
+                        />
+                    </div>
+                </div>
+
                 {loading ? (
                     <div className="p-20 flex justify-center"><Loader2 className="w-10 h-10 text-blue-600 animate-spin" /></div>
                 ) : (
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-xs border-b border-slate-200">
-                            <tr>
-                                <th className="px-6 py-4 w-1/4">Chương trình</th>
-                                <th className="px-6 py-4">Cấu trúc Môn học</th>
-                                <th className="px-6 py-4 text-center">Đợt tuyển sinh</th>
-                                <th className="px-6 py-4 text-right">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {courses.map((course) => (
-                                <tr key={course.id} className="hover:bg-slate-50/80 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-slate-800 text-base">{course.title}</div>
-                                        <div className="text-blue-600 font-bold text-xs mt-1 uppercase tracking-wider">{course.code}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {course.subjects?.length > 0 ? course.subjects.map(sub => (
-                                                <span key={sub.id} className="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5">
-                                                    <Layers className="w-3 h-3 text-blue-500" /> {sub.name}
-                                                </span>
-                                            )) : <span className="text-slate-400 italic">Chưa có môn học</span>}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center font-bold text-emerald-600">
-                                        {course.cohorts?.length || 0} Đợt
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button onClick={() => openModal(course)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-5 h-5" /></button>
-                                        <button onClick={() => handleDelete(course.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-5 h-5" /></button>
-                                    </td>
+                    <>
+                        <table className="w-full text-left text-sm text-slate-600">
+                            <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-xs border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-4">Mã</th>
+                                    <th className="px-6 py-4">Tên khóa học</th>
+                                    <th className="px-6 py-4 text-center">Số môn học</th>
+                                    <th className="px-6 py-4 text-center">Số đợt tuyển sinh</th>
+                                    <th className="px-6 py-4 text-right">Thao tác</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {courses.map((course) => (
+                                    <tr key={course.id} className="hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-6 py-4 font-bold text-blue-600">{course.code}</td>
+                                        <td className="px-6 py-4 font-bold text-slate-800">{course.title}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-bold">
+                                                {course.subjects?.length || 0}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-bold">
+                                                {course.cohorts?.length || 0}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => openModal(course)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                <Edit className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => handleDelete(course.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {courses.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="text-center py-8 text-slate-500 font-medium">Không tìm thấy khóa học nào.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+                        {pagination.links && pagination.links.length > 3 && (
+                            <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
+                                {pagination.links.map((link, idx) => {
+                                    let label = link.label;
+                                    if (label.includes('Previous')) label = 'Trang trước';
+                                    else if (label.includes('Next')) label = 'Trang sau';
+                                    return (
+                                        <button
+                                            key={idx}
+                                            disabled={!link.url}
+                                            onClick={() => fetchCourses(link.url)}
+                                            className={`px-4 py-2 text-sm font-medium rounded-xl transition border
+                                                ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
+                                                ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
+                                            `}
+                                            dangerouslySetInnerHTML={{ __html: label }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {pagination.meta && (
+                            <div className="px-6 py-3 text-sm text-slate-500 border-t border-slate-100">
+                                Hiển thị {courses.length} trên tổng số {pagination.meta.total || courses.length} khóa học
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
-            {/* Modal Thêm/Sửa Khóa học */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <GraduationCap className="w-5 h-5 text-blue-600"/> 
-                                {editingId ? 'Cập nhật Chương trình' : 'Thêm Chương trình mới'}
+                                <GraduationCap className="w-5 h-5 text-blue-600"/>
+                                {editingId ? 'Cập nhật Khóa học' : 'Thêm Khóa học mới'}
                             </h3>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5"/></button>
+                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                                <X className="w-5 h-5"/>
+                            </button>
                         </div>
-                        
-                        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Mã chương trình <span className="text-red-500">*</span></label>
-                                    <input type="text" {...register('code', { required: true })} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 uppercase font-bold" placeholder="VD: FS2024" />
+
+                        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+                            <div className="p-6 overflow-y-auto flex-1 space-y-5">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Mã khóa học <span className="text-red-500">*</span></label>
+                                        <input type="text" {...register('code', { required: true })} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium uppercase" placeholder="VD: WEB2026" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Tên khóa học <span className="text-red-500">*</span></label>
+                                        <input type="text" {...register('title', { required: true })} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium" placeholder="VD: Lập trình Web" />
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Tên chương trình <span className="text-red-500">*</span></label>
-                                    <input type="text" {...register('title', { required: true })} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium" placeholder="VD: Fullstack PHP" />
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Mô tả</label>
+                                    <textarea {...register('description')} rows="2" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 resize-none" placeholder="Mô tả khóa học..."></textarea>
                                 </div>
-                            </div>
-                            
-                            {/* KHU VỰC GẮN MÔN HỌC */}
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2 border-b pb-2">Chọn Môn học cho chương trình này</label>
-                                <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto p-1">
-                                    {subjects.map(sub => (
-                                        <label key={sub.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                                            <input 
-                                                type="checkbox" 
-                                                value={sub.id} 
-                                                {...register('subject_ids')}
-                                                className="w-4 h-4 text-blue-600 rounded border-slate-300"
-                                            />
-                                            <div className="flex-1">
-                                                <div className="font-bold text-slate-800 text-sm">{sub.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-bold uppercase">{sub.code}</div>
-                                            </div>
-                                        </label>
-                                    ))}
+
+                                <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                                    <label className="block text-sm font-bold text-black mb-3 flex items-center gap-2">
+                                        <BookOpen className="w-5 h-5 text-indigo-600"/> Chọn môn học thuộc khóa
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto p-1">
+                                        {subjects.map(sub => (
+                                            <label key={sub.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-indigo-50 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    value={sub.id}
+                                                    {...register('subject_ids')}
+                                                    className="w-4 h-4 text-indigo-600 rounded border-slate-300"
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="font-bold text-slate-700 text-sm">{sub.name}</div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase">{sub.code}</div>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="pt-4 flex gap-3 border-t border-slate-100">
+                            <div className="p-4 flex gap-3 border-t border-slate-100 bg-white shrink-0">
                                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Hủy</button>
-                                <button type="submit" className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-md shadow-blue-600/20">Lưu cấu hình</button>
+                                <button type="submit" className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-md shadow-blue-600/20">Lưu dữ liệu</button>
                             </div>
                         </form>
                     </div>

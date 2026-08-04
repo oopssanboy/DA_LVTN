@@ -3,7 +3,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\{Report, Complaint, ExamAttempt, Exam, Notification, StudentAnswer, ClassEnrollment, ExpulsionRequest};
+use App\Models\{Report, Complaint, ExamAttempt, Exam, Notification, StudentAnswer, ClassEnrollment, ExpulsionRequest, ViolationAction};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
@@ -19,13 +19,14 @@ class PostExamController extends Controller
 
     public function getExamSummaryForReport($examId)
     {
-        $exam = Exam::with(['classes', 'subject'])->findOrFail($examId);
+        $exam = Exam::with(['classes', 'subject', 'teacher'])->findOrFail($examId);
         
         $classIds = $exam->classes->pluck('id');
-        $totalStudents = ClassEnrollment::whereIn('class_id', $classIds)->count();
+        $totalStudents = ClassEnrollment::whereIn('class_id', $classIds)->distinct('student_id')->count('student_id');
         
         $attempts = ExamAttempt::with(['student.user', 'violationLogs'])->where('exam_id', $examId)->get();
-        $participated = $attempts->count();
+       
+        $participated = $attempts->count(); 
 
         $violations = [];
         foreach($attempts as $att) {
@@ -55,20 +56,50 @@ class PostExamController extends Controller
             'content' => 'required|string'
         ]);
 
-        $exam = Exam::with('classes.teachers')->find($request->input('exam_id'));
-        $teacher = $exam?->classes?->first()?->teachers?->first();
+        $exam = Exam::with('classes')->find($request->input('exam_id'));
+        
+    
+        $classIds = $exam->classes->pluck('id');
+        $totalStudents = ClassEnrollment::whereIn('class_id', $classIds)->distinct('student_id')->count('student_id');
+        
+        $attempts = ExamAttempt::with('violationLogs')->where('exam_id', $exam->id)->get();
+        $presentCount = $attempts->count();
+        $absentCount = max(0, $totalStudents - $presentCount);
+        
+        $violationCount = 0;
+        foreach ($attempts as $att) {
+            $violationCount += $att->violationLogs->count();
+        }
+
 
         $report = Report::create([
-            'exam_id' => $request->input('exam_id'),
+            'exam_id' => $exam->id,
             'proctor_id' => Auth::id(),
-            'teacher_id' => $teacher?->id ?? 1,
-            'title' => 'Báo cáo ca thi: ' . $exam->title,
+      
+            'teacher_id' => $exam->teacher_id ?? 1, 
+            'title' => 'Biên bản ca thi: ' . $exam->title,
             'content' => $request->input('content'),
-            'status' => 'sent',
+            
+            'total_students' => $totalStudents,
+            'present_count' => $presentCount,
+            'absent_count' => $absentCount,
+            'violation_count' => $violationCount,
+            'start_time' => $exam->start_time,
+            'end_time' => $exam->end_time ?? now(), 
+            
+            'status' => 'submitted', 
             'sent_at' => now()
         ]);
 
-        return response()->json(['message' => 'Lập báo cáo tổng kết thành công']);
+        Notification::create([
+            'user_id' => $report->teacher_id,
+            'sender_id' => Auth::id(),
+            'title' => 'Biên bản ca thi mới',
+            'content' => "Giám thị vừa nộp biên bản cho ca thi: {$exam->title}. Vui lòng xem xét.",
+            'target_role' => 'teacher'
+        ]);
+
+        return response()->json(['message' => 'Lập biên bản ca thi thành công']);
     }
 
 
@@ -123,76 +154,31 @@ class PostExamController extends Controller
     public function resolveReport(Request $request, $id)
     {
         $request->validate([
-            'action' => 'required|in:warn,cancel_exam,deduct_points',
-            'resolution' => 'required|string',
-            'penalty_points' => 'nullable|numeric|min:0'
+           
+            'status' => 'required|in:reviewing,completed,closed',
+            'resolution' => 'nullable|string'
         ]);
 
-        $report = Report::with('exam')->findOrFail($id);
+        $report = Report::findOrFail($id);
 
-        DB::beginTransaction();
         try {
-            $affectedAttempts = collect();
-
-            if ($request->action === 'cancel_exam') {
-                $affectedAttempts = ExamAttempt::with('student.user')->where('exam_id', $report->exam_id)->get();
-                foreach ($affectedAttempts as $att) {
-                    $att->update(['total_score' => 0, 'is_passed' => false, 'status' => 'suspended']);
-                }
-            } elseif ($request->action === 'deduct_points') {
-                $penalty = floatval($request->penalty_points ?? 0);
-                $affectedAttempts = ExamAttempt::with('student.user')->where('exam_id', $report->exam_id)->where('violation_count', '>', 0)->get();
-                foreach ($affectedAttempts as $att) {
-                    $newScore = max(0, $att->total_score - $penalty);
-                    $isPassed = $newScore >= $report->exam->passing_score;
-                    $att->update(['total_score' => $newScore, 'is_passed' => $isPassed]);
-                }
-            } elseif ($request->action === 'warn') {
-                 $affectedAttempts = ExamAttempt::with('student.user')->where('exam_id', $report->exam_id)->where('violation_count', '>', 0)->get();
-            }
-
-            foreach ($affectedAttempts as $att) {
-                if (!$att->student || !$att->student->user) continue;
-
-                $emailContent = "Chào bạn,\n\nGiảng viên đã xử lý Biên bản ca thi cho môn {$report->exam->title}.\nNội dung xử lý: {$request->resolution}\n";
-                $notiContent = "Nội dung xử lý chung: {$request->resolution}. ";
-
-                if ($request->action === 'cancel_exam') {
-                    $emailContent .= "Kết quả: CA THI BỊ HỦY, điểm của bạn bị chuyển về 0.";
-                    $notiContent .= "Kết quả: BÀI THI BỊ HỦY (0 điểm).";
-                } elseif ($request->action === 'deduct_points') {
-                    $emailContent .= "Kết quả: Bạn bị trừ {$request->penalty_points} điểm do vi phạm quy chế. Điểm mới của bạn là {$att->total_score}.";
-                    $notiContent .= "Kết quả: Bị trừ {$request->penalty_points} điểm. Điểm mới: {$att->total_score}.";
-                } elseif ($request->action === 'warn') {
-                    $emailContent .= "Kết quả: Nhắc nhở cảnh cáo vi phạm.";
-                    $notiContent .= "Kết quả: Nhắc nhở cảnh cáo.";
-                }
-
-              
-                try {
-                    Mail::to($att->student->user->email)->send(new ViolationResolutionMail($emailContent, 'Thông báo xử lý biên bản ca thi - NQ EduTech'));
-                } catch (\Exception $e) { }
-
-                Notification::create([
-                    'user_id' => $att->student->user->id,
-                    'sender_id' => Auth::id(),
-                    'title' => "Kết quả xử lý biên bản thi môn {$report->exam->title}",
-                    'content' => $notiContent,
-                    'target_role' => 'student'
-                ]);
-            }
-
-            $report->update(['resolution' => $request->resolution, 'status' => 'processed', 'resolved_at' => now()]);
-
-            Notification::create([
-                'user_id' => $report->proctor_id, 'sender_id' => Auth::id(),
-                'title' => 'Biên bản đã xử lý', 'content' => "Giảng viên đã xử lý biên bản: {$report->title}", 'target_role' => 'proctor'
+            $report->update([
+                'resolution' => $request->resolution,
+                'status' => $request->status,
+                'resolved_at' => in_array($request->status, ['completed', 'closed']) ? now() : null
             ]);
 
-            DB::commit();
-            return response()->json(['message' => 'Đã xử lý biên bản chung thành công']);
+           
+            Notification::create([
+                'user_id' => $report->proctor_id,
+                'sender_id' => Auth::id(),
+                'title' => 'Cập nhật trạng thái biên bản',
+                'content' => "Biên bản ca thi '{$report->title}' đã được cập nhật thành: {$request->status}",
+                'target_role' => 'proctor'
+            ]);
+
+            return response()->json(['message' => 'Cập nhật trạng thái biên bản thành công!']);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json(['message' => 'Lỗi xử lý: '.$e->getMessage()], 500);
         }
     }
@@ -200,51 +186,51 @@ class PostExamController extends Controller
     public function resolveIndividualViolation(Request $request, $attemptId)
     {
         $request->validate([
-            'action' => 'required|in:cancel_exam,adjust_score,request_expulsion',
+            'action' => 'required|in:warn,deduct_points,cancel_exam,request_expulsion',
             'reason' => 'required|string',
-            'new_score' => 'nullable|numeric|min:0|max:10'
+            'penalty_points' => 'nullable|numeric|min:0',
+            'report_id' => 'nullable|exists:reports,id' 
         ]);
 
-        $attempt = ExamAttempt::with(['student.user', 'exam'])->findOrFail($attemptId);
+        $attempt = ExamAttempt::findOrFail($attemptId);
         $action = $request->action;
 
         DB::beginTransaction();
         try {
             if ($action === 'request_expulsion') {
                 ExpulsionRequest::create([
-                    'student_id' => $attempt->student_id, 'teacher_id' => Auth::id(),
-                    'exam_id' => $attempt->exam_id, 'reason' => $request->reason, 'status' => 'pending'
+                    'student_id' => $attempt->student_id,
+                    'teacher_id' => Auth::id(),
+                    'exam_id' => $attempt->exam_id,
+                    'reason' => $request->reason,
+                    'status' => 'pending'
                 ]);
-            } else {
-                $emailContent = "Chào bạn,\n\nGiảng viên đã xử lý vi phạm của bạn trong môn {$attempt->exam->title}.\nLý do: {$request->reason}\n";
-                $notiContent = "Lý do: {$request->reason}. ";
-
-                if ($action === 'cancel_exam') {
-                    $attempt->update(['total_score' => 0, 'is_passed' => false, 'status' => 'suspended']);
-                    $emailContent .= "Kết quả: BÀI THI BỊ HỦY (0 điểm).";
-                    $notiContent .= "Kết quả: BÀI THI BỊ HỦY (0 điểm).";
-                } elseif ($action === 'adjust_score') {
-                    $newScore = max(0, floatval($request->new_score));
-                    $isPassed = $newScore >= $attempt->exam->passing_score;
-                    $attempt->update(['total_score' => $newScore, 'is_passed' => $isPassed]);
-                    $emailContent .= "Kết quả: Điểm của bạn bị điều chỉnh thành {$newScore}.";
-                    $notiContent .= "Kết quả: Điểm bị điều chỉnh thành {$newScore}.";
+            } 
+         
+            else {
+                $reasonText = $request->reason;
+                if ($action === 'deduct_points' && $request->has('penalty_points')) {
+                    $reasonText .= " (Đề xuất trừ: " . floatval($request->penalty_points) . " điểm)";
                 }
 
-                // GỌI MAILABLE VÀ TỰ ĐỘNG ĐẨY VÀO QUEUE
-                Mail::to($attempt->student->user->email)->send(new ViolationResolutionMail($emailContent, 'Thông báo xử lý vi phạm - NQ EduTech'));
-
-                Notification::create([
-                    'user_id' => $attempt->student->user->id, 'sender_id' => Auth::id(),
-                    'title' => "Kết quả xử lý vi phạm môn {$attempt->exam->title}", 'content' => $notiContent, 'target_role' => 'student'
+                ViolationAction::create([
+                    'report_id' => $request->report_id ?? null,
+                    'attempt_id' => $attempt->id,
+                    'teacher_id' => Auth::id(),
+                    'action' => $action,
+                    'reason' => $reasonText,
+                    'status' => 'pending' 
                 ]);
             }
 
             DB::commit();
-            return response()->json(['message' => 'Đã xử lý vi phạm cá nhân thành công']);
+            return response()->json([
+                'message' => 'Đã tạo phiếu đề xuất kỷ luật thành công. Đang chờ Ban quản trị phê duyệt!'
+            ]);
+            
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Lỗi xử lý: '.$e->getMessage()], 500);
+            return response()->json(['message' => 'Lỗi tạo đề xuất: '.$e->getMessage()], 500);
         }
     }
 
@@ -297,7 +283,7 @@ class PostExamController extends Controller
                 $notiContent .= "Kết quả: Điểm được điều chỉnh thành {$request->new_score}.";
             }
 
-            // GỌI MAILABLE VÀ TỰ ĐỘNG ĐẨY VÀO QUEUE
+          
             Mail::to($complaint->studentUser->email)->send(new ViolationResolutionMail($emailContent, 'Kết quả xử lý khiếu nại - NQ EduTech'));
 
             Notification::create([

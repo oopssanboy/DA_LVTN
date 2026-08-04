@@ -29,8 +29,23 @@ class UserController extends Controller
         }
 
         if ($request->has('search')) {
-            $query->where('email', 'like', '%' . $request->search . '%');
-        }
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+            $q->where('email', 'like', '%' . $search . '%')
+            ->orWhereHas('student', function ($q2) use ($search) {
+                $q2->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('student_code', 'like', '%' . $search . '%');
+            })
+            ->orWhereHas('teacher', function ($q2) use ($search) {
+                $q2->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('teacher_code', 'like', '%' . $search . '%');
+            })
+            ->orWhereHas('proctor', function ($q2) use ($search) {
+                $q2->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('proctor_code', 'like', '%' . $search . '%');
+            });
+    });
+}
 
         $users = $query->orderBy('created_at', 'desc')->paginate(15);
 

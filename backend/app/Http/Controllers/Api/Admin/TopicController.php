@@ -11,19 +11,21 @@ class TopicController extends Controller
 
     public function index(Request $request)
     {
-        $query = Topic::with('subject')->orderBy('created_at', 'desc');
-        
-     
+        $query = Topic::with('subject');
+
         if ($request->has('subject_id') && $request->subject_id != '') {
             $query->where('subject_id', $request->subject_id);
         }
 
-        $topics = $query->get();
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where('name', 'like', '%' . $search . '%');
+        }
 
-        return response()->json([
-            'message' => 'Lấy danh sách chủ đề thành công',
-            'data' => $topics
-        ], 200);
+        $perPage = $request->input('per_page', 10);
+        $topics = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json($topics);
     }
 
 

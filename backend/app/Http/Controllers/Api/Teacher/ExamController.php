@@ -29,21 +29,37 @@ class ExamController extends Controller
         
         return $query;
     }
-    public function index(Request $request)
+     public function index(Request $request)
     {
         $query = $this->getAuthorizedExamQuery()
-                    ->with(['classes', 'matrices'])
-                    ->withCount(['attempts as in_progress_count' => function ($q) {
-                        $q->where('status', 'in_progress');
-                    }]);
+            ->with(['classes', 'subject', 'matrices'])
+            ->withCount(['attempts as in_progress_count' => function ($q) {
+                $q->where('status', 'in_progress');
+            }]);
 
-        if ($request->has('class_id')) {
-            $query->whereHas('classes', function($q) use ($request) {
-                $q->where('classes.id', $request->input('class_id'));
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhereHas('subject', function ($q2) use ($search) {
+                      $q2->where('name', 'like', '%' . $search . '%');
+                  });
             });
         }
 
-        $exams = $query->latest()->paginate(15);
+        if ($request->has('class_id') && $request->class_id != '') {
+            $query->whereHas('classes', function($q) use ($request) {
+                $q->where('classes.id', $request->class_id);
+            });
+        }
+
+        if ($request->has('is_active') && $request->is_active != '') {
+            $query->where('is_active', $request->is_active);
+        }
+
+        $perPage = $request->input('per_page', 10);
+        $exams = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
         return ExamResource::collection($exams);
     }
 

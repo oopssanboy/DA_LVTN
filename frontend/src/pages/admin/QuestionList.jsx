@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Edit, Trash2, Search, Loader2, Upload, Download, Filter, ArrowLeft, FolderOpen, BookOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, Upload, Download, Filter, ArrowLeft, BookOpen, FolderOpen } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -10,61 +10,75 @@ export default function QuestionList() {
     const { user } = useAuth();
     const apiPrefix = user?.role === 'admin' ? '/admin' : '/teacher';
 
- 
     const [subjects, setSubjects] = useState([]);
+    const [subjectPagination, setSubjectPagination] = useState({});
+    const [loadingSubjects, setLoadingSubjects] = useState(true);
+    const [subjectSearch, setSubjectSearch] = useState('');
+
     const [selectedSubject, setSelectedSubject] = useState(null);
-
     const [questions, setQuestions] = useState([]);
-    const [pagination, setPagination] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [questionPagination, setQuestionPagination] = useState({});
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
+    const [questionSearch, setQuestionSearch] = useState('');
+    const [filters, setFilters] = useState({ difficulty: '', type: ''});
 
-    
-    useEffect(() => {
-        fetchSubjects();
-    }, []);
-
-   
-    useEffect(() => {
-        if (selectedSubject) {
-            fetchQuestions(`${apiPrefix}/questions`, selectedSubject.id);
-        }
-    }, [selectedSubject]);
-
-    const fetchSubjects = async () => {
-        setLoading(true);
+    const fetchSubjects = useCallback(async (url = `${apiPrefix}/subjects`, params = {}) => {
+        setLoadingSubjects(true);
         try {
-            const res = await api.get(`${apiPrefix}/subjects`);
+            const res = await api.get(url, { params });
             setSubjects(res.data.data || res.data);
-        } catch (error) {
-            toast.error('Lỗi tải danh sách Môn học');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchQuestions = async (url = `${apiPrefix}/questions`, subjectId = null) => {
-        setLoading(true);
-        try {
-           
-            const res = await api.get(url, {
-                params: subjectId ? { subject_id: subjectId } : {}
+            setSubjectPagination({
+                links: res.data.links || res.data.meta?.links,
+                meta: res.data.meta || res.data
             });
+        } catch (error) {
+            toast.error('Lỗi tải danh sách môn học');
+        } finally {
+            setLoadingSubjects(false);
+        }
+    }, [apiPrefix]);
+
+    const fetchQuestions = useCallback(async (url = `${apiPrefix}/questions`, params = {}) => {
+        setLoadingQuestions(true);
+        try {
+            const res = await api.get(url, { params });
             setQuestions(res.data.data || res.data);
-            setPagination({
-                links: res.data.meta?.links || res.data.links,
+            setQuestionPagination({
+                links: res.data.links || res.data.meta?.links,
                 meta: res.data.meta || res.data
             });
         } catch (error) {
             toast.error('Lỗi tải danh sách câu hỏi');
         } finally {
-            setLoading(false);
+            setLoadingQuestions(false);
         }
-    };
+    }, [apiPrefix]);
+
+    useEffect(() => {
+        fetchSubjects();
+    }, [fetchSubjects]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchSubjects(`${apiPrefix}/subjects`, { search: subjectSearch });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [subjectSearch, fetchSubjects, apiPrefix]);
+
+    useEffect(() => {
+    if (selectedSubject) {
+        fetchQuestions(`${apiPrefix}/questions`, {
+            subject_id: selectedSubject.id,
+            search: questionSearch,
+            difficulty: filters.difficulty,
+            type: filters.type
+        });
+    }
+}, [filters, selectedSubject, questionSearch, fetchQuestions, apiPrefix]);
 
     const handleDelete = async (id) => {
         const result = await Swal.fire({
-            title: 'Bạn chắc chắn muốn xóa?',
+            title: 'Xóa câu hỏi?',
             text: "Không thể hoàn tác hành động này!",
             icon: 'warning',
             showCancelButton: true,
@@ -72,22 +86,21 @@ export default function QuestionList() {
             confirmButtonText: 'Xóa',
             cancelButtonText: 'Hủy'
         });
-
         if (result.isConfirmed) {
             try {
                 await api.delete(`${apiPrefix}/questions/${id}`);
                 toast.success('Xóa câu hỏi thành công');
-                fetchQuestions(`${apiPrefix}/questions`, selectedSubject?.id);
-          
-                fetchSubjects();
+                fetchQuestions(`${apiPrefix}/questions`, {
+                    subject_id: selectedSubject.id,
+                    search: questionSearch
+                });
+                fetchSubjects(`${apiPrefix}/subjects`, { search: subjectSearch });
             } catch (error) {
-                
                 toast.error(error.response?.data?.message || 'Lỗi khi xóa câu hỏi');
             }
         }
     };
 
-   
     if (!selectedSubject) {
         return (
             <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
@@ -103,7 +116,20 @@ export default function QuestionList() {
                     </div>
                 </div>
 
-                {loading ? (
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="relative max-w-md">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm môn học..."
+                            value={subjectSearch}
+                            onChange={(e) => setSubjectSearch(e.target.value)}
+                            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium"
+                        />
+                    </div>
+                </div>
+
+                {loadingSubjects ? (
                     <div className="p-20 flex justify-center"><Loader2 className="w-10 h-10 text-blue-600 animate-spin" /></div>
                 ) : subjects.length === 0 ? (
                     <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center shadow-sm">
@@ -114,49 +140,70 @@ export default function QuestionList() {
                         <p className="text-slate-500 mt-1">Vui lòng tạo môn học trước khi quản lý ngân hàng câu hỏi.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {subjects.map(subject => (
-                            <div 
-                                key={subject.id} 
-                                onClick={() => setSelectedSubject(subject)}
-                                className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-300 flex flex-col items-center text-center group"
-                            >
-                                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <FolderOpen className="w-8 h-8" />
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {subjects.map(subject => (
+                                <div
+                                    key={subject.id}
+                                    onClick={() => {
+                                        setSelectedSubject(subject);
+                                        setQuestionSearch('');
+                                    }}
+                                    className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-300 flex flex-col items-center text-center group"
+                                >
+                                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <FolderOpen className="w-8 h-8" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800 line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors">
+                                        {subject.name}
+                                    </h3>
+                                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
+                                        {subject.code}
+                                    </span>
+                                    <div className="mt-4 pt-4 border-t border-slate-100 w-full flex justify-between items-center text-sm">
+                                        <span className="text-slate-500 font-medium">Tổng số câu:</span>
+                                        <span className="font-black text-blue-600 text-lg">{subject.questions_count || 0}</span>
+                                    </div>
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-800 line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors">
-                                    {subject.name}
-                                </h3>
-                                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full">
-                                    {subject.code}
-                                </span>
-                                <div className="mt-4 pt-4 border-t border-slate-100 w-full flex justify-between items-center text-sm">
-                                    <span className="text-slate-500 font-medium">Tổng số câu:</span>
-                                    <span className="font-black text-blue-600 text-lg">{subject.questions_count || 0}</span>
-                                </div>
+                            ))}
+                        </div>
+
+                        {subjectPagination.links && subjectPagination.links.length > 3 && (
+                            <div className="flex flex-wrap justify-center gap-1 pt-4">
+                                {subjectPagination.links.map((link, idx) => {
+                                    let label = link.label;
+                                    if (label.includes('Previous')) label = 'Trang trước';
+                                    else if (label.includes('Next')) label = 'Trang sau';
+                                    return (
+                                        <button
+                                            key={idx}
+                                            disabled={!link.url}
+                                            onClick={() => fetchSubjects(link.url)}
+                                            className={`px-4 py-2 text-sm font-medium rounded-xl transition border
+                                                ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
+                                                ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
+                                            `}
+                                            dangerouslySetInnerHTML={{ __html: label }}
+                                        />
+                                    );
+                                })}
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </>
                 )}
             </div>
         );
     }
 
-   
-    const filteredQuestions = questions.filter(q => {
-        const content = q.content || '';
-        const topicName = q.topic?.name || '';
-        const qStr = searchQuery.toLowerCase();
-        return content.toLowerCase().includes(qStr) || topicName.toLowerCase().includes(qStr);
-    });
-
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
-          
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <button 
-                        onClick={() => setSelectedSubject(null)} 
+                    <button
+                        onClick={() => {
+                            setSelectedSubject(null);
+                            setQuestionSearch('');
+                        }}
                         className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold mb-2 transition"
                     >
                         <ArrowLeft className="w-4 h-4" /> Quay lại thư mục
@@ -166,7 +213,7 @@ export default function QuestionList() {
                     </h1>
                     <p className="text-slate-500 mt-1">Quản lý và biên soạn câu hỏi trắc nghiệm, điền khuyết.</p>
                 </div>
-                
+
                 <div className="flex gap-3">
                     <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
                         <Upload className="w-4 h-4" /> Import
@@ -180,7 +227,6 @@ export default function QuestionList() {
                 </div>
             </div>
 
-        
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-4 border-b border-slate-100 flex gap-4 bg-slate-50/50">
                     <div className="relative flex-1 max-w-2xl">
@@ -188,18 +234,37 @@ export default function QuestionList() {
                         <input
                             type="text"
                             placeholder="Tìm kiếm nội dung hoặc chủ đề..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={questionSearch}
+                            onChange={(e) => setQuestionSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium text-slate-700"
                         />
                     </div>
-                    <button className="px-4 py-2.5 border border-slate-200 bg-white rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition flex items-center gap-2 shadow-sm">
-                        <Filter className="w-4 h-4" /> Lọc
-                    </button>
+                    <div className="flex gap-3 items-center">
+                        <select
+                            value={filters.difficulty}
+                            onChange={(e) => setFilters({...filters, difficulty: e.target.value})}
+                            className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-blue-500"
+                        >
+                            <option value="">Tất cả độ khó</option>
+                            <option value="easy">Dễ</option>
+                            <option value="medium">Trung bình</option>
+                            <option value="hard">Khó</option>
+                        </select>
+                        <select
+                            value={filters.type}
+                            onChange={(e) => setFilters({...filters, type: e.target.value})}
+                            className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-blue-500"
+                        >
+                            <option value="">Tất cả loại</option>
+                            <option value="single">Trắc nghiệm 1 đáp án</option>
+                            <option value="multiple">Trắc nghiệm nhiều đáp án</option>
+                            <option value="fill_blank">Điền khuyết</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
-                    {loading ? (
+                    {loadingQuestions ? (
                         <div className="p-20 flex justify-center"><Loader2 className="w-10 h-10 text-blue-600 animate-spin" /></div>
                     ) : questions.length === 0 ? (
                         <div className="p-20 text-center text-slate-500">Môn học này chưa có câu hỏi nào.</div>
@@ -215,8 +280,7 @@ export default function QuestionList() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredQuestions.map((q) => {
-                                   
+                                {questions.map((q) => {
                                     const tmp = document.createElement('div');
                                     tmp.innerHTML = q.content;
                                     const textContent = tmp.textContent || tmp.innerText || '';
@@ -246,19 +310,14 @@ export default function QuestionList() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                
-                                                {q.can_edit === false ? (
-                                                    <span className="text-xs text-slate-400 font-bold px-2 py-1 bg-slate-100 rounded">Dùng chung</span>
-                                                ) : (
-                                                    <div className="flex justify-end gap-2">
-                                                        <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                                                            <Edit className="w-5 h-5" />
-                                                        </Link>
-                                                        <button onClick={() => handleDelete(q.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                <div className="flex justify-end gap-2">
+                                                    <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                                                        <Edit className="w-5 h-5" />
+                                                    </Link>
+                                                    <button onClick={() => handleDelete(q.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -268,21 +327,30 @@ export default function QuestionList() {
                     )}
                 </div>
 
-                
-                {pagination.links && pagination.links.length > 3 && (
+                {questionPagination.links && questionPagination.links.length > 3 && (
                     <div className="p-4 border-t border-slate-100 flex flex-wrap justify-center gap-1">
-                        {pagination.links.map((link, idx) => (
-                            <button
-                                key={idx}
-                                disabled={!link.url}
-                                onClick={() => fetchQuestions(link.url, selectedSubject.id)}
-                                className={`px-4 py-2 text-sm font-medium rounded-xl transition border
-                                    ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
-                                    ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
-                                `}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
+                        {questionPagination.links.map((link, idx) => {
+                            let label = link.label;
+                            if (label.includes('Previous')) label = 'Trang trước';
+                            else if (label.includes('Next')) label = 'Trang sau';
+                            return (
+                                <button
+                                    key={idx}
+                                    disabled={!link.url}
+                                    onClick={() => fetchQuestions(link.url)}
+                                    className={`px-4 py-2 text-sm font-medium rounded-xl transition border
+                                        ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
+                                        ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
+                                    `}
+                                    dangerouslySetInnerHTML={{ __html: label }}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
+                {questionPagination.meta && (
+                    <div className="px-6 py-3 text-sm text-slate-500 border-t border-slate-100">
+                        Hiển thị {questions.length} trên tổng số {questionPagination.meta.total || questions.length} câu hỏi
                     </div>
                 )}
             </div>
