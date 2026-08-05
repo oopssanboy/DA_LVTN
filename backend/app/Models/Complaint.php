@@ -15,6 +15,8 @@ class Complaint extends Model
         'content',
         'evidence_url',
         'response',
+        'proposed_score', 
+        'admin_note',
         'status'
     ];
 

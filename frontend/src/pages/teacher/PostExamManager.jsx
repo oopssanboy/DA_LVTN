@@ -430,8 +430,8 @@ export default function PostExamManager() {
                                                     <label className="block text-sm font-bold text-slate-700 mb-2">Lý do trình lên Quản trị viên</label>
                                                     <textarea required rows="6" value={violatorReason} onChange={e => setViolatorReason(e.target.value)} className="w-full border-2 border-slate-200 p-3 rounded-xl outline-none bg-slate-50 text-sm resize-none" placeholder="Viết chi tiết lý do đề xuất kỷ luật..."></textarea>
                                                 </div>
-                                                <div className="p-4 rounded-xl bg-orange-50 border border-orange-100">
-                                                    <p className="text-xs font-medium text-orange-800">Đề xuất sẽ được gửi đến Ban quản trị để chờ duyệt. Chưa trừ điểm ngay lập tức.</p>
+                                                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                                    <p className="text-xs font-medium ">Đề xuất sẽ được gửi đến Ban quản trị để chờ duyệt. Chưa trừ điểm ngay lập tức.</p>
                                                 </div>
                                                 <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md mt-auto">
                                                     Gửi Đề xuất Lên BQT

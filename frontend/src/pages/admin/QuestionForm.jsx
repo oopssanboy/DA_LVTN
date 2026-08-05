@@ -54,7 +54,6 @@ export default function QuestionForm() {
   const { fields, append, remove } = useFieldArray({ control, name: 'choices' });
   const questionType = watch('type');
 
-  // Hàm tải Chủ đề (Tách riêng để gọi linh hoạt)
   const fetchTopics = useCallback(async (subjectId) => {
     if (!subjectId) {
       setTopics([]);
@@ -70,22 +69,19 @@ export default function QuestionForm() {
     }
   }, [apiPrefix]);
 
-  // 1. TẢI MÔN HỌC & CHI TIẾT CÂU HỎI KHI VÀO TRANG
   useEffect(() => {
     const initData = async () => {
       try {
-        // Lấy danh sách môn học
         const subRes = await api.get(`${apiPrefix}/subjects`, { params: { per_page: 100 } });
         setSubjects(subRes.data.data || subRes.data);
 
         if (isEdit) {
-          // Lấy chi tiết câu hỏi
           const qRes = await api.get(`${apiPrefix}/questions/${id}`);
           const q = qRes.data.data || qRes.data;
           
           const currentSubjectId = q.subject?.id?.toString() || q.subject_id?.toString() || '';
           
-          // Bắt buộc phải lấy Chủ đề của môn học này XONG TRƯỚC KHI reset form
+         
           if (currentSubjectId) {
             await fetchTopics(currentSubjectId);
           }
@@ -98,7 +94,7 @@ export default function QuestionForm() {
             correctAnsStr = correctChoices.join(',');
           }
 
-          // Reset toàn bộ Form (Chủ đề sẽ tự động match vì state topics đã có data)
+        
           reset({
             subject_id: currentSubjectId,
             topic_id: q.topic?.id?.toString() || q.topic_id?.toString() || '',

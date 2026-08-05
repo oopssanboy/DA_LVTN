@@ -22,9 +22,9 @@ export default function Courses() {
     }, []);
 
     const defaultImages = [
-        'https://images.unsplash.com/photo-1599507593499-a3f7d7d97667?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&q=80&w=800'
+        '',
+        '',
+        ''
     ];
 
     return (
@@ -42,8 +42,8 @@ export default function Courses() {
                         {courses.map((course, index) => (
                             <div key={course.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col">
                                 <div className="h-48 overflow-hidden relative">
-                                    {/* Sử dụng ảnh random nếu bảng subjects không có cột ảnh */}
-                                    <img src={defaultImages[index % 3]} alt={course.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                               
+                                    
                                     <div className="absolute top-4 left-4 bg-white/90 backdrop-blur text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                                         {course.code}
                                     </div>

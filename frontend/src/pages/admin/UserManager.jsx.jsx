@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit, Lock, Unlock, Loader2, Shield } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, Plus, Edit, Lock, Unlock, Loader2, Shield, UploadCloud } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -17,6 +17,8 @@ export default function UserManager() {
         id: null, email: '', password: '', role: 'student', name: '', code: '', department: ''
     });
 
+    const fileInputRef = useRef(null);
+
     const fetchUsers = useCallback(async (url = '/admin/users', params = {}) => {
         setLoading(true);
         try {
@@ -26,7 +28,7 @@ export default function UserManager() {
                 links: res.data.meta?.links || res.data.links,
                 meta: res.data.meta || res.data
             });
-        } catch (error) {
+        } catch {
             toast.error('Lỗi tải danh sách người dùng');
         } finally {
             setLoading(false);
@@ -96,16 +98,63 @@ export default function UserManager() {
         }
     };
 
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const toastId = toast.loading('Đang xử lý dữ liệu từ file Excel...');
+
+        try {
+            await api.post('/admin/users/import', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data' 
+                }
+            });
+            
+            toast.success('Nhập dữ liệu thành công!', { id: toastId });
+            e.target.value = null; 
+            fetchUsers(); 
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Lỗi khi nhập file Excel', { id: toastId });
+            e.target.value = null;
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Quản lý Người dùng</h1>
                     <p className="text-slate-500 mt-1">Phân quyền, cấp tài khoản và quản lý trạng thái truy cập.</p>
                 </div>
-                <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
-                    <Plus className="w-5 h-5" /> Thêm tài khoản
-                </button>
+                
+                <div className="flex gap-3 w-full md:w-auto">
+                  
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileUpload} 
+                        accept=".xlsx, .xls, .csv" 
+                        className="hidden" 
+                    />
+                    
+                    <button 
+                        onClick={() => fileInputRef.current.click()} 
+                        className="flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-sm"
+                    >
+                        <UploadCloud size={18} /> Import Excel
+                    </button>
+                    
+                    <button 
+                        onClick={() => openModal()} 
+                        className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-sm"
+                    >
+                        <Plus className="w-5 h-5" /> Thêm tài khoản
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -124,13 +173,12 @@ export default function UserManager() {
                         <select 
                             value={roleFilter} 
                             onChange={(e) => setRoleFilter(e.target.value)}
-                            className="px-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 bg-white text-slate-700"
+                            className="px-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 bg-white text-slate-700 font-medium"
                         >
                             <option value="all">Tất cả vai trò</option>
                             <option value="student">Học viên</option>
                             <option value="teacher">Giảng viên</option>
                             <option value="proctor">Giám thị</option>
-                            
                         </select>
                     </div>
                 </div>
@@ -174,7 +222,7 @@ export default function UserManager() {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`px-3 py-1 text-xs font-bold uppercase
+                                                        <span className={`px-3 py-1 text-xs font-bold uppercase rounded-md
                                                             ${user.role === 'admin' ? '' :
                                                                 user.role === 'teacher' ? '' :
                                                                 user.role === 'proctor' ? '' :
@@ -186,7 +234,7 @@ export default function UserManager() {
                                                         {user.is_active ? (
                                                             <span className=" font-bold flex items-center gap-1"><Unlock className="w-4 h-4" /> Đang hoạt động</span>
                                                         ) : (
-                                                            <span className="font-bold flex items-center gap-1"><Lock className="w-4 h-4" /> Bị khóa</span>
+                                                            <span className=" font-bold flex items-center gap-1"><Lock className="w-4 h-4" /> Bị khóa</span>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
@@ -217,13 +265,14 @@ export default function UserManager() {
                                                 ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'}
                                                 ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}
                                             `}
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                        />
+                                            >
+                                                {link.label === '&laquo; Previous' ? 'Trang trước' : link.label === 'Next &raquo;' ? 'Trang sau' : link.label}
+                                            </button>
                                     ))}
                                 </div>
                             )}
                             {pagination.meta && (
-                                <div className="px-6 py-3 text-sm text-slate-500 border-t border-slate-100">
+                                <div className="px-6 py-3 text-sm text-slate-500 border-t border-slate-100 bg-slate-50/50">
                                     Hiển thị {users.length} trên tổng số {pagination.meta.total || users.length} người dùng
                                 </div>
                             )}
@@ -232,11 +281,11 @@ export default function UserManager() {
                 </div>
             </div>
 
-           
+       
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 {isEdit ? 'Sửa thông tin tài khoản' : 'Tạo tài khoản mới'}
                             </h3>
@@ -244,17 +293,17 @@ export default function UserManager() {
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1 col-span-2 md:col-span-1">
-                                    <label className="text-sm font-semibold text-slate-700">Email đăng nhập *</label>
+                                    <label className="text-sm font-semibold text-slate-700">Email đăng nhập <span className="text-rose-500">*</span></label>
                                     <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
                                 </div>
                                 <div className="space-y-1 col-span-2 md:col-span-1">
-                                    <label className="text-sm font-semibold text-slate-700">{isEdit ? 'Mật khẩu mới (Bỏ trống nếu giữ nguyên)' : 'Mật khẩu *'}</label>
+                                    <label className="text-sm font-semibold text-slate-700">{isEdit ? 'Mật khẩu mới' : 'Mật khẩu *'}</label>
                                     <input required={!isEdit} type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
                                 </div>
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-sm font-semibold text-slate-700">Vai trò hệ thống *</label>
+                                <label className="text-sm font-semibold text-slate-700">Vai trò hệ thống <span className="text-rose-500">*</span></label>
                                 <select required value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-medium">
                                     <option value="student">Học viên (Student)</option>
                                     <option value="teacher">Giảng viên (Teacher)</option>
@@ -263,31 +312,32 @@ export default function UserManager() {
                             </div>
 
                             {formData.role !== 'admin' && (
-                                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
-                                    <p className="text-xs font-bold text-black uppercase tracking-wider">Thông tin Hồ sơ (Profile)</p>
+                                <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl space-y-4 mt-2">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Thông tin Hồ sơ (Profile)</p>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <label className="text-sm font-semibold text-slate-700">Họ và Tên *</label>
-                                            <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                                            <label className="text-sm font-semibold text-slate-700">Họ và Tên <span className="text-rose-500">*</span></label>
+                                            <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white" />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-sm font-semibold text-slate-700">Mã số định danh *</label>
-                                            <input required type="text" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} placeholder="VD: DH5220..." className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                                            <label className="text-sm font-semibold text-slate-700">Mã số định danh <span className="text-rose-500">*</span></label>
+                                            <input required type="text" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} placeholder="VD: DH5220..." className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white" />
                                         </div>
                                         {formData.role === 'teacher' && (
                                             <div className="space-y-1 col-span-2">
-                                                <label className="text-sm font-semibold text-slate-700">Khoa</label>
-                                                <input type="text" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500" />
+                                                <label className="text-sm font-semibold text-slate-700">Khoa / Phòng ban</label>
+                                                <input type="text" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white" />
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition">Hủy</button>
-                                <button type="submit" disabled={processing} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-70 flex items-center gap-2">
-                                    {processing && <Loader2 className="w-4 h-4 animate-spin" />} Lưu dữ liệu
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Hủy</button>
+                                <button type="submit" disabled={processing} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm disabled:opacity-70 flex items-center gap-2">
+                                    {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : null} 
+                                    {isEdit ? 'Lưu thay đổi' : 'Tạo mới'}
                                 </button>
                             </div>
                         </form>

@@ -32,6 +32,7 @@ import CourseManager from './pages/admin/CourseManager.jsx';
 import CohortManager from './pages/admin/CohortManager.jsx';
 import ClassManager from './pages/admin/ClassManager.jsx';
 import ExpulsionManager from './pages/admin/ExpulsionManager.jsx';
+import ComplaintApprovalManager from './pages/admin/ComplaintApprovalManager.jsx';
 import TopicManager from './pages/admin/TopicManager.jsx';
 import NotificationManager from './pages/admin/NotificationManager.jsx';
 import ExamStatistics from './pages/teacher/ExamStatistics';
@@ -46,6 +47,7 @@ import StudentHome from './pages/student/StudentHome';
 import ExamRoom from './pages/student/ExamRoom';
 import ExamResult from './pages/student/ExamResult';
 import MyExams from './pages/student/MyExams.jsx';
+import PracticeExams from './pages/student/PracticeExams';
 import ExamHistory from './pages/student/ExamHistory';
 import ComplaintManager from './pages/student/ComplaintManager';
 
@@ -123,6 +125,7 @@ function App() {
             <Route path="statistics" element={<ExamStatistics />} />
             <Route path="topics" element={<TopicManager />} />
             <Route path="expulsions" element={<ExpulsionManager />} />
+            <Route path="complaintapprovalmanager" element={<ComplaintApprovalManager />} />
             <Route path="notifications" element={<NotificationManager basePath="/admin" />} />
           </Route>
 
@@ -153,6 +156,7 @@ function App() {
           <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout /></ProtectedRoute>}>
             <Route path="dashboard" element={<StudentHome />} />
             <Route path="exams" element={<MyExams />} />
+            <Route path="practice" element={<PracticeExams />} />
             <Route path="history" element={<ExamHistory />} />
            
             <Route path="radar" element={<StudentRadar />} />

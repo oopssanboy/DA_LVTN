@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Admin\CohortController;
 use App\Http\Controllers\Api\Admin\TopicController;
 use App\Http\Controllers\Api\Admin\ExpulsionController;
 use App\Http\Controllers\Api\Admin\ViolationActionController;
+use App\Http\Controllers\Api\Admin\ComplaintApprovalController;
 use App\Http\Controllers\Api\Teacher\QuestionController;
 use App\Http\Controllers\Api\Teacher\ExamController;
 use App\Http\Controllers\Api\Teacher\TeacherDashboardController;
@@ -54,6 +55,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::get('dashboard-stats', [DashboardController::class, 'getStats']);
         Route::apiResource('users', UserController::class);
         Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
+        Route::post('users/import', [UserController::class, 'importExcel']);
 
         Route::apiResource('topics', TopicController::class);
 
@@ -73,6 +75,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::patch('exams/{id}/status', [ExamController::class, 'toggleStatus']);
         Route::get('expulsions', [ExpulsionController::class, 'index']);
         Route::put('expulsions/{id}/resolve', [ExpulsionController::class, 'resolve']);
+        Route::get('complaint-approvals', [ComplaintApprovalController::class, 'index']);
+        Route::patch('complaint-approvals/{id}/resolve', [ComplaintApprovalController::class, 'resolve']);
         Route::get('violation-actions', [ViolationActionController::class, 'index']);
         Route::patch('violation-actions/{id}/resolve', [ViolationActionController::class, 'resolve']);
         Route::apiResource('notifications', NotificationController::class);

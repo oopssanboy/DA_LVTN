@@ -42,6 +42,7 @@ export default function ExamForm() {
             shuffle_options: true,
             is_active: false,
             show_answers: false,
+            is_practice: false,
             password: '',
             start_time: '',
             end_time: '',
@@ -63,7 +64,7 @@ export default function ExamForm() {
         topic => String(topic.subject_id || topic.subject?.id) === String(selectedSubjectId)
     );
 
-    // Lọc classes dựa trên mảng classes đã được backend trả về chuẩn xác
+   
     const filteredClasses = classes.filter(c => c.name.toLowerCase().includes(classSearch.toLowerCase()));
     
     const filteredProctors = proctors.filter(p => 
@@ -71,11 +72,10 @@ export default function ExamForm() {
         (p.email && p.email.toLowerCase().includes(proctorSearch.toLowerCase()))
     );
 
-    // 1. TẢI CÁC DỮ LIỆU TĨNH KHÔNG PHỤ THUỘC VÀO MÔN HỌC
     useEffect(() => {
         const initData = async () => {
             try {
-                // Đã thêm per_page=100 để tránh lỗi ẩn dữ liệu ở trang 2
+            
                 const [subjectRes, topicRes, statsRes, proctorRes] = await Promise.all([
                     api.get(`${apiPrefix}/subjects?per_page=100`),
                     api.get(`${apiPrefix}/topics?per_page=100`),
@@ -139,10 +139,9 @@ export default function ExamForm() {
         initData();
     }, [id, isEdit, apiPrefix, reset, replace, navigate]);
 
-    // 2. GỌI API LỚP HỌC MỖI KHI MÔN HỌC THAY ĐỔI
+    
     useEffect(() => {
         if (selectedSubjectId) {
-            // Truyền subject_id lên Backend để lấy chính xác các Lớp có học Môn này
             api.get(`${apiPrefix}/classes`, { 
                 params: { subject_id: selectedSubjectId, per_page: 100 } 
             })
@@ -151,7 +150,7 @@ export default function ExamForm() {
             })
             .catch(() => toast.error('Lỗi tải danh sách lớp học'));
             
-            // Xóa Lớp đã chọn nếu người dùng đổi sang Môn học khác (ngoại trừ lúc mới tải Form Edit)
+           
             if (!fetching && !isEdit) {
                 setValue('class_ids', []);
             }
@@ -353,6 +352,10 @@ export default function ExamForm() {
                             </div>
                         </div>
                     </div>
+                    <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[200px]">
+                        <input type="checkbox" {...register('is_practice')} className="w-5 h-5  rounded border-slate-300" />
+                        <span className="text-sm font-bold">Chế độ Ôn tập (Làm nhiều lần, Không phạt)</span>
+                    </label>
 
                     <div>
                         <h2 className="text-lg font-bold text-slate-800 border-b pb-2 mb-4">2. Cài đặt thời gian & Quy chế</h2>
@@ -482,7 +485,7 @@ export default function ExamForm() {
                 </div>
             </form>
 
-            {/* MODAL LỚP HỌC */}
+    
             {showClassModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">

@@ -11,10 +11,8 @@ export default function ExamManager() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-
   const [viewMode, setViewMode] = useState('classes');
   
- 
   const [classes, setClasses] = useState([]);
   const [classLoading, setClassLoading] = useState(true);
   const [classSearch, setClassSearch] = useState('');
@@ -22,7 +20,6 @@ export default function ExamManager() {
   const [classTotalPages, setClassTotalPages] = useState(1);
   const [selectedClass, setSelectedClass] = useState(null);
 
- 
   const [exams, setExams] = useState([]);
   const [examLoading, setExamLoading] = useState(false);
   const [examSearch, setExamSearch] = useState('');
@@ -37,11 +34,9 @@ export default function ExamManager() {
     if (viewMode === 'exams' && selectedClass) fetchExams();
   }, [examPage, examSearch, selectedClass, viewMode]);
 
-
   const fetchClasses = async () => {
     setClassLoading(true);
     try {
-   
       const endpoint = user.role === 'admin' ? '/admin/classes' : '/teacher/classes';
       const res = await api.get(endpoint, {
         params: { search: classSearch, page: classPage, per_page: 8 }
@@ -126,7 +121,6 @@ export default function ExamManager() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
       
-     
       {viewMode === 'classes' && (
         <div className="animate-in fade-in zoom-in-95 duration-300">
           <div className="flex justify-between items-center mb-6">
@@ -166,7 +160,6 @@ export default function ExamManager() {
                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition">
                       <Layers className="w-6 h-6" />
                     </div>
-                    
                   </div>
                   <h3 className="font-bold text-lg text-gray-800 mb-1 group-hover:text-blue-600 transition">{cls.name}</h3>
                   <p className="text-sm text-gray-500 font-medium mb-4 flex-1">{cls.cohort?.course?.title || 'Chưa thuộc khóa học'}</p>
@@ -185,7 +178,6 @@ export default function ExamManager() {
             </div>
           )}
 
-      
           {classTotalPages > 1 && (
             <div className="flex justify-end gap-2 mt-6">
               <button disabled={classPage === 1} onClick={() => setClassPage(p => p - 1)} className="px-4 py-2 border rounded-xl disabled:opacity-50 font-medium hover:bg-gray-50">Trước</button>
@@ -196,12 +188,9 @@ export default function ExamManager() {
         </div>
       )}
 
-
-     
       {viewMode === 'exams' && selectedClass && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in slide-in-from-right-8 duration-300">
           
-    
           <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between gap-4 items-center">
             <div className="flex items-center gap-4">
               <button onClick={() => setViewMode('classes')} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-xl transition shadow-sm">
@@ -226,7 +215,6 @@ export default function ExamManager() {
             </div>
           </div>
 
-        
           {examLoading ? (
             <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>
           ) : exams.length > 0 ? (
@@ -244,6 +232,7 @@ export default function ExamManager() {
                 <tbody className="divide-y divide-gray-100">
                   {exams.map((item) => {
                       const isOwner = user.role === 'admin' || String(item.teacher_id) === String(user.id);
+                      const isRunning = item.in_progress_count > 0; 
 
                     return (
                       <tr key={item.id} className={`hover:bg-gray-50 transition ${!isOwner ? 'bg-slate-50/50' : ''}`}>
@@ -275,12 +264,39 @@ export default function ExamManager() {
                         <td className="px-6 py-4">
                           {isOwner ? (
                             <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => handleGenerateExam(item.id)} title="Sinh câu hỏi từ Ma trận" className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"><CirclePlay size={18} /></button>
-                              <button onClick={() => navigate(`${item.id}/edit`)} className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition"><Edit size={18} /></button>
-                              <button onClick={() => handleToggleStatus(item.id)} title={item.is_active ? "Khóa phòng" : "Mở phòng"} className={`p-2 rounded-lg transition ${item.is_active ? 'text-rose-600 bg-rose-50 hover:bg-rose-100' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'}`}>
+                             
+                              <button 
+                                disabled={isRunning}
+                                onClick={() => handleGenerateExam(item.id)} 
+                                title={isRunning ? "Không thể sinh đề khi có học viên đang thi" : "Sinh câu hỏi từ Ma trận"} 
+                                className={`p-2 rounded-lg transition ${isRunning ? 'text-slate-300 bg-slate-50 cursor-not-allowed' : 'text-blue-600 bg-blue-50 hover:bg-blue-100'}`}
+                              >
+                                <CirclePlay size={18} />
+                              </button>
+                              <button 
+                                disabled={isRunning}
+                                onClick={() => navigate(`${item.id}/edit`)} 
+                                title={isRunning ? "Không thể sửa khi có học viên đang thi" : "Sửa kỳ thi"}
+                                className={`p-2 rounded-lg transition ${isRunning ? 'text-slate-300 bg-slate-50 cursor-not-allowed' : 'text-amber-600 bg-amber-50 hover:bg-amber-100'}`}
+                              >
+                                <Edit size={18} />
+                              </button>
+                              <button 
+                                disabled={isRunning}
+                                onClick={() => handleToggleStatus(item.id)} 
+                                title={isRunning ? "Không thể cấu hình khi có học viên đang thi" : (item.is_active ? "Khóa phòng" : "Mở phòng")} 
+                                className={`p-2 rounded-lg transition ${isRunning ? 'text-slate-300 bg-slate-50 cursor-not-allowed' : (item.is_active ? 'text-rose-600 bg-rose-50 hover:bg-rose-100' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100')}`}
+                              >
                                 {item.is_active ? <Lock size={18} /> : <Unlock size={18} />}
                               </button>
-                              <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"><Trash2 size={18} /></button>
+                              <button 
+                                disabled={isRunning}
+                                onClick={() => handleDelete(item.id)} 
+                                title={isRunning ? "Không thể xóa khi có học viên đang thi" : "Xóa kỳ thi"}
+                                className={`p-2 rounded-lg transition ${isRunning ? 'text-slate-300 bg-slate-50 cursor-not-allowed' : 'text-red-600 bg-red-50 hover:bg-red-100'}`}
+                              >
+                                <Trash2 size={18} />
+                              </button>
                             </div>
                           ) : (
                             <div className="flex items-center justify-end text-slate-400 text-xs font-bold gap-1 bg-slate-100 px-3 py-2 rounded-lg inline-flex ml-auto cursor-not-allowed">
@@ -298,7 +314,6 @@ export default function ExamManager() {
             <div className="p-12 text-center text-gray-500">Chưa có kỳ thi nào trong lớp này.</div>
           )}
 
-         
           {examTotalPages > 1 && (
             <div className="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
               <button disabled={examPage === 1} onClick={() => setExamPage(p => p - 1)} className="px-4 py-2 bg-white border rounded-xl disabled:opacity-50 font-medium hover:bg-gray-100 transition">Trước</button>

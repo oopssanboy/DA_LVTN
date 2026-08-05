@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, BookOpen, Users, FileText, CheckSquare, BarChart, Eye, LogOut, Menu, X, Layers, GraduationCap, Shield, Bell, Bookmark, UserX } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, FileText, CheckSquare, BarChart, Eye, LogOut, Menu, X, Layers, GraduationCap, Shield, Bell, Bookmark, UserX, FileCheck } from 'lucide-react';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -10,18 +10,20 @@ export default function AdminLayout() {
 
   const menuItems = [
     { name: 'Tổng quan', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Quản lý Môn học', path: '/admin/subjects', icon: BookOpen },
     { name: 'Quản lý Khóa học', path: '/admin/courses', icon: Layers },
-    { name: 'Quản lý Đợt đăng ký KH', path: '/admin/cohort', icon: Layers },
+    { name: 'Quản lý Đợt đăng ký KH', path: '/admin/cohort', icon: CheckSquare },
+    { name: 'Quản lý Môn học', path: '/admin/subjects', icon: BookOpen },
+    { name: 'Quản lý Chủ đề', path: '/admin/topics', icon: Bookmark },
     { name: 'Quản lý Lớp học', path: '/admin/classes', icon: GraduationCap },
     { name: 'Quản lý Người dùng', path: '/admin/users', icon: Users },
-    { name: 'Ngân hàng Câu hỏi', path: '/admin/questions', icon: FileText },
-    { name: 'Quản lý Chủ đề', path: '/admin/topics', icon: Bookmark },
-    { name: 'Quản lý Kỳ thi', path: '/admin/exams', icon: CheckSquare },
-    { name: 'Giám sát phòng thi', path: '/admin/monitor', icon: Eye },
+    // { name: 'Ngân hàng Câu hỏi', path: '/admin/questions', icon: FileText },
+    
+    // { name: 'Quản lý Kỳ thi', path: '/admin/exams', icon: CheckSquare },
+    // { name: 'Giám sát phòng thi', path: '/admin/monitor', icon: Eye },
     { name: 'Quản lý thông báo', path: '/admin/notifications', icon: Bell },
     { name: 'Xét duyệt Kỷ luật', path: '/admin/expulsions', icon: UserX },
-    { name: 'Thống kê & Báo cáo', path: '/admin/statistics', icon: BarChart },
+    { name: 'Xét duyệt khiếu nại', path: '/admin/complaintapprovalmanager', icon: FileCheck },
+    // { name: 'Thống kê & Báo cáo', path: '/admin/statistics', icon: BarChart },
   ];
 
   return (

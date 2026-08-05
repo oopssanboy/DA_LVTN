@@ -5,16 +5,15 @@ import toast from 'react-hot-toast';
 import { Mail, Key, Lock, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export default function ForgotPassword() {
-    const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Mật khẩu mới
+    const [step, setStep] = useState(1); 
     const [email, setEmail] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '', '', '']); // Mảng chứa 6 số OTP
+    const [otp, setOtp] = useState(['', '', '', '', '', '']); 
     const [formData, setFormData] = useState({ password: '', password_confirmation: '' });
     const [loading, setLoading] = useState(false);
     
     const navigate = useNavigate();
     const inputRefs = useRef([]);
 
-    // Bước 1: Gửi OTP
     const handleSendOTP = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -29,28 +28,26 @@ export default function ForgotPassword() {
         }
     };
 
-    // Xử lý nhập từng ô OTP
+
     const handleOtpChange = (index, value) => {
-        if (isNaN(value)) return; // Chỉ cho nhập số
+        if (isNaN(value)) return; 
         
         const newOtp = [...otp];
         newOtp[index] = value;
         setOtp(newOtp);
 
-        // Tự động nhảy sang ô tiếp theo
         if (value !== '' && index < 5) {
             inputRefs.current[index + 1].focus();
         }
     };
 
-    // Xử lý xóa lùi (Backspace) tự động nhảy về ô trước
+
     const handleOtpKeyDown = (index, e) => {
         if (e.key === 'Backspace' && index > 0 && otp[index] === '') {
             inputRefs.current[index - 1].focus();
         }
     };
 
-    // Bước 2: Kiểm tra OTP
     const handleVerifyOTP = async (e) => {
         e.preventDefault();
         const otpString = otp.join('');
@@ -60,7 +57,7 @@ export default function ForgotPassword() {
         try {
             await api.post('/auth/verify-otp', { email, otp: otpString });
             toast.success('Mã xác thực chính xác!');
-            setStep(3); // Đúng mã mới cho sang bước đổi mật khẩu
+            setStep(3); 
         } catch (error) {
             toast.error(error.response?.data?.message || 'Mã xác thực không hợp lệ.');
         } finally {
@@ -68,7 +65,7 @@ export default function ForgotPassword() {
         }
     };
 
-    // Bước 3: Đổi mật khẩu mới
+
     const handleResetPassword = async (e) => {
         e.preventDefault();
         if (formData.password !== formData.password_confirmation) {
@@ -102,7 +99,7 @@ export default function ForgotPassword() {
                         {step === 3 && 'Tạo mật khẩu mới cho tài khoản của bạn.'}
                     </p>
 
-                    {/* BƯỚC 1: NHẬP EMAIL */}
+     
                     {step === 1 && (
                         <form onSubmit={handleSendOTP} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="relative">
@@ -119,7 +116,7 @@ export default function ForgotPassword() {
                         </form>
                     )}
 
-                    {/* BƯỚC 2: NHẬP MÃ OTP 6 Ô */}
+     
                     {step === 2 && (
                         <form onSubmit={handleVerifyOTP} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="flex justify-between gap-2 px-2">
@@ -147,7 +144,6 @@ export default function ForgotPassword() {
                         </form>
                     )}
 
-                    {/* BƯỚC 3: NHẬP MẬT KHẨU MỚI */}
                     {step === 3 && (
                         <form onSubmit={handleResetPassword} className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
                             <div className="relative">

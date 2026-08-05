@@ -26,13 +26,13 @@ class ProctorController extends Controller
             ->where(function($q) use ($now) {
                 $q->whereNull('end_time')->orWhere('end_time', '>=', $now);
             })
-            // Đổi 'class' thành 'classes'
+         
             ->with(['classes', 'subject'])
             ->withCount(['attempts as active_attempts' => function ($q) {
                 $q->where('status', 'in_progress');
             }]);
 
-        // Nếu là giám thị thì lọc những phòng được phân công. (Admin sẽ bỏ qua và thấy tất cả).
+      
         if (Auth::user()->role === 'proctor') {
             $query->whereHas('proctors', function($q) {
                 $q->where('users.id', Auth::id());

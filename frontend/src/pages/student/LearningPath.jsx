@@ -1,24 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom'; 
 import api from '../../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { Target, Loader2, AlertTriangle, ChevronRight, CheckCircle2, Lock, ChevronDown, Circle, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LearningPath() {
+    const navigate = useNavigate();
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
     const [data, setData] = useState({ current_course: '', overall_progress: 0, subject_scores: [], weaknesses: [], tree: [] });
     const [loading, setLoading] = useState(true);
     const [expandedSubjects, setExpandedSubjects] = useState({});
 
-    // Lấy list khóa học dropdown
     useEffect(() => {
         api.get('/student/enrolled-courses')
            .then(res => setCourses(res.data))
            .catch(() => toast.error('Không thể lấy danh sách khóa học'));
     }, []);
 
-    // Lấy data lộ trình
+  
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
@@ -49,7 +50,7 @@ export default function LearningPath() {
     return (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 font-sans pb-10">
             
-            {/* TOP BAR: TỔNG QUAN & DROPDOWN */}
+    
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between md:items-center gap-6">
                 <div>
                     <p className="text-sm font-semibold text-slate-500 mb-1">Khóa học hiện tại</p>
@@ -85,7 +86,7 @@ export default function LearningPath() {
                 <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-blue-600"/></div>
             ) : (
                 <>
-                    {/* BIỂU ĐỒ & ĐIỂM YẾU */}
+            
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2 flex flex-col">
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
@@ -128,7 +129,10 @@ export default function LearningPath() {
                                         <p className="text-xs text-slate-600 mb-3 flex items-start gap-1">
                                             <span className="text-amber-500 text-base leading-none"></span> {weak.suggestion}
                                         </p>
-                                        <button className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg transition flex justify-center items-center gap-1 border border-rose-200">
+                                        <button 
+                                            onClick={() => navigate('/student/practice')} 
+                                            className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg transition flex justify-center items-center gap-1 border border-rose-200"
+                                        >
                                             Thi ôn tập ngay <ChevronRight className="w-3 h-3" />
                                         </button>
                                     </div>
@@ -143,7 +147,6 @@ export default function LearningPath() {
                         </div>
                     </div>
 
-         
                     <h2 className="text-xl font-bold text-slate-800 mt-10 mb-4 px-2 border-b border-slate-200 pb-3">Chi tiết Cây Lộ trình</h2>
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
                         {data.tree.map((course) => (

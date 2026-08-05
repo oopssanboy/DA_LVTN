@@ -10,7 +10,6 @@ export default function DisciplineManager() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     
-    // Modal state
     const [showModal, setShowModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [adminNote, setAdminNote] = useState('');
@@ -24,29 +23,25 @@ export default function DisciplineManager() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Gọi song song 2 API: Kỷ luật học vụ và Đuổi học
+     
             const [violationRes, expulsionRes] = await Promise.all([
                 api.get('/admin/violation-actions').catch(() => ({ data: { data: [] } })),
                 api.get('/admin/expulsions').catch(() => ({ data: { data: [] } }))
             ]);
 
-            // Chuẩn hóa dữ liệu Vi phạm học vụ
             const violations = (violationRes.data.data || []).map(v => ({
                 ...v,
-                _type: 'violation' // Gắn cờ để phân biệt khi submit
+                _type: 'violation' 
             }));
 
-            // Chuẩn hóa dữ liệu Đuổi học để key khớp với bảng chung
             const expulsions = (expulsionRes.data.data || []).map(e => ({
                 ...e,
                 _type: 'expulsion',
-                action_type: 'request_expulsion', // Đồng bộ tên action
+                action_type: 'request_expulsion', 
                 created_at: e.created_at || new Date().toISOString()
             }));
 
-            // Gộp và sắp xếp mới nhất lên đầu
             const combined = [...violations, ...expulsions].sort((a, b) => {
-                // Định dạng thời gian từ chuỗi dd/mm/yyyy hh:mm:ss hoặc ISO ISO-8601
                 const dateA = a.created_at.includes('/') ? new Date(a.created_at.split('/').reverse().join('-')) : new Date(a.created_at);
                 const dateB = b.created_at.includes('/') ? new Date(b.created_at.split('/').reverse().join('-')) : new Date(b.created_at);
                 return dateB - dateA;
@@ -70,13 +65,12 @@ export default function DisciplineManager() {
     const handleResolve = async (statusDecision) => {
         if (!selectedItem) return;
 
-        // Bắt lỗi nếu trừ điểm mà quên nhập số
+  
         if (statusDecision === 'approved' && selectedItem.action_type === 'deduct_points' && penaltyPoints <= 0) {
             toast.error('Vui lòng nhập số điểm muốn trừ hợp lệ!');
             return;
         }
 
-        // Bắt lỗi nếu quên nhập ghi chú khi đuổi học
         if (selectedItem._type === 'expulsion' && !adminNote.trim()) {
             toast.error('Bắt buộc phải nhập ghi chú khi xử lý Đuổi học!');
             return;
@@ -101,10 +95,10 @@ export default function DisciplineManager() {
             setProcessing(true);
             const toastId = toast.loading('Đang xử lý...');
             try {
-                // Rẽ nhánh API tùy thuộc vào loại dữ liệu
+           
                 if (selectedItem._type === 'violation') {
                     await api.patch(`/admin/violation-actions/${selectedItem.id}/resolve`, {
-                        status: statusDecision, // 'approved' hoặc 'rejected'
+                        status: statusDecision, 
                         admin_note: adminNote,
                         penalty_points: penaltyPoints
                     });

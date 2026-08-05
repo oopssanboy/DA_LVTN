@@ -10,14 +10,14 @@ export default function StudentRadar() {
     const [data, setData] = useState({ radar: [], history_6_months: [], subject_details: [], top_skill: '' });
     const [loading, setLoading] = useState(true);
 
-    // Lấy danh sách khóa học
+
     useEffect(() => {
         api.get('/student/enrolled-courses')
            .then(res => setCourses(res.data))
            .catch(() => toast.error('Không thể lấy danh sách khóa học'));
     }, []);
 
-    // Lấy dữ liệu Radar phụ thuộc vào Khóa học đã chọn
+   
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
@@ -39,7 +39,7 @@ export default function StudentRadar() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 font-sans pb-10">
-            {/* HEADER CÓ THÊM DROPDOWN CHỌN KHÓA HỌC */}
+      
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Báo cáo Năng lực Học viên</h1>

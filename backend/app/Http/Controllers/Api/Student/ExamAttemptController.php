@@ -22,26 +22,33 @@ use App\Mail\ExamResultMail;
 
 class ExamAttemptController extends Controller
 {
-    public function getAvailableExams()
+    public function getAvailableExams(Request $request)
     {
         $studentId = Auth::user()->student->user_id ?? Auth::id(); 
         $classIds = ClassEnrollment::where('student_id', $studentId)->pluck('class_id');
         $now = Carbon::now();
 
-        $exams = Exam::with(['subject', 'classes']) 
-          
+        $query = Exam::with(['subject', 'classes']) 
             ->whereHas('classes', function($q) use ($classIds) {
                 $q->whereIn('classes.id', $classIds);
             })
             ->where('is_active', true)
             ->where(function($q) use ($now) {
                 $q->whereNull('end_time')->orWhere('end_time', '>=', $now);
-            })
-            ->orderBy('start_time', 'asc')
-            ->paginate(6);
+            });
+
+        if ($request->has('is_practice')) {
+            $isPractice = filter_var($request->is_practice, FILTER_VALIDATE_BOOLEAN);
+            $query->where('is_practice', $isPractice);
+        }
+
+        $exams = $query->orderBy('start_time', 'asc')->paginate(6);
 
         $exams->getCollection()->transform(function ($exam) use ($studentId) {
-            $attempt = ExamAttempt::where('exam_id', $exam->id)->where('student_id', $studentId)->first();
+            $attempt = ExamAttempt::where('exam_id', $exam->id)
+                                  ->where('student_id', $studentId)
+                                  ->latest('id')
+                                  ->first();
             $exam->attempt = $attempt;
             return $exam;
         });
@@ -70,18 +77,22 @@ class ExamAttemptController extends Controller
             return response()->json(['message' => 'Mật khẩu phòng thi không chính xác'], 403);
         }
 
-        $attempt = ExamAttempt::where('exam_id', $examId)->where('student_id', $studentId)->first();
+        $attempt = ExamAttempt::where('exam_id', $examId)
+                              ->where('student_id', $studentId)
+                              ->latest('id')
+                              ->first();
 
-        if ($attempt) {
-            if ($attempt->status !== 'in_progress') {
-                return response()->json(['message' => 'Bài thi này đã kết thúc.'], 403);
-            }
+        if ($attempt && $attempt->status === 'in_progress') {
             return response()->json(['message' => 'Vào lại phòng thi thành công', 'attempt_id' => $attempt->id]);
+        }
+
+        if ($attempt && $attempt->status !== 'in_progress' && !$exam->is_practice) {
+            return response()->json(['message' => 'Bài thi này đã kết thúc, không cho phép làm lại.'], 403);
         }
 
         DB::beginTransaction();
         try {
-            $attempt = ExamAttempt::create([
+            $newAttempt = ExamAttempt::create([
                 'exam_id' => $examId,
                 'student_id' => $studentId,
                 'status' => 'in_progress',
@@ -99,7 +110,7 @@ class ExamAttemptController extends Controller
             $answersData = [];
             foreach ($questions as $q) {
                 $answersData[] = [
-                    'attempt_id' => $attempt->id,
+                    'attempt_id' => $newAttempt->id,
                     'question_id' => $q->id,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -109,9 +120,11 @@ class ExamAttemptController extends Controller
 
             DB::commit();
             
-            broadcast(new ViolationUpdated($examId, $attempt->id, 'joined', 'Sinh viên vừa vào phòng thi'))->toOthers();
+            if (!$exam->is_practice) {
+                broadcast(new ViolationUpdated($examId, $newAttempt->id, 'joined', 'Sinh viên vừa vào phòng thi'))->toOthers();
+            }
 
-            return response()->json(['message' => 'Khởi tạo phòng thi thành công', 'attempt_id' => $attempt->id]);
+            return response()->json(['message' => 'Khởi tạo phòng thi thành công', 'attempt_id' => $newAttempt->id]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Lỗi khởi tạo đề thi: ' . $e->getMessage()], 500);
@@ -280,7 +293,12 @@ class ExamAttemptController extends Controller
 
     public function logViolation(Request $request, $attemptId)
     {
-        $request->validate(['type' => 'required|string', 'detail' => 'nullable|string']);
+        $request->validate([
+            'type' => 'required|string', 
+            'detail' => 'nullable|string',
+            'penalty' => 'nullable|boolean' 
+        ]);
+        
         $attempt = ExamAttempt::where('id', $attemptId)->where('student_id', Auth::id())->firstOrFail();
 
         if ($attempt->status !== 'in_progress') {
@@ -293,21 +311,28 @@ class ExamAttemptController extends Controller
             'detail' => $request->detail ?? 'Hành vi vi phạm',
         ]);
 
-        $attempt->increment('violation_count');
-        
-        broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', "Sinh viên vi phạm: " . $request->type))->toOthers();
+        $isPenalty = $request->input('penalty', true);
 
-        if ($attempt->violation_count >= 3) {
-            $this->autoSubmitExam($attempt); 
-            $attempt->update(['status' => 'suspended']); 
-            return response()->json([
-                'message' => 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
-                'violation_count' => $attempt->violation_count,
-                'is_suspended' => true
-            ], 403);
+        if ($isPenalty) {
+            $attempt->increment('violation_count');
+            
+            broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'violation', "Sinh viên vi phạm: " . $request->type))->toOthers();
+
+            if ($attempt->violation_count >= 3) {
+                $this->autoSubmitExam($attempt); 
+                $attempt->update(['status' => 'suspended']); 
+                return response()->json([
+                    'message' => 'BẠN ĐÃ VI PHẠM QUY CHẾ QUÁ 3 LẦN. HỆ THỐNG ĐÃ TỰ ĐỘNG THU BÀI!',
+                    'violation_count' => $attempt->violation_count,
+                    'is_suspended' => true
+                ], 403);
+            }
+        } else {
+            
+             broadcast(new ViolationUpdated($attempt->exam_id, $attempt->id, 'system_log', "Sự cố hệ thống/Mạng: " . $request->type))->toOthers();
         }
 
-        return response()->json(['message' => 'Ghi nhận vi phạm', 'violation_count' => $attempt->violation_count]);
+        return response()->json(['message' => 'Ghi nhận log thành công', 'violation_count' => $attempt->violation_count]);
     }
 
     public function getResult($attemptId)

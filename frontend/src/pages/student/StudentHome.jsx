@@ -26,7 +26,7 @@ export default function StudentHome() {
     }, [activeTab]);
 
    
-    const fetchAvailableExams = async (url = '/student/exams/available') => {
+    const fetchAvailableExams = async (url = '/student/exams/available?is_practice=false') => {
         setLoading(true);
         try {
             const res = await api.get(url);

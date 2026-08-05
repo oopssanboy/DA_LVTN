@@ -28,6 +28,7 @@ class ExamRequest extends FormRequest
             'password' => 'nullable|string',
             'is_active' => 'boolean',
             'show_answers' => 'boolean',
+            'is_practice' => 'boolean',
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
             'passing_score' => 'required|numeric|min:0|max:10',

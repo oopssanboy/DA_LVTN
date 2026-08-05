@@ -19,6 +19,7 @@ export default function StudentLayout() {
   const menuItems = [
     { name: 'Trang chủ Sinh viên', path: '/student/dashboard', icon: LayoutDashboard },
     { name: 'Kỳ thi của tôi', path: '/student/exams', icon: Edit3 },
+    { name: 'Phòng Ôn tập', path: '/student/practice', icon: Edit3 },
     { name: 'Năng lực (Radar)', path: '/student/radar', icon: MdOutlineRadar},
     { name: 'Lộ trình học tập', path: '/student/learning-path', icon: FaGraduationCap },
     { name: 'Lịch sử làm bài', path: '/student/history', icon: Clock },

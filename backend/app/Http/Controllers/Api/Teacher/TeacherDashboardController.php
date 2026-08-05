@@ -14,7 +14,9 @@ class TeacherDashboardController extends Controller
         $teacherId = auth()->id();
 
 
-        $baseAttemptQuery = ExamAttempt::whereHas('exam.classes.teachers', function($q) use ($teacherId) {
+        $baseAttemptQuery = ExamAttempt::whereHas('exam', function($q) {
+            $q->where('is_practice', false); 
+        })->whereHas('exam.classes.teachers', function($q) use ($teacherId) {
             $q->where('users.id', $teacherId);
         });
 

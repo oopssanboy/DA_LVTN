@@ -19,7 +19,7 @@ export default function MyExams() {
         fetchExams();
     }, []);
 
-    const fetchExams = async (url = '/student/exams/available') => {
+    const fetchExams = async (url = '/student/exams/available?is_practice=false') => {
         setLoading(true);
         try {
             const res = await api.get(url);

@@ -128,7 +128,10 @@ class ExamController extends Controller
 
     public function update(ExamRequest $request, $id)
     {
-        
+        $isRunning = \App\Models\ExamAttempt::where('exam_id', $id)->where('status', 'in_progress')->exists();
+    if ($isRunning) {
+        return response()->json(['message' => 'Không thể sửa! Đang có sinh viên làm bài thi này.'], 403);
+    }
         $exam = $this->getEditableExamQuery()->findOrFail($id);
         $data = $request->validated();
         
@@ -164,7 +167,10 @@ class ExamController extends Controller
 
     public function destroy($id)
     {
-       
+       $isRunning = \App\Models\ExamAttempt::where('exam_id', $id)->where('status', 'in_progress')->exists();
+    if ($isRunning) {
+        return response()->json(['message' => 'Không thể xóa! Đang có sinh viên làm bài thi này.'], 403);
+    }
         $exam = $this->getEditableExamQuery()->findOrFail($id);
         $exam->delete();
         return response()->json(['message' => 'Xóa kỳ thi thành công']);

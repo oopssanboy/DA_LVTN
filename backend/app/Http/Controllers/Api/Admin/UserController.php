@@ -10,6 +10,8 @@ use App\Models\Teacher;
 use App\Models\Proctor;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\UsersImport;
 
 class UserController extends Controller
 {
@@ -196,5 +198,27 @@ class UserController extends Controller
             'message' => "Đã {$statusMessage} tài khoản thành công",
             'is_active' => $user->is_active
         ], 200);
+    }
+    public function importExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240', 
+        ]);
+
+        try {
+            Excel::import(new UsersImport, $request->file('file'));
+            
+            return response()->json([
+                'message' => 'Import danh sách người dùng thành công!'
+            ], 200);
+            
+        } catch (\Exception $e) {
+            \Log::error('Lỗi import excel: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Lỗi đọc file Excel. Vui lòng kiểm tra lại định dạng các cột (name, email, student_code).',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

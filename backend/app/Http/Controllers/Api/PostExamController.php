@@ -274,38 +274,47 @@ class PostExamController extends Controller
         ]);
 
         $complaint = Complaint::with(['studentUser', 'exam'])->findOrFail($id);
-        $attempt = ExamAttempt::where('exam_id', $complaint->exam_id)->where('student_id', $complaint->student_id)->first();
 
         DB::beginTransaction();
         try {
-            if ($attempt && $request->action === 'adjust_score') {
-                $isPassed = $request->new_score >= $complaint->exam->passing_score;
-                $attempt->update(['total_score' => $request->new_score, 'is_passed' => $isPassed]);
-            }
-
-            $complaint->update(['response' => $request->reason, 'status' => 'resolved']);
-        
-            $emailContent = "Chào bạn,\n\nGiảng viên đã xử lý khiếu nại môn {$complaint->exam->title}.\nPhản hồi từ Giảng viên: {$request->reason}\n";
-            $notiContent = "Phản hồi từ Giảng viên: {$request->reason}. ";
-
-         
             if ($request->action === 'adjust_score') {
-                $emailContent .= "Kết quả: Điểm được điều chỉnh thành {$request->new_score}.";
-                $notiContent .= "Kết quả: Điểm được điều chỉnh thành {$request->new_score}.";
+                $complaint->update([
+                    'response' => $request->reason,
+                    'proposed_score' => $request->new_score,
+                    'status' => 'pending_approval' 
+                ]);
+
+               
+                Notification::create([
+                    'user_id' => $complaint->studentUser->id, 'sender_id' => Auth::id(),
+                    'title' => "Đang xử lý khiếu nại môn {$complaint->exam->title}", 
+                    'content' => "Giảng viên đã đề xuất điều chỉnh điểm thành {$request->new_score}. Đang chờ Ban quản trị phê duyệt.", 
+                    'target_role' => 'student'
+                ]);
+
+                $message = 'Đã gửi đề xuất điều chỉnh điểm lên Ban quản trị thành công!';
             } else {
-                $emailContent .= "Kết quả: Giữ nguyên điểm số.";
-                $notiContent .= "Kết quả: Giữ nguyên điểm số.";
+               
+                $complaint->update([
+                    'response' => $request->reason, 
+                    'status' => 'rejected'
+                ]);
+            
+                $emailContent = "Chào bạn,\n\nGiảng viên đã xử lý khiếu nại môn {$complaint->exam->title}.\nPhản hồi từ Giảng viên: {$request->reason}\nKết quả: Giữ nguyên điểm số.";
+                Mail::to($complaint->studentUser->email)->send(new ViolationResolutionMail($emailContent, 'Kết quả xử lý khiếu nại - NQ EduTech'));
+
+                Notification::create([
+                    'user_id' => $complaint->studentUser->id, 'sender_id' => Auth::id(),
+                    'title' => "Kết quả khiếu nại môn {$complaint->exam->title}", 
+                    'content' => "Phản hồi từ Giảng viên: {$request->reason}. Kết quả: Giữ nguyên điểm số.", 
+                    'target_role' => 'student'
+                ]);
+                
+                $message = 'Đã từ chối khiếu nại và thông báo cho sinh viên.';
             }
-
-            Mail::to($complaint->studentUser->email)->send(new ViolationResolutionMail($emailContent, 'Kết quả xử lý khiếu nại - NQ EduTech'));
-
-            Notification::create([
-                'user_id' => $complaint->studentUser->id, 'sender_id' => Auth::id(),
-                'title' => "Kết quả khiếu nại môn {$complaint->exam->title}", 'content' => $notiContent, 'target_role' => 'student'
-            ]);
 
             DB::commit();
-            return response()->json(['message' => 'Đã xử lý khiếu nại thành công']);
+            return response()->json(['message' => $message]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Lỗi xử lý: '.$e->getMessage()], 500);
