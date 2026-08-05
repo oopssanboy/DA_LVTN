@@ -55,10 +55,10 @@ class QuestionController extends Controller
    
     public function store(Request $request)
     {
-        // $existingQuestion = Question::where('content', $request->input('content'))->first();
-        // if ($existingQuestion) {
-        //     return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại.'], 422);
-        // }
+        $existingQuestion = Question::where('content', $request->input('content'))->first();
+        if ($existingQuestion) {
+            return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại.'], 422);
+        }
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
             'topic_id' => 'required|exists:topics,id',
@@ -125,10 +125,10 @@ class QuestionController extends Controller
   
     public function update(Request $request, $id)
     {
-        // $question = Question::find($id);
-        // if (!$question) {
-        //     return response()->json(['message' => 'Không tìm thấy câu hỏi'], 404);
-        // }
+        $question = Question::find($id);
+        if (!$question) {
+            return response()->json(['message' => 'Không tìm thấy câu hỏi'], 404);
+        }
 
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
