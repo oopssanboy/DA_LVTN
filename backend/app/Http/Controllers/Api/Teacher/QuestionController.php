@@ -138,7 +138,10 @@ class QuestionController extends Controller
             'content' => 'required|string',
             'score' => 'required|numeric|min:0.1',
         ]);
-
+        $existingQuestion = Question::where('content', 'like', '%' . $request->input('content') . '%')->first();
+        if ($existingQuestion) {
+            return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại.'], 422);
+        }
         DB::beginTransaction();
         try {
             $question->update([
