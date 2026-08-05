@@ -154,7 +154,7 @@ export default function CohortManager() {
                                     <tr key={cohort.id} className="hover:bg-slate-50/80 transition-colors">
                                         <td className="px-6 py-4 font-bold text-slate-800">{cohort.name}</td>
                                         <td className="px-6 py-4 font-medium text-slate-600">
-                                            <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-bold">
+                                            <span className="px-2.5 py-1 rounded-md text-xm font-bold">
                                                 {cohort.course?.title || 'N/A'}
                                             </span>
                                         </td>
@@ -162,7 +162,7 @@ export default function CohortManager() {
                                             {cohort.start_date ? `${cohort.start_date} - ${cohort.end_date || 'Nay'}` : 'Chưa thiết lập'}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-bold">
+                                            <span className=" px-2.5 py-1 rounded-md text-xm font-bold">
                                                 {cohort.classes_count || 0}
                                             </span>
                                         </td>
@@ -219,7 +219,7 @@ export default function CohortManager() {
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-blue-600"/>
+                                
                                 {editingId ? 'Cập nhật Đợt tuyển sinh' : 'Thêm Đợt tuyển sinh mới'}
                             </h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1">

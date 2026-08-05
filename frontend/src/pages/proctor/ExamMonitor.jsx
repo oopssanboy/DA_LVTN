@@ -164,21 +164,21 @@ export default function ExamMonitor() {
                 <h1 className="text-2xl font-bold text-slate-800 mb-6">Màn hình Giám sát: {exam?.title}</h1>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-100">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tổng tham gia</p>
+                    <div className="bg-slate-100 p-4 rounded-xl text-center border border-slate-100">
+                        <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Tổng tham gia</p>
                         <p className="text-3xl font-black text-slate-800">{total}</p>
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-xl text-center border border-blue-100">
-                        <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Đang làm bài</p>
-                        <p className="text-3xl font-black text-blue-700">{inProgress}</p>
+                    <div className="bg-slate-100 p-4 rounded-xl text-center border border-blue-100">
+                        <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Đang làm bài</p>
+                        <p className="text-3xl font-black text-slate-800">{inProgress}</p>
                     </div>
-                    <div className="bg-emerald-50 p-4 rounded-xl text-center border border-emerald-100">
-                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Đã nộp bài</p>
-                        <p className="text-3xl font-black text-emerald-700">{submitted}</p>
+                    <div className="bg-slate-100 p-4 rounded-xl text-center border border-emerald-100">
+                        <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Đã nộp bài</p>
+                        <p className="text-3xl font-black text-slate-800">{submitted}</p>
                     </div>
-                    <div className="bg-red-50 p-4 rounded-xl text-center border border-red-100">
-                        <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Vi phạm</p>
-                        <p className="text-3xl font-black text-red-700">{violators}</p>
+                    <div className="bg-slate-100 p-4 rounded-xl text-center border border-red-100">
+                        <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Vi phạm</p>
+                        <p className="text-3xl font-black text-slate-800">{violators}</p>
                     </div>
                 </div>
             </div>
@@ -213,12 +213,12 @@ export default function ExamMonitor() {
                                                 <div className="text-xs text-slate-500">{studentCode}</div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                {att.status === 'in_progress' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700"><Loader2 className="w-3 h-3 animate-spin"/> Đang thi</span>}
-                                                {att.status === 'submitted' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"> Đã nộp</span>}
-                                                {att.status === 'suspended' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700"> Đình chỉ</span>}
+                                                {att.status === 'in_progress' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold "><Loader2 className="w-3 h-3 animate-spin"/> Đang thi</span>}
+                                                {att.status === 'submitted' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold "> Đã nộp</span>}
+                                                {att.status === 'suspended' && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold "> Đình chỉ</span>}
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`inline-block px-3 py-1 rounded-md font-black text-sm ${att.violation_count > 0 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
+                                                <span className={`inline-block px-3 py-1 rounded-md font-black text-sm ${att.violation_count > 0 ? ' animate-pulse' : ''}`}>
                                                     {att.violation_count}
                                                 </span>
                                             </td>
@@ -301,7 +301,7 @@ export default function ExamMonitor() {
                                 
                                 <div className="shrink-0 flex flex-col justify-center items-center bg-white p-4 rounded-xl border border-blue-100 shadow-sm min-w-[120px]">
                                     <div className="text-xs font-bold text-slate-500 uppercase">Điểm số</div>
-                                    <div className="text-3xl font-black text-blue-600 mt-1">
+                                    <div className="text-3xl font-black  mt-1">
                                         {selectedAttempt.status !== 'in_progress' ? selectedAttempt.total_score : '-'}
                                     </div>
                                     <div className="mt-2 text-xs font-bold px-2 py-1 rounded bg-slate-100 text-slate-600 uppercase">

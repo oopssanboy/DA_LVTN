@@ -126,7 +126,7 @@ export default function LearningPath() {
                                         </div>
                                         <h3 className="font-bold text-slate-800 text-sm mb-2">{weak.topic}</h3>
                                         <p className="text-xs text-slate-600 mb-3 flex items-start gap-1">
-                                            <span className="text-amber-500 text-base leading-none">💡</span> {weak.suggestion}
+                                            <span className="text-amber-500 text-base leading-none"></span> {weak.suggestion}
                                         </p>
                                         <button className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg transition flex justify-center items-center gap-1 border border-rose-200">
                                             Thi ôn tập ngay <ChevronRight className="w-3 h-3" />
@@ -143,7 +143,7 @@ export default function LearningPath() {
                         </div>
                     </div>
 
-                    {/* CHI TIẾT CÂY MÔN HỌC */}
+         
                     <h2 className="text-xl font-bold text-slate-800 mt-10 mb-4 px-2 border-b border-slate-200 pb-3">Chi tiết Cây Lộ trình</h2>
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
                         {data.tree.map((course) => (

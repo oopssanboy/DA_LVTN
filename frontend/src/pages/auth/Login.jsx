@@ -17,16 +17,7 @@ export default function Login() {
   
   const { login } = useAuth();
 
-  const handleRoleChange = (selectedRole) => {
-    setRole(selectedRole);
-    if (selectedRole === "admin") {
-      setEmail("admin@gmail.com");
-      setPassword("123456");
-    } else {
-      setEmail("student1@gmail.com");
-      setPassword("123456");
-    }
-  };
+  
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -145,29 +136,7 @@ export default function Login() {
             </div>
 
          
-            <div className="pt-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Auto-fill test</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  type="button"
-                  onClick={() => handleRoleChange("student")}
-                  className={`py-2.5 rounded-xl font-bold text-sm border transition-all
-                    ${role === 'student' ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}
-                  `}
-                >
-                  Học viên
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => handleRoleChange("admin")}
-                  className={`py-2.5 rounded-xl font-bold text-sm border transition-all
-                    ${role === 'admin' ? 'border-slate-800 bg-slate-900 text-white shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}
-                  `}
-                >
-                  Quản trị viên
-                </button>
-              </div>
-            </div>
+            
 
             <button 
               type="submit" 

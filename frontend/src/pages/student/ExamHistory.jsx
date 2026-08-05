@@ -103,13 +103,13 @@ export default function ExamHistory() {
                                     <div className="flex-1 grid grid-cols-2 gap-3 mb-6">
                                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                                             <p className="text-xs text-slate-500 font-medium mb-1">Điểm số</p>
-                                            <p className={`text-2xl font-black ${isSuspended ? 'text-red-500' : isPassed ? 'text-emerald-600' : 'text-slate-800'}`}>
+                                            <p className={`text-2xl font-black ${isSuspended ? '' : isPassed ? '' : ''}`}>
                                                 {attempt.total_score}
                                             </p>
                                         </div>
                                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                                             <p className="text-xs text-slate-500 font-medium mb-1">Vi phạm</p>
-                                            <p className={`text-2xl font-black ${attempt.violation_count > 0 ? 'text-amber-500' : 'text-slate-800'}`}>
+                                            <p className={`text-2xl font-black ${attempt.violation_count > 0 ? '' : ''}`}>
                                                 {attempt.violation_count}
                                             </p>
                                         </div>

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Edit, Trash2, Search, Loader2, Upload, Download, Filter, ArrowLeft, BookOpen, FolderOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, Upload, Download, Filter, ArrowLeft, BookOpen, FolderOpen, FileSpreadsheet } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -21,6 +21,10 @@ export default function QuestionList() {
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [questionSearch, setQuestionSearch] = useState('');
     const [filters, setFilters] = useState({ difficulty: '', type: ''});
+
+
+    const [isImporting, setIsImporting] = useState(false);
+    const fileInputRef = useRef(null);
 
     const fetchSubjects = useCallback(async (url = `${apiPrefix}/subjects`, params = {}) => {
         setLoadingSubjects(true);
@@ -66,15 +70,15 @@ export default function QuestionList() {
     }, [subjectSearch, fetchSubjects, apiPrefix]);
 
     useEffect(() => {
-    if (selectedSubject) {
-        fetchQuestions(`${apiPrefix}/questions`, {
-            subject_id: selectedSubject.id,
-            search: questionSearch,
-            difficulty: filters.difficulty,
-            type: filters.type
-        });
-    }
-}, [filters, selectedSubject, questionSearch, fetchQuestions, apiPrefix]);
+        if (selectedSubject) {
+            fetchQuestions(`${apiPrefix}/questions`, {
+                subject_id: selectedSubject.id,
+                search: questionSearch,
+                difficulty: filters.difficulty,
+                type: filters.type
+            });
+        }
+    }, [filters, selectedSubject, questionSearch, fetchQuestions, apiPrefix]);
 
     const handleDelete = async (id) => {
         const result = await Swal.fire({
@@ -99,6 +103,79 @@ export default function QuestionList() {
                 toast.error(error.response?.data?.message || 'Lỗi khi xóa câu hỏi');
             }
         }
+    };
+
+    
+    const handleImportClick = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setIsImporting(true);
+        const toastId = toast.loading('Đang import dữ liệu...');
+        
+        try {
+            await api.post(`${apiPrefix}/questions/import`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Import câu hỏi thành công!', { id: toastId });
+            
+         
+            if (selectedSubject) {
+                fetchQuestions(`${apiPrefix}/questions`, {
+                    subject_id: selectedSubject.id,
+                    search: questionSearch,
+                    difficulty: filters.difficulty,
+                    type: filters.type
+                });
+            }
+            fetchSubjects(`${apiPrefix}/subjects`, { search: subjectSearch });
+            
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Lỗi khi import file', { id: toastId });
+        } finally {
+            setIsImporting(false);
+            e.target.value = ''; 
+        }
+    };
+
+    const handleExport = async () => {
+        const toastId = toast.loading('Đang xuất file Excel...');
+        try {
+            const response = await api.get(`${apiPrefix}/questions/export`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'ngan_hang_cau_hoi.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            toast.success('Xuất file thành công', { id: toastId });
+        } catch (error) {
+            toast.error('Lỗi khi xuất file', { id: toastId });
+        }
+    };
+
+    const downloadTemplate = () => {
+        const csvContent = "subject_code,topic_name,type,difficulty,content,score,choices,answer\n"
+                         + "IT301,Cơ bản PHP,single,easy,PHP là viết tắt của chữ gì?,1,A:Personal Home Page; B:PHP Hypertext Preprocessor; C:Private Page,B\n"
+                         + "IT301,OOP trong PHP,multiple,medium,Đặc điểm của OOP?,2,A:Đa hình; B:Kế thừa; C:Trừu tượng; D:Tuần tự,A,B,C\n"
+                         + "IT301,OOP trong PHP,fill_blank,hard,Từ khóa để kế thừa trong PHP là gì?,2,,extends|extend";
+
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); 
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "mau_import_cau_hoi.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     if (!selectedSubject) {
@@ -214,14 +291,21 @@ export default function QuestionList() {
                     <p className="text-slate-500 mt-1">Quản lý và biên soạn câu hỏi trắc nghiệm, điền khuyết.</p>
                 </div>
 
-                <div className="flex gap-3">
-                    <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
-                        <Upload className="w-4 h-4" /> Import
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={downloadTemplate} className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm text-sm md:text-base">
+                        <FileSpreadsheet className="w-4 h-4" /> File mẫu
                     </button>
-                    <button className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
-                        <Download className="w-4 h-4" /> Export
+                    
+                    <button onClick={handleImportClick} disabled={isImporting} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm disabled:opacity-70 text-sm md:text-base">
+                        {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Nhập Excel
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
                     </button>
-                    <Link to={`${apiPrefix}/questions/create`} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
+
+                    <button onClick={handleExport} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm text-sm md:text-base">
+                        <Download className="w-4 h-4" /> Xuất Excel
+                    </button>
+
+                    <Link to={`${apiPrefix}/questions/create`} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm text-sm md:text-base">
                         <Plus className="w-5 h-5" /> Thêm mới
                     </Link>
                 </div>
@@ -233,7 +317,7 @@ export default function QuestionList() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder="Tìm kiếm nội dung hoặc chủ đề..."
+                            placeholder="Tìm kiếm nội dung..."
                             value={questionSearch}
                             onChange={(e) => setQuestionSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium text-slate-700"
@@ -295,16 +379,16 @@ export default function QuestionList() {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <span className={`px-3 py-1 rounded-md text-xs font-bold ${
-                                                    q.type === 'fill_blank' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                    q.type === 'fill_blank' ? '' : ''
                                                 }`}>
                                                     {q.type === 'fill_blank' ? 'Điền khuyết' : 'Trắc nghiệm'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <span className={`px-3 py-1 rounded-md text-[10px] font-black tracking-wider uppercase ${
-                                                    q.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' :
-                                                    q.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-red-100 text-red-700'
+                                                    q.difficulty === 'easy' ? '' :
+                                                    q.difficulty === 'medium' ? '' :
+                                                    ''
                                                 }`}>
                                                     {q.difficulty}
                                                 </span>

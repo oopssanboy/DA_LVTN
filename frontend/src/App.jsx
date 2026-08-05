@@ -12,6 +12,10 @@ import StudentLayout from './components/layout/StudentLayout';
 
 
 import Home from './pages/Home';
+import Courses from './pages/Courses';
+import Teachers from './pages/Teachers';
+import About from './pages/About';
+import Contact from './pages/Contact';
 import Login from './pages/auth/Login';
 import ProfileManager from './pages/auth/ProfileManager.jsx';
 import ForgotPassword from './pages/auth/ForgotPassword.jsx';
@@ -93,6 +97,10 @@ function App() {
         <Routes>
 
           <Route path="/" element={<Home />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/teachers" element={<Teachers />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           

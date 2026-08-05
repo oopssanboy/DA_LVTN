@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PostExamController;
 use App\Http\Controllers\Api\Admin\DashboardController;
@@ -30,7 +31,11 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::get('/public/courses', [PublicController::class, 'getCourses']);
+    Route::get('/public/teachers', [PublicController::class, 'getTeachers']);
 });
+
+
 
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 

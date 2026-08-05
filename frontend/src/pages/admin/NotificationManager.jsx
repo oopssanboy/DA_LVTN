@@ -136,10 +136,10 @@ export default function NotificationManager({ basePath = '/admin' }) {
                                             <div className="text-slate-500 mt-1 line-clamp-1">{noti.content}</div>
                                         </td>
                                         <td className="px-6 py-4 text-center font-medium">
-                                            {noti.target_role === 'all' && <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs">Hệ thống</span>}
-                                            {noti.target_role === 'student' && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-md text-xs">Sinh viên</span>}
-                                            {noti.target_role === 'teacher' && <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-xs">Giảng viên</span>}
-                                            {noti.target_role === 'class' && <span className="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md text-xs line-clamp-1">Lớp: {noti.target_class_id || ''}</span>}
+                                            {noti.target_role === 'all' && <span className=" text-slate-700 px-2.5 py-1 rounded-md text-xs">Hệ thống</span>}
+                                            {noti.target_role === 'student' && <span className=" px-2.5 py-1 rounded-md text-xs">Sinh viên</span>}
+                                            {noti.target_role === 'teacher' && <span className=" px-2.5 py-1 rounded-md text-xs">Giảng viên</span>}
+                                            {noti.target_role === 'class' && <span className=" px-2.5 py-1 rounded-md text-xs line-clamp-1">Lớp: {noti.target_class_id || ''}</span>}
                                         </td>
                                         <td className="px-6 py-4 text-center text-slate-500">
                                             {new Date(noti.created_at).toLocaleDateString('vi-VN')}
@@ -194,7 +194,7 @@ export default function NotificationManager({ basePath = '/admin' }) {
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <Bell className="w-5 h-5 text-blue-600"/> Soạn thông báo mới
+                                Soạn thông báo mới
                             </h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5"/>

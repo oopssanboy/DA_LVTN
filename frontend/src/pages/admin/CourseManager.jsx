@@ -142,7 +142,7 @@ export default function CourseManager() {
                         <table className="w-full text-left text-sm text-slate-600">
                             <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-xs border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-4">Mã</th>
+                                    <th className="px-6 py-4">Mã khóa học</th>
                                     <th className="px-6 py-4">Tên khóa học</th>
                                     <th className="px-6 py-4 text-center">Số môn học</th>
                                     <th className="px-6 py-4 text-center">Số đợt tuyển sinh</th>
@@ -152,15 +152,15 @@ export default function CourseManager() {
                             <tbody className="divide-y divide-slate-100">
                                 {courses.map((course) => (
                                     <tr key={course.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-blue-600">{course.code}</td>
-                                        <td className="px-6 py-4 font-bold text-slate-800">{course.title}</td>
+                                        <td className="px-6 py-4 font-bold ">{course.code}</td>
+                                        <td className="px-6 py-4 font-bold ">{course.title}</td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-bold">
+                                            <span className="b px-2.5 py-1 rounded-md text-xm font-bold">
                                                 {course.subjects?.length || 0}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-bold">
+                                            <span className=" px-2.5 py-1 rounded-md text-xm font-bold">
                                                 {course.cohorts?.length || 0}
                                             </span>
                                         </td>
@@ -217,7 +217,7 @@ export default function CourseManager() {
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <GraduationCap className="w-5 h-5 text-blue-600"/>
+                                
                                 {editingId ? 'Cập nhật Khóa học' : 'Thêm Khóa học mới'}
                             </h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
@@ -244,7 +244,7 @@ export default function CourseManager() {
 
                                 <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
                                     <label className="block text-sm font-bold text-black mb-3 flex items-center gap-2">
-                                        <BookOpen className="w-5 h-5 text-indigo-600"/> Chọn môn học thuộc khóa
+                                        Chọn môn học thuộc khóa
                                     </label>
                                     <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto p-1">
                                         {subjects.map(sub => (

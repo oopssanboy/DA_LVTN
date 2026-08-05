@@ -6,7 +6,7 @@ export default function FloatingContact() {
         <div className="fixed bottom-[150px] right-6 z-[99] flex flex-col gap-5">
             
        
-            <a href="https://zalo.me/0964789010" target="_blank" rel="noreferrer" className="relative group flex justify-center items-center">
+            <a href="https://zalo.me/0964789014" target="_blank" rel="noreferrer" className="relative group flex justify-center items-center">
                 <div className="absolute w-16 h-16 bg-[#0068ff] rounded-full animate-ping opacity-30"></div>
                 <div className="absolute w-12 h-12 bg-[#0068ff] rounded-full animate-ping opacity-40 delay-75"></div>
                 <div className="relative w-14 h-14 rounded-full bg-[#0068ff] flex items-center justify-center text-white font-black text-[15px] shadow-xl shadow-blue-500/30 hover:-translate-y-1 hover:scale-105 transition-all duration-300">
@@ -15,7 +15,7 @@ export default function FloatingContact() {
             </a>
 
       
-            <a href="https://m.me/yourpage" target="_blank" rel="noreferrer" className="relative group flex justify-center items-center">
+            <a href="https://www.facebook.com/OopssanboyOfficial" target="_blank" rel="noreferrer" className="relative group flex justify-center items-center">
                 <div className="absolute w-16 h-16 bg-[#0084ff] rounded-full animate-ping opacity-30 delay-150"></div>
                 <div className="absolute w-12 h-12 bg-[#0084ff] rounded-full animate-ping opacity-40 delay-100"></div>
                 <div className="relative w-14 h-14 rounded-full bg-[#0084ff] flex items-center justify-center text-white shadow-xl shadow-blue-500/30 hover:-translate-y-1 hover:scale-105 transition-all duration-300">
@@ -26,7 +26,7 @@ export default function FloatingContact() {
             </a>
 
          
-            <a href="tel:0964789010" className="relative group flex justify-center items-center">
+            <a href="tel:0964789014" className="relative group flex justify-center items-center">
                 <div className="absolute w-16 h-16 bg-[#28a745] rounded-full animate-ping opacity-30 delay-300"></div>
                 <div className="absolute w-12 h-12 bg-[#28a745] rounded-full animate-ping opacity-40 delay-200"></div>
                 <div className="relative w-14 h-14 rounded-full bg-[#28a745] flex items-center justify-center text-white shadow-xl shadow-green-500/30 hover:-translate-y-1 hover:scale-105 transition-all duration-300">

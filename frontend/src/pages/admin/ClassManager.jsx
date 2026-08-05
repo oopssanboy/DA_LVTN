@@ -272,7 +272,7 @@ export default function ClassManager() {
  
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Lớp học & Phân công</h1>
+                    <h1 className="text-2xl font-bold text-slate-800">Lớp học và Phân công</h1>
                     <p className="text-slate-500 mt-1">Quản lý lớp học, sĩ số và phân công Giảng viên phụ trách.</p>
                 </div>
                 <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-sm">
@@ -319,7 +319,7 @@ export default function ClassManager() {
                                         <td className="px-6 py-4">
                                             <div className="flex flex-wrap gap-1.5">
                                                 {cls.teachers?.length > 0 ? cls.teachers.map(t => (
-                                                    <span key={t.id} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold border border-blue-100 flex items-center gap-1">
+                                                    <span key={t.id} className=" px-2 py-1 rounded-md text-xs font-bold border border-blue-100 flex items-center gap-1">
                                                          {t.teacher?.name || t.name || t.email}
                                                     </span>
                                                 )) : <span className="text-slate-400 italic text-xs">Chưa phân công</span>}
@@ -413,7 +413,7 @@ export default function ClassManager() {
                            
                                 <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col h-80">
                                     <label className="block text-sm font-bold text-black mb-2 flex items-center gap-2 shrink-0">
-                                        <UserCheck className="w-5 h-5 text-blue-600"/> Phân công Giảng viên phụ trách
+                                         Phân công Giảng viên phụ trách
                                     </label>
                                     <div className="relative mb-2 shrink-0">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />

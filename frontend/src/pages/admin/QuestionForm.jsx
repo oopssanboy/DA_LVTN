@@ -175,12 +175,12 @@ export default function QuestionForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block font-medium mb-1 text-slate-700">Môn học</label>
-            {/* THÊM SỰ KIỆN onChange ĐỂ BẮT HÀNH ĐỘNG ĐỔI MÔN HỌC BẰNG TAY CỦA NGƯỜI DÙNG */}
+            
             <select 
               {...register('subject_id', {
                 onChange: (e) => {
                   fetchTopics(e.target.value);
-                  setValue('topic_id', ''); // Reset chủ đề khi đổi môn
+                  setValue('topic_id', ''); 
                 }
               })} 
               className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-indigo-200 transition"
@@ -224,8 +224,8 @@ export default function QuestionForm() {
             </select>
           </div>
           <div>
-            <label className="block font-medium mb-1 text-slate-700">Điểm số</label>
-            <input type="number" step="0.1" {...register('score')} className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-indigo-200 transition" />
+            <label className="block font-medium mb-1 text-slate-700"></label>
+            <input type="hidden" step="0.1" {...register('score')} className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2.5 focus:outline-none focus:ring focus:ring-indigo-200 transition" />
           </div>
         </div>
 

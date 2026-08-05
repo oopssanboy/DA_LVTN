@@ -126,6 +126,10 @@ class PostExamController extends Controller
         $violators = [];
         foreach($attempts as $att) {
             if ($att->violationLogs->count() > 0) {
+              
+                $existingAction = ViolationAction::where('attempt_id', $att->id)->first();
+               
+
                 $violators[] = [
                     'attempt_id' => $att->id,
                     'student_name' => $att->student->name ?? 'Khuyết danh',
@@ -133,6 +137,7 @@ class PostExamController extends Controller
                     'current_score' => $att->total_score,
                     'status' => $att->status,
                     'violation_count' => $att->violation_count,
+                    'handled_action' => $existingAction, 
                     'logs' => $att->violationLogs->map(function($log) {
                         return [
                             'type' => $log->type,
@@ -237,6 +242,12 @@ class PostExamController extends Controller
     public function getComplaintDetails($complaintId)
     {
         $complaint = Complaint::with(['studentUser.student', 'exam'])->findOrFail($complaintId);
+        
+        if ($complaint->status === 'pending') {
+            $complaint->update(['status' => 'processing']);
+        }
+ 
+
         $attempt = ExamAttempt::with('violationLogs')->where('exam_id', $complaint->exam_id)->where('student_id', $complaint->student_id)->first();
         
         $answers = [];

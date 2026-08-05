@@ -70,36 +70,68 @@ export default function TeacherDashboard() {
 
            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Users className="w-6 h-6" /></div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col items-center text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                            <Users className="w-6 h-6" />
+                        </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900">{stats.classes}</h3>
-                    <p className="text-slate-500 text-sm mt-1">Lớp đang phụ trách</p>
-                </div>
-                
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><FileText className="w-6 h-6" /></div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900">{stats.questions}</h3>
-                    <p className="text-slate-500 text-sm mt-1">Câu hỏi trong ngân hàng</p>
+
+                    <h3 className="text-2xl font-bold text-slate-900">
+                        {stats.classes}
+                    </h3>
+
+                    <p className="text-slate-500 text-sm mt-1">
+                        Lớp đang phụ trách
+                    </p>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><CheckSquare className="w-6 h-6" /></div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col items-center text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <FileText className="w-6 h-6" />
+                        </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900">{stats.exams}</h3>
-                    <p className="text-slate-500 text-sm mt-1">Kỳ thi đã tạo</p>
+
+                    <h3 className="text-2xl font-bold text-slate-900">
+                        {stats.questions}
+                    </h3>
+
+                    <p className="text-slate-500 text-sm mt-1">
+                        Câu hỏi trong ngân hàng
+                    </p>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><FileCheck className="w-6 h-6" /></div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col items-center text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                            <CheckSquare className="w-6 h-6" />
+                        </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900">{stats.totalAttempts}</h3>
-                    <p className="text-slate-500 text-sm mt-1">Tổng lượt thi sinh viên</p>
+
+                    <h3 className="text-2xl font-bold text-slate-900">
+                        {stats.exams}
+                    </h3>
+
+                    <p className="text-slate-500 text-sm mt-1">
+                        Kỳ thi đã tạo
+                    </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col items-center text-center">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                            <FileCheck className="w-6 h-6" />
+                        </div>
+                    </div>
+
+                    <h3 className="text-2xl font-bold text-slate-900">
+                        {stats.totalAttempts}
+                    </h3>
+
+                    <p className="text-slate-500 text-sm mt-1">
+                        Tổng lượt thi sinh viên
+                    </p>
                 </div>
             </div>
             <h2 className="text-xl font-bold text-slate-800 mt-10 mb-4">Lối tắt thao tác</h2>

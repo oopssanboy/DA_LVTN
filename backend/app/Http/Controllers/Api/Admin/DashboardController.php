@@ -76,7 +76,7 @@ class DashboardController extends Controller
 
                 return [
                     'name' => $displayName,
-                    'email' => $user->username, 
+                    'email' => $user->email, 
                     'date' => $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A',
                     'status' => $user->is_active == 1 ? 'active' : 'locked'
                 ];

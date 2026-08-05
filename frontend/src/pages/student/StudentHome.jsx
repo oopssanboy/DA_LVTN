@@ -270,13 +270,13 @@ export default function StudentHome() {
                                     <div className="flex-1 grid grid-cols-2 gap-3 mb-6">
                                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                                             <p className="text-xs text-slate-500 font-medium mb-1">Điểm số</p>
-                                            <p className={`text-2xl font-black ${isSuspended ? 'text-red-500' : isPassed ? 'text-emerald-600' : 'text-slate-800'}`}>
+                                            <p className={`text-2xl font-black ${isSuspended ? '' : isPassed ? '' : ''}`}>
                                                 {attempt.total_score}
                                             </p>
                                         </div>
                                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                                             <p className="text-xs text-slate-500 font-medium mb-1">Vi phạm</p>
-                                            <p className={`text-2xl font-black ${attempt.violation_count > 0 ? 'text-amber-500' : 'text-slate-800'}`}>
+                                            <p className={`text-2xl font-black ${attempt.violation_count > 0 ? '' : 'text-slate-800'}`}>
                                                 {attempt.violation_count}
                                             </p>
                                         </div>
@@ -320,8 +320,8 @@ export default function StudentHome() {
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
                         <div className="px-6 py-5 border-b border-slate-100 bg-blue-50/50 flex justify-between items-start">
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800 pr-4">{selectedExam.title}</h3>
-                                <p className="text-sm font-medium text-blue-600 mt-1">{typeof selectedExam.subject === 'object' ? selectedExam.subject?.name : selectedExam.subject}</p>
+                                <h3 className="text-xl font-bold text-slate-800 pr-4">Kỳ thi: {selectedExam.title}</h3>
+                                <p className="text-sm font-medium  mt-1">Môn học: {typeof selectedExam.subject === 'object' ? selectedExam.subject?.name : selectedExam.subject}</p>
                             </div>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 bg-white border border-slate-200 p-1.5 rounded-lg shadow-sm shrink-0">
                                 <X className="w-5 h-5"/>
@@ -351,12 +351,12 @@ export default function StudentHome() {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-600 font-medium">Điểm tối thiểu để Đạt:</span>
-                                    <span className="font-black text-emerald-600">{selectedExam.passing_score} / 10</span>
+                                    <span className="font-black">{selectedExam.passing_score} / 10</span>
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
-                                <ShieldAlert className="w-5 h-5 shrink-0" />
+                            <div className="flex items-start gap-3 p-3  rounded-xl text-sm">
+                                
                                 <div>Kỳ thi áp dụng hệ thống giám sát. Vui lòng không chuyển Tab, không chia đôi màn hình trong suốt quá trình làm bài. Vi phạm 3 lần sẽ bị tự động thu bài.</div>
                             </div>
                         </div>

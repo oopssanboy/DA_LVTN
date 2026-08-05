@@ -534,14 +534,14 @@ export default function ExamForm() {
                 </div>
             )}
 
-            {/* MODAL GIÁM THỊ */}
+           
             {showProctorModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
                         
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50 rounded-t-2xl">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center  rounded-t-2xl">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <ShieldAlert className="w-5 h-5 text-emerald-600" /> Phân công Giám thị ({watchProctorIds.length})
+                                 Phân công Giám thị ({watchProctorIds.length})
                             </h3>
                             <button type="button" onClick={() => setShowProctorModal(false)} className="text-slate-400 hover:text-slate-600 transition bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                                 <X className="w-5 h-5" />

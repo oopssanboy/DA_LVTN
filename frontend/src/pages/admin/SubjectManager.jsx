@@ -148,12 +148,12 @@ export default function SubjectManager() {
                                         <td className="px-6 py-4 font-bold text-slate-800">{subject.code}</td>
                                         <td className="px-6 py-4 font-medium text-slate-700">{subject.name}</td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xm font-bold">
                                                 {subject.courses_count || 0}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md  text-xm font-bold">
                                                 {subject.questions_count || 0}
                                             </span>
                                         </td>

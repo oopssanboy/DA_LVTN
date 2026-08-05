@@ -128,11 +128,11 @@ export default function DisciplineManager() {
 
     const getActionBadge = (type) => {
         switch (type) {
-            case 'warn': return <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold text-[11px]">CẢNH CÁO</span>;
-            case 'deduct_points': return <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg font-bold text-[11px]">TRỪ ĐIỂM</span>;
-            case 'cancel_exam': return <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-lg font-bold text-[11px]">HỦY BÀI THI</span>;
-            case 'request_expulsion': return <span className="bg-slate-800 text-white px-3 py-1 rounded-lg font-bold text-[11px]">ĐUỔI HỌC</span>;
-            default: return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg font-bold text-[11px]">{type}</span>;
+            case 'warn': return <span className=" px-3 py-1 rounded-lg font-bold text-[11px]">CẢNH CÁO</span>;
+            case 'deduct_points': return <span className=" px-3 py-1 rounded-lg font-bold text-[11px]">TRỪ ĐIỂM</span>;
+            case 'cancel_exam': return <span className=" px-3 py-1 rounded-lg font-bold text-[11px]">HỦY BÀI THI</span>;
+            case 'request_expulsion': return <span className=" px-3 py-1 rounded-lg font-bold text-[11px]">ĐUỔI HỌC</span>;
+            default: return <span className=" px-3 py-1 rounded-lg font-bold text-[11px]">{type}</span>;
         }
     };
 
@@ -153,7 +153,7 @@ export default function DisciplineManager() {
         <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
             <div>
                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <ShieldAlert className="text-rose-600 w-7 h-7" /> Quản trị Kỷ luật Toàn diện
+                    Xét duyệt Kỷ luật
                 </h1>
                 <p className="text-slate-500 mt-1">Xử lý tập trung các đề xuất trừ điểm, hủy bài và buộc thôi học từ Giảng viên.</p>
             </div>
@@ -227,13 +227,13 @@ export default function DisciplineManager() {
                 )}
             </div>
 
-            {/* MODAL XỬ LÝ CHUNG */}
+         
             {showModal && selectedItem && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
                         <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                {selectedItem.action_type === 'request_expulsion' ? <UserX className="w-5 h-5 text-rose-600"/> : <ShieldAlert className="w-5 h-5 text-orange-600"/>}
+                                {selectedItem.action_type === 'request_expulsion' ? '' : ''}
                                 {selectedItem.status === 'pending' ? 'Xét duyệt Hồ sơ' : 'Chi tiết Quyết định'}
                             </h3>
                             <button onClick={() => setShowModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition"><X className="w-5 h-5"/></button>
@@ -262,7 +262,7 @@ export default function DisciplineManager() {
                             {selectedItem.status === 'pending' ? (
                                 <div className="border-t border-slate-100 pt-6 space-y-5">
                                     
-                                    {/* Chỉ hiện ô nhập điểm nếu là trừ điểm */}
+                              
                                     {selectedItem.action_type === 'deduct_points' && (
                                         <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
                                             <label className="block text-sm font-bold text-orange-800 mb-2">Số điểm chốt trừ <span className="text-rose-500">*</span></label>

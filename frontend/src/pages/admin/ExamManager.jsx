@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { Search, Plus, Edit, Trash2, ShieldAlert, ShieldCheck, Loader2, ArrowLeft, BookOpen, Layers, CheckSquare, Settings, Lock, Unlock, Eye } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ShieldAlert, ShieldCheck, Loader2, ArrowLeft, BookOpen, Layers, CheckSquare, Settings, Lock, Unlock, Eye, CirclePlay } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import Badge from '../../components/common/Badge';
@@ -124,7 +124,7 @@ export default function ExamManager() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
       
      
       {viewMode === 'classes' && (
@@ -155,25 +155,26 @@ export default function ExamManager() {
           {classLoading ? (
              <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-blue-500"/></div>
           ) : classes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {classes.map(cls => (
                 <div 
                   key={cls.id} 
                   onClick={() => handleSelectClass(cls)}
-                  className="bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all group flex flex-col h-full"
+                  className="bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 transition-all duration-300 flex flex-col h-full"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition">
                       <Layers className="w-6 h-6" />
                     </div>
-                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold border border-slate-200 shadow-sm">
-                      {cls.exams_count || 0} Kỳ thi
-                    </span>
+                    
                   </div>
                   <h3 className="font-bold text-lg text-gray-800 mb-1 group-hover:text-blue-600 transition">{cls.name}</h3>
                   <p className="text-sm text-gray-500 font-medium mb-4 flex-1">{cls.cohort?.course?.title || 'Chưa thuộc khóa học'}</p>
-                  <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between text-sm text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                    Xem danh sách <ArrowLeft className="w-4 h-4 rotate-180"/>
+                  <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between text-sm text-blue-600 font-bold ">
+                    Xem danh sách
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold border border-slate-200 shadow-sm">
+                      {cls.exams_count || 0} Kỳ thi
+                    </span>
                   </div>
                 </div>
               ))}
@@ -204,7 +205,7 @@ export default function ExamManager() {
           <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between gap-4 items-center">
             <div className="flex items-center gap-4">
               <button onClick={() => setViewMode('classes')} className="p-2 bg-white border border-gray-200 hover:bg-gray-100 rounded-xl transition shadow-sm">
-                <ArrowLeft className="w-5 h-5 text-gray-600"/>
+                <ArrowLeft className="w-4 h-4" />
               </button>
               <div>
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">Kỳ thi lớp: {selectedClass.name}</h2>
@@ -252,18 +253,18 @@ export default function ExamManager() {
                         </td>
                         <td className="px-6 py-4">
                           {isOwner ? (
-                            <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-[11px] font-bold">Tôi tạo</span>
+                            <span className=" px-2.5 py-1 rounded-md text-xm font-bold">Bạn</span>
                           ) : (
                             <div>
-                              <span className="bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold">GV Khác</span>
+                              <span className="bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-bold">Giảng viên khác</span>
                               <p className="text-xs text-slate-500 mt-1">{item.teacher_name}</p>
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4 text-xs font-medium space-y-1">
                           <p><span className="text-gray-400">Thời gian:</span> <span className="text-gray-700">{item.duration} Phút</span></p>
-                          <p><span className="text-gray-400">Câu hỏi:</span> <span className="text-gray-700">{item.total_questions} (Sinh {item.questions_count})</span></p>
-                          {item.in_progress_count > 0 && <p className="text-green-600 font-bold animate-pulse">Có {item.in_progress_count} SV đang làm</p>}
+                          <p><span className="text-gray-400">Câu hỏi:</span> <span className="text-gray-700">{item.total_questions}</span></p>
+                          {item.in_progress_count > 0 && <p className="text-green-600 font-bold animate-pulse">Có {item.in_progress_count} Học viên đang làm</p>}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {item.is_active ? 
@@ -274,7 +275,7 @@ export default function ExamManager() {
                         <td className="px-6 py-4">
                           {isOwner ? (
                             <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => handleGenerateExam(item.id)} title="Sinh câu hỏi từ Ma trận" className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"><Settings size={18} /></button>
+                              <button onClick={() => handleGenerateExam(item.id)} title="Sinh câu hỏi từ Ma trận" className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"><CirclePlay size={18} /></button>
                               <button onClick={() => navigate(`${item.id}/edit`)} className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition"><Edit size={18} /></button>
                               <button onClick={() => handleToggleStatus(item.id)} title={item.is_active ? "Khóa phòng" : "Mở phòng"} className={`p-2 rounded-lg transition ${item.is_active ? 'text-rose-600 bg-rose-50 hover:bg-rose-100' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'}`}>
                                 {item.is_active ? <Lock size={18} /> : <Unlock size={18} />}

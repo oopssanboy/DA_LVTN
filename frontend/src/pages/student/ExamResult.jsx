@@ -38,22 +38,20 @@ export default function ExamResult() {
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
                 <div className={`h-3 w-full ${isPassed ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                 <div className="p-8 md:p-12 text-center">
-                    <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${isPassed ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                        <Award className="w-10 h-10" />
-                    </div>
+                   
                     <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Kết quả bài thi</h2>
                     <p className="text-slate-500 mb-6">{attempt.exam.title}</p>
                     
                     <div className="flex items-end justify-center gap-2 mb-4">
-                        <span className={`text-6xl font-black tracking-tighter ${isPassed ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <span className={`text-6xl font-black tracking-tighter ${isPassed ? '' : ''}`}>
                             {attempt.total_score}
                         </span>
-                        <span className="text-xl text-slate-400 font-bold mb-2">/ 10</span>
+                        <span className="text-xl  font-bold mb-2">/ 10</span>
                     </div>
 
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm border bg-slate-50">
                         Trạng thái: 
-                        <span className={isPassed ? 'text-emerald-600' : 'text-red-600'}>
+                        <span className={isPassed ? '' : ''}>
                             {isPassed ? 'ĐẠT YÊU CẦU' : 'KHÔNG ĐẠT'}
                         </span>
                     </div>
@@ -64,7 +62,7 @@ export default function ExamResult() {
             {isShowAnswers ? (
                 <div className="space-y-4">
                     <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 pl-2">
-                        <BookOpen className="w-5 h-5 text-blue-600" /> Chi tiết bài làm
+                         Chi tiết bài làm
                     </h3>
                     
                     {details.map((d, index) => {
@@ -104,7 +102,7 @@ export default function ExamResult() {
                                                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-current' : 'border-slate-300'}`}>
                                                             {isSelected && <div className="w-2 h-2 rounded-full bg-current" />}
                                                         </div>
-                                                        <span className="font-medium">{c.choice_text}</span>
+                                                        <span className="font-medium ">{c.choice_key}. {c.choice_text}</span>
                                                     </div>
                                                 );
                                             })}

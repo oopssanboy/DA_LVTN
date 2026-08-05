@@ -14,12 +14,7 @@ export default function TeacherClassManager() {
     const [loadingDetails, setLoadingDetails] = useState(false);
 
    
-    const [showEnrollModal, setShowEnrollModal] = useState(false); 
-    const [selectedClass, setSelectedClass] = useState(null); 
-    const [allStudents, setAllStudents] = useState([]); 
-    const [selectedStudentIds, setSelectedStudentIds] = useState([]); 
-    const [searchStudent, setSearchStudent] = useState(''); 
-    const [enrollLoading, setEnrollLoading] = useState(false); 
+    
 
     useEffect(() => {
         fetchClasses();
@@ -51,69 +46,14 @@ export default function TeacherClassManager() {
         }
     };
 
-    const openEnrollModal = async (cls) => { 
-        setSelectedClass(cls); 
-        setShowEnrollModal(true); 
-        setEnrollLoading(true); 
-        setSearchStudent(''); 
-        
-        try { 
-            const studentRes = await api.get('/teacher/users?role=student&is_active=1&per_page=500'); // Nới rộng limit
-            const studentsData = studentRes.data.data || studentRes.data; 
-            setAllStudents(studentsData); 
-
-            const classDetailRes = await api.get(`/teacher/classes/${cls.id}`); 
-            const currentEnrollments = classDetailRes.data.enrollments || classDetailRes.data.data?.enrollments || []; 
-        
-            const enrolledIds = currentEnrollments.map(e => Number(e.student_id)); 
-            setSelectedStudentIds(enrolledIds); 
-
-        } catch (error) { 
-            toast.error('Lỗi tải danh sách sinh viên'); 
-            setShowEnrollModal(false); 
-        } finally { 
-            setEnrollLoading(false); 
-        }
-    }; 
-
-    const toggleStudent = (studentId) => { 
-        const id = Number(studentId);
-        if (selectedStudentIds.includes(id)) { 
-            setSelectedStudentIds(selectedStudentIds.filter(item => item !== id)); 
-        } else { 
-            setSelectedStudentIds([...selectedStudentIds, id]); 
-        } 
-    }; 
-
-    const handleSaveEnrollments = async () => { 
-        const loadingToast = toast.loading('Đang đồng bộ danh sách...');
-        setEnrollLoading(true); 
-        try { 
-            await api.post(`/teacher/classes/${selectedClass.id}/enroll`, { 
-                student_ids: selectedStudentIds 
-            }); 
-            toast.success('Đồng bộ danh sách Sinh viên thành công!', { id: loadingToast }); 
-            setShowEnrollModal(false); 
-            fetchClasses(); 
-        } catch (error) { 
-            toast.error(error.response?.data?.message || 'Lỗi khi đồng bộ danh sách', { id: loadingToast }); 
-        } finally { 
-            setEnrollLoading(false); 
-        } 
-    }; 
+    
 
     const filteredClasses = classesList.filter(c => 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         c.cohort?.course?.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const filteredStudents = allStudents.filter(s => { 
-        const name = s.student?.name?.toLowerCase() || ''; 
-        const code = s.student?.student_code?.toLowerCase() || ''; 
-        const email = s.email?.toLowerCase() || ''; 
-        const q = searchStudent.toLowerCase(); 
-        return name.includes(q) || code.includes(q) || email.includes(q); 
-    }); 
+    
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
@@ -175,13 +115,7 @@ export default function TeacherClassManager() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center gap-2">
-                                            <button 
-                                                onClick={() => openEnrollModal(cls)} 
-                                                className="px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 font-bold rounded-xl transition-colors inline-flex items-center gap-2 border border-emerald-100 shadow-sm"
-                                                title="Ghi danh học viên"
-                                            >
-                                                <UserCheck className="w-4 h-4" /> Gán SV
-                                            </button>
+                                            
                                             <button 
                                                 onClick={() => handleViewDetails(cls.id)} 
                                                 className="px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 font-bold rounded-xl transition-colors inline-flex items-center gap-2 border border-blue-100 shadow-sm"
@@ -203,95 +137,7 @@ export default function TeacherClassManager() {
             </div>
 
          
-            {showEnrollModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-lg font-bold flex items-center gap-2">
-                                    Gán danh sách Sinh viên
-                                </h3>
-                                <p className="text-sm font-medium mt-1">Lớp: {selectedClass?.name}</p>
-                            </div>
-                            <button onClick={() => setShowEnrollModal(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg transition shadow-sm border border-slate-200">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Tìm theo Mã SV, Tên hoặc Email..." 
-                                    value={searchStudent}
-                                    onChange={(e) => setSearchStudent(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-emerald-500 bg-white shadow-sm text-sm font-medium" 
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/30">
-                            {enrollLoading ? (
-                                <div className="p-10 flex justify-center flex-col items-center gap-2">
-                                    <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-                                    <span className="text-sm font-medium text-slate-500">Đang tải danh sách...</span>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {filteredStudents.length === 0 ? (
-                                        <div className="text-center text-slate-500 py-10 font-medium text-sm">Không tìm thấy sinh viên nào trong hệ thống.</div>
-                                    ) : (
-                                        filteredStudents.map(student => {
-                                      
-                                            const isSelected = selectedStudentIds.includes(Number(student.id));
-                                            return (
-                                                <label 
-                                                    key={student.id} 
-                                                    className={`flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition border
-                                                        ${isSelected ? '' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-emerald-200'}`}
-                                                >
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={isSelected}
-                                                        onChange={() => toggleStudent(student.id)}
-                                                        className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 border-slate-300 cursor-pointer" 
-                                                    />
-                                                    <div className="flex-1">
-                                                        <div className="font-bold text-slate-800 text-sm">
-                                                            {student.student?.name || student.name || 'Chưa cập nhật tên'} 
-                                                            <span className="text-slate-500 font-medium text-xs ml-2">
-                                                                (MSSV: {student.student?.student_code || 'Chưa có'})
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-xs text-slate-500 mt-0.5">{student.email}</div>
-                                                    </div>
-                                                </label>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-                            <div className="text-sm font-medium text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                                Đã chọn: <strong className="text-lg mx-1">{selectedStudentIds.length}</strong> Sinh viên
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => setShowEnrollModal(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition">Hủy</button>
-                                <button 
-                                    onClick={handleSaveEnrollments} 
-                                    disabled={enrollLoading} 
-                                    className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition disabled:opacity-70 flex items-center gap-2 shadow-sm"
-                                >
-                                    {enrollLoading && <Loader2 className="w-4 h-4 animate-spin"/>} Xác nhận Ghi danh
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            
 
           
             {showDetailsModal && (

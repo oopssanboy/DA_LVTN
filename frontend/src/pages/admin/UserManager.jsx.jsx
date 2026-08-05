@@ -37,7 +37,6 @@ export default function UserManager() {
         fetchUsers();
     }, [fetchUsers]);
 
-    // Debounce search + role filter
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchUsers('/admin/users', { search: searchQuery, role: roleFilter });
@@ -176,18 +175,18 @@ export default function UserManager() {
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <span className={`px-3 py-1 text-xs font-bold uppercase
-                                                            ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                                                                user.role === 'teacher' ? 'bg-blue-100 text-blue-700' :
-                                                                user.role === 'proctor' ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-emerald-100 text-emerald-700'}`}>
+                                                            ${user.role === 'admin' ? '' :
+                                                                user.role === 'teacher' ? '' :
+                                                                user.role === 'proctor' ? '' :
+                                                                ''}`}>
                                                             {user.role}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         {user.is_active ? (
-                                                            <span className="text-emerald-600 font-bold flex items-center gap-1"><Unlock className="w-4 h-4" /> Đang hoạt động</span>
+                                                            <span className=" font-bold flex items-center gap-1"><Unlock className="w-4 h-4" /> Đang hoạt động</span>
                                                         ) : (
-                                                            <span className="text-red-600 font-bold flex items-center gap-1"><Lock className="w-4 h-4" /> Bị khóa</span>
+                                                            <span className="font-bold flex items-center gap-1"><Lock className="w-4 h-4" /> Bị khóa</span>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
@@ -239,7 +238,7 @@ export default function UserManager() {
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Shield className="w-5 h-5 text-blue-600" /> {isEdit ? 'Sửa thông tin tài khoản' : 'Tạo tài khoản mới'}
+                                {isEdit ? 'Sửa thông tin tài khoản' : 'Tạo tài khoản mới'}
                             </h3>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">

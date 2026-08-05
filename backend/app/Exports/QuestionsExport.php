@@ -11,37 +11,63 @@ class QuestionsExport implements FromCollection, WithHeadings, WithMapping
 {
     public function collection()
     {
-        // Lấy tất cả câu hỏi kèm đáp án
-        return Question::with('choices')->get();
+        $query = Question::with(['subject', 'topic', 'choices', 'fillBlankAnswers']);
+        
+  
+        if (auth()->check() && auth()->user()->role === 'teacher') {
+            $query->where('teacher_id', auth()->id());
+        }
+        
+        return $query->get();
     }
 
     public function headings(): array
     {
         return [
-            'subject', 'topic', 'content', 'type', 'difficulty',
-            'correct_answer', 'score', 'explanation',
-            'choice_a', 'choice_b', 'choice_c', 'choice_d'
+            'subject_code',
+            'topic_name',
+            'type',
+            'difficulty',
+            'content',
+            'score',
+            'choices',
+            'answer'
         ];
     }
 
     public function map($question): array
     {
-        $choices = $question->choices->keyBy('choice_key');
-        
+        $choicesStr = '';
+        $answerStr = '';
+
+        if ($question->type !== 'fill_blank') {
+            $choices = [];
+            $corrects = [];
+            foreach ($question->choices as $c) {
+                $choices[] = $c->choice_key . ':' . $c->choice_text;
+                if ($c->is_correct) {
+                    $corrects[] = $c->choice_key;
+                }
+            }
+            $choicesStr = implode('; ', $choices);
+            $answerStr = implode(',', $corrects);
+        } else {
+            $answers = [];
+            foreach ($question->fillBlankAnswers as $a) {
+                $answers[] = $a->accepted_text;
+            }
+            $answerStr = implode('|', $answers);
+        }
+
         return [
-            $question->subject,
-            $question->topic,
-            strip_tags($question->content),
+            $question->subject->code ?? '',
+            $question->topic->name ?? '',
             $question->type,
             $question->difficulty,
-            $question->correct_answer,
+            strip_tags($question->content), 
             $question->score,
-            $question->explanation,
-            // Dùng hàm optional() thay cho ?-> để không bị lỗi trên các bản PHP cũ
-            optional($choices->get('A'))->choice_text ?? '',
-            optional($choices->get('B'))->choice_text ?? '',
-            optional($choices->get('C'))->choice_text ?? '',
-            optional($choices->get('D'))->choice_text ?? '',
+            $choicesStr,
+            $answerStr
         ];
     }
 }

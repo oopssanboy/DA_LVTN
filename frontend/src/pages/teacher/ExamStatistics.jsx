@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { Loader2, Search, BarChart2, Download, FileSpreadsheet, FileText, Users, Target, Award, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import toast from 'react-hot-toast';
 
 export default function ExamStatistics() {
+    const { user } = useAuth();
     const [exams, setExams] = useState([]);
     const [selectedExamId, setSelectedExamId] = useState('');
     
-    // States cho dữ liệu thống kê
+   
     const [loadingExams, setLoadingExams] = useState(true);
     const [loadingStats, setLoadingStats] = useState(false);
     
@@ -16,7 +18,7 @@ export default function ExamStatistics() {
     const [scoreDist, setScoreDist] = useState([]);
     const [questionStats, setQuestionStats] = useState([]);
 
-    // 1. Tải danh sách kỳ thi
+   
     useEffect(() => {
         const fetchExams = async () => {
             try {
@@ -31,7 +33,7 @@ export default function ExamStatistics() {
         fetchExams();
     }, []);
 
-    // 2. Tải thống kê khi chọn kỳ thi mới
+   
     useEffect(() => {
         if (!selectedExamId) return;
 
@@ -46,7 +48,7 @@ export default function ExamStatistics() {
 
                 setOverview(overviewRes.data);
                 
-                // Convert dữ liệu phân bổ điểm sang format của Recharts
+               
                 const distData = Object.keys(distRes.data).map(key => ({
                     range: key,
                     count: distRes.data[key]
@@ -64,7 +66,7 @@ export default function ExamStatistics() {
         fetchStatistics();
     }, [selectedExamId]);
 
-    // 3. Xử lý xuất file
+   
     const handleExport = async (type) => {
         if (!selectedExamId) return;
         const loadingToast = toast.loading(`Đang tạo file ${type.toUpperCase()}...`);
@@ -73,7 +75,7 @@ export default function ExamStatistics() {
             const endpoint = `/teacher/statistics/${selectedExamId}/export-${type}`;
             const response = await api.get(endpoint, { responseType: 'blob' });
             
-            // Tạo link tải file ẩn
+           
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -129,9 +131,17 @@ export default function ExamStatistics() {
                             className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 font-medium bg-white appearance-none cursor-pointer"
                         >
                             <option value="" disabled>-- Hãy chọn một kỳ thi --</option>
-                            {exams.map(exam => (
-                                <option key={exam.id} value={exam.id}>{exam.title} - Môn: {exam.subject?.name}</option>
-                            ))}
+                            {exams
+                                .filter(exam => {
+                                    const isOwner = user?.role === 'admin' || String(exam.teacher_id) === String(user?.id);
+                                    return isOwner;
+                                })
+                                .map(exam => (
+                                    <option key={exam.id} value={exam.id}>
+                                        {exam.title} - Môn: {exam.subject?.name}
+                                    </option>
+                                ))
+                            }
                         </select>
                     )}
                 </div>
@@ -189,7 +199,7 @@ export default function ExamStatistics() {
                         </div>
                     </div>
 
-                    {/* BIỂU ĐỒ PHỔ ĐIỂM */}
+                   
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                             <BarChart2 className="w-5 h-5 text-blue-600" /> Phân bố phổ điểm (Score Distribution)
@@ -214,11 +224,11 @@ export default function ExamStatistics() {
                         </div>
                     </div>
 
-                    {/* CHI TIẾT ĐỘ PHÂN CÁCH CÂU HỎI */}
+                  
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5 text-orange-500" /> Phân tích chất lượng câu hỏi
+                                Phân tích chất lượng câu hỏi
                             </h2>
                         </div>
                         <div className="overflow-x-auto">
