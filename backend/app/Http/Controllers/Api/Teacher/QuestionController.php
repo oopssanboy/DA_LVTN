@@ -55,7 +55,7 @@ class QuestionController extends Controller
    
     public function store(Request $request)
     {
-        $existingQuestion = Question::where('content', $request->input('content'))->first();
+        $existingQuestion = Question::where('content', 'like', '%' . $request->input('content') . '%')->first();
         if ($existingQuestion) {
             return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại.'], 422);
         }
