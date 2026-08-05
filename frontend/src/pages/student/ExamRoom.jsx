@@ -50,7 +50,9 @@ export default function ExamRoom() {
         try {
             const res = await api.get(`/student/attempts/${attemptId}`);
             const data = res.data;
-            
+            if (data.exam) {
+                data.exam.is_practice = data.exam.is_practice === true || data.exam.is_practice === 1 || data.exam.is_practice === '1';
+            }
             setExam(data.exam);
             setAttempt(data.attempt);
             setQuestions(data.questions);
