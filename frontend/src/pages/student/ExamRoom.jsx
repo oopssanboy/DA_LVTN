@@ -343,7 +343,7 @@ export default function ExamRoom() {
     return (
         <>
         
-            {!isFullscreen && !isSubmitting && !exam?.is_practice && timeLeft !== null && timeLeft > 0 && (
+            {!isFullscreen && !isSubmitting && !Boolean(exam?.is_practice) && timeLeft !== null && timeLeft > 0 && (
                 <div className="fixed inset-0 z-[9999] bg-slate-900 flex flex-col items-center justify-center text-white px-4 text-center">
                     <AlertTriangle className="w-24 h-24 text-amber-500 mb-6 animate-pulse" />
                     <h1 className="text-3xl font-bold mb-4">Yêu Cầu Toàn Màn Hình</h1>
