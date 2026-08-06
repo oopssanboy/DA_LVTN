@@ -9,6 +9,16 @@ class Exam extends Model
         'password', 'passing_score', 'shuffle_questions', 'shuffle_options',
         'start_time', 'end_time', 'is_active', 'show_answers', 'is_practice'
     ];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'show_answers' => 'boolean',
+        'is_practice' => 'boolean',
+        'shuffle_questions' => 'boolean',
+        'shuffle_options' => 'boolean',
+        'passing_score' => 'float',
+        'total_questions' => 'integer',
+        'duration' => 'integer',
+    ];
 
     public function classes() { 
         return $this->belongsToMany(Classes::class, 'exam_classes', 'exam_id', 'class_id'); 
