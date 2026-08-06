@@ -30,7 +30,7 @@ export default function ExamResult() {
     const isPassed = attempt.is_passed;
     
    
-    const isShowAnswers = attempt.exam.show_answers === 1 || attempt.exam.show_answers === true;
+    const isShowAnswers = [1, '1', true, 'true'].includes(attempt.exam.show_answers);
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-20 font-sans mt-4">
