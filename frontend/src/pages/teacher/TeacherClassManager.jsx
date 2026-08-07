@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Search, Loader2, Eye, X, Users, GraduationCap, Layers, Calendar, UserCircle, UserCheck } from 'lucide-react';
+import { Search, Loader2, Eye, X, Users, GraduationCap, Layers, Calendar, UserCircle, UserCheck, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function TeacherClassManager() {
     const [classesList, setClassesList] = useState([]);
+    const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     
-  
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedClassDetails, setSelectedClassDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
-   
-    
-
     useEffect(() => {
         fetchClasses();
+        fetchSubjects();
     }, []);
 
     const fetchClasses = async () => {
@@ -29,6 +27,15 @@ export default function TeacherClassManager() {
             toast.error('Lỗi tải danh sách lớp học');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchSubjects = async () => {
+        try {
+            const res = await api.get('/teacher/subjects?per_page=100');
+            setSubjects(res.data.data || res.data);
+        } catch (error) {
+            console.error('Lỗi tải danh sách môn học:', error);
         }
     };
 
@@ -46,14 +53,10 @@ export default function TeacherClassManager() {
         }
     };
 
-    
-
     const filteredClasses = classesList.filter(c => 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         c.cohort?.course?.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10 font-sans">
@@ -115,7 +118,6 @@ export default function TeacherClassManager() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center gap-2">
-                                            
                                             <button 
                                                 onClick={() => handleViewDetails(cls.id)} 
                                                 className="px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 font-bold rounded-xl transition-colors inline-flex items-center gap-2 border border-blue-100 shadow-sm"
@@ -136,16 +138,12 @@ export default function TeacherClassManager() {
                 )}
             </div>
 
-         
-            
-
-          
             {showDetailsModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl shadow-xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 shrink-0">
                             <div>
-                                <h3 className="font-bold text-xl flex items-center gap-2">
+                                <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
                                     Lớp: {selectedClassDetails?.name || 'Đang tải...'}
                                 </h3>
                             </div>
@@ -192,7 +190,47 @@ export default function TeacherClassManager() {
 
                                     <div>
                                         <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
-                                            <UserCircle className="w-5 h-5 text-slate-400" /> Danh sách sinh viên
+                                            <Users className="w-5 h-5 text-slate-400" /> Phân công Giảng dạy
+                                        </h4>
+                                        <div className="border border-slate-200 rounded-xl overflow-hidden mb-6">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                                    <tr>
+                                                        <th className="px-4 py-3 w-16 text-center">STT</th>
+                                                        <th className="px-4 py-3">Môn phụ trách</th>
+                                                        <th className="px-4 py-3">Họ và tên</th>
+                                                        
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {selectedClassDetails.teachers && selectedClassDetails.teachers.length > 0 ? (
+                                                        selectedClassDetails.teachers.map((teacher, index) => {
+                                                            const subjectName = subjects.find(s => s.id == teacher.pivot.subject_id)?.name || 'N/A';
+                                                            return (
+                                                                <tr key={index} className="hover:bg-slate-50 transition-colors">
+                                                                    <td className="px-4 py-3 text-center font-medium text-slate-700">{index + 1}</td>
+                                                                    <td className="px-4 py-3 font-bold text-blue-600">{subjectName}</td>
+                                                                    <td className="px-4 py-3 font-bold text-slate-700">{teacher.teacher?.name || teacher.name || teacher.email}</td>
+                                                                    
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan="3" className="px-4 py-8 text-center text-slate-500 font-medium bg-slate-50/50">
+                                                                Chưa có giảng viên nào được phân công.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                   
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                                            <UserCheck className="w-5 h-5 text-slate-400" /> Danh sách sinh viên
                                         </h4>
                                         <div className="border border-slate-200 rounded-xl overflow-hidden">
                                             <table className="w-full text-left text-sm">
@@ -229,9 +267,9 @@ export default function TeacherClassManager() {
                             )}
                         </div>
                         
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
                             <button onClick={() => setShowDetailsModal(false)} className="bg-white border border-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm">
-                                Đóng
+                                Đóng lại
                             </button>
                         </div>
                     </div>

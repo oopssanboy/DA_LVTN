@@ -9,7 +9,7 @@ class CohortController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Cohort::with(['course'])
+        $query = Cohort::with(['course.subjects'])
             ->withCount('classes')
             ->orderBy('created_at', 'desc');
 

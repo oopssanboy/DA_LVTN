@@ -26,6 +26,7 @@ class Classes extends Model
     public function teachers()
     {
         return $this->belongsToMany(User::class, 'class_teacher', 'class_id', 'teacher_id')
+                    ->withPivot('subject_id') 
                     ->using(ClassTeacher::class); 
     }
 

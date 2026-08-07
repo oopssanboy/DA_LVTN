@@ -13,6 +13,7 @@ class ClassTeacher extends Pivot
 
     protected $fillable = [
         'class_id', 
-        'teacher_id'
+        'teacher_id',
+        'subject_id'
     ];
 }

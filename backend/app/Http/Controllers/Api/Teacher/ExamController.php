@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamMatrix;
 use App\Models\ExamQuestion;
 use App\Models\Question;
+use App\Models\ExamAttempt;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NewExamMail;
 use App\Models\ClassEnrollment;
@@ -97,6 +98,35 @@ class ExamController extends Controller
         
         unset($data['matrices'], $data['class_ids'], $data['proctor_ids'], $data['class_id']);
 
+        if (!empty($proctorIds) && isset($data['start_time']) && isset($data['end_time'])) {
+            $startTime = $data['start_time'];
+            $endTime = $data['end_time'];
+            
+            $conflictingExams = Exam::where('start_time', '<', $endTime)
+                ->where('end_time', '>', $startTime)
+                ->whereHas('proctors', function ($q) use ($proctorIds) {
+                    $q->whereIn('users.id', $proctorIds);
+                })
+                ->with(['proctors' => function($q) use ($proctorIds) {
+                    $q->whereIn('users.id', $proctorIds);
+                }])
+                ->get();
+
+            if ($conflictingExams->isNotEmpty()) {
+                $conflictingProctorNames = collect();
+                foreach ($conflictingExams as $cExam) {
+                    foreach ($cExam->proctors as $p) {
+                        $conflictingProctorNames->push($p->name ?? $p->email);
+                    }
+                }
+                $names = $conflictingProctorNames->unique()->implode(', ');
+                return response()->json([
+                    'message' => "Lỗi phân công! Giám thị [{$names}] đã có ca thi trùng với khung giờ này."
+                ], 422);
+            }
+        }
+
+
         $totalQuantity = collect($matrices)->sum('quantity');
         if ($totalQuantity != $data['total_questions']) {
             return response()->json(['message' => 'Tổng số câu hỏi không khớp.'], 422);
@@ -128,7 +158,7 @@ class ExamController extends Controller
 
     public function update(ExamRequest $request, $id)
     {
-        $isRunning = \App\Models\ExamAttempt::where('exam_id', $id)->where('status', 'in_progress')->exists();
+        $isRunning = ExamAttempt::where('exam_id', $id)->where('status', 'in_progress')->exists();
     if ($isRunning) {
         return response()->json(['message' => 'Không thể sửa! Đang có sinh viên làm bài thi này.'], 403);
     }
@@ -141,6 +171,35 @@ class ExamController extends Controller
         
         unset($data['matrices'], $data['class_ids'], $data['proctor_ids'], $data['class_id']);
         
+        $startTime = $data['start_time'] ?? $exam->start_time;
+        $endTime = $data['end_time'] ?? $exam->end_time;
+
+        if (!empty($proctorIds) && $startTime && $endTime) {
+            $conflictingExams = Exam::where('id', '!=', $exam->id) 
+                ->where('start_time', '<', $endTime)
+                ->where('end_time', '>', $startTime)
+                ->whereHas('proctors', function ($q) use ($proctorIds) {
+                    $q->whereIn('users.id', $proctorIds);
+                })
+                ->with(['proctors' => function($q) use ($proctorIds) {
+                    $q->whereIn('users.id', $proctorIds);
+                }])
+                ->get();
+
+            if ($conflictingExams->isNotEmpty()) {
+                $conflictingProctorNames = collect();
+                foreach ($conflictingExams as $cExam) {
+                    foreach ($cExam->proctors as $p) {
+                        $conflictingProctorNames->push($p->name ?? $p->email);
+                    }
+                }
+                $names = $conflictingProctorNames->unique()->implode(', ');
+                return response()->json([
+                    'message' => "Lỗi phân công! Giám thị [{$names}] đã bị vướng ca thi khác trong khung giờ này."
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
         try {
             $exam->update($data);
@@ -167,7 +226,7 @@ class ExamController extends Controller
 
     public function destroy($id)
     {
-       $isRunning = \App\Models\ExamAttempt::where('exam_id', $id)->where('status', 'in_progress')->exists();
+       $isRunning = ExamAttempt::where('exam_id', $id)->where('status', 'in_progress')->exists();
     if ($isRunning) {
         return response()->json(['message' => 'Không thể xóa! Đang có sinh viên làm bài thi này.'], 403);
     }

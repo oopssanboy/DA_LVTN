@@ -13,45 +13,47 @@ use App\Mail\ClassEnrollmentMail;
 
 class ClassController extends Controller
 {
-   public function index(Request $request)
+    public function index(Request $request)
     {
-    $query = Classes::with(['cohort.course', 'teachers'])
-        ->withCount(['enrollments', 'exams'])
-        ->orderBy('created_at', 'desc');
+        $query = Classes::with(['cohort.course', 'teachers.teacher'])
+            ->withCount(['enrollments', 'exams'])
+            ->orderBy('created_at', 'desc');
 
+        if (auth()->check() && auth()->user()->role === 'teacher') {
+            $query->whereHas('teachers', function($q) {
+                $q->where('users.id', auth()->id());
+            });
+        }
 
-    if (auth()->check() && auth()->user()->role === 'teacher') {
-        $query->whereHas('teachers', function($q) {
-            $q->where('users.id', auth()->id());
-        });
-    }
-
-    if ($request->has('search') && $request->search != '') {
-        $search = $request->search;
-        $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', '%' . $search . '%')
-              ->orWhereHas('cohort.course', function ($q2) use ($search) {
-                  $q2->where('title', 'like', '%' . $search . '%')
-                     ->orWhere('code', 'like', '%' . $search . '%');
-              })
-              ->orWhereHas('teachers', function ($q2) use ($search) {
-                  $q2->where('name', 'like', '%' . $search . '%')
-                     ->orWhere('teacher_code', 'like', '%' . $search . '%')
-                     ->orWhere('email', 'like', '%' . $search . '%');
-              });
-        });
-    }
-    if ($request->has('subject_id') && $request->subject_id != '') {
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhereHas('cohort.course', function ($q2) use ($search) {
+                      $q2->where('title', 'like', '%' . $search . '%')
+                         ->orWhere('code', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('teachers', function ($q2) use ($search) {
+                      $q2->where('name', 'like', '%' . $search . '%')
+                         ->orWhere('teacher_code', 'like', '%' . $search . '%')
+                         ->orWhere('email', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+        
+        if ($request->has('subject_id') && $request->subject_id != '') {
             $subjectId = $request->subject_id;
             $query->whereHas('cohort.course.subjects', function ($q) use ($subjectId) {
                 $q->where('subjects.id', $subjectId);
             });
         }
 
-    $perPage = $request->input('per_page', 10);
-    $classes = $query->paginate($perPage);
+        $perPage = $request->input('per_page', 10);
+        $classes = $query->paginate($perPage);
 
-    return response()->json($classes, 200);
+        
+
+        return response()->json($classes, 200);
     }
 
     public function store(Request $request)
@@ -61,22 +63,25 @@ class ClassController extends Controller
             'name' => 'required|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'teacher_ids' => 'nullable|array', 
-            'teacher_ids.*' => 'exists:users,id'
+            'teacher_assignments' => 'nullable|array', 
+            'teacher_assignments.*.teacher_id' => 'required|exists:users,id',
+            'teacher_assignments.*.subject_id' => 'required|exists:subjects,id'
         ]);
 
         DB::beginTransaction();
         try {
-            $class = Classes::create([
-                'cohort_id' => $request->input('cohort_id'),
-                'name' => $request->input('name'),
-                'start_date' => $request->input('start_date'),
-                'end_date' => $request->input('end_date'),
-            ]);
+            $class = Classes::create($request->only('cohort_id', 'name', 'start_date', 'end_date'));
 
-       
-            if ($request->has('teacher_ids')) {
-                $class->teachers()->sync($request->input('teacher_ids'));
+            if ($request->has('teacher_assignments')) {
+                $assignments = [];
+                foreach ($request->teacher_assignments as $assignment) {
+                    $assignments[] = [
+                        'class_id' => $class->id,
+                        'teacher_id' => $assignment['teacher_id'],
+                        'subject_id' => $assignment['subject_id'],
+                    ];
+                }
+                DB::table('class_teacher')->insert($assignments);
             }
 
             DB::commit();
@@ -89,10 +94,9 @@ class ClassController extends Controller
 
     public function show($id)
     {
-        
         $class = Classes::with([
             'cohort.course.subjects', 
-            'teachers', 
+            'teachers.teacher',
             'enrollments.student'
         ])->find($id);
 
@@ -114,22 +118,27 @@ class ClassController extends Controller
             'name' => 'required|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'teacher_ids' => 'nullable|array',
-            'teacher_ids.*' => 'exists:users,id'
+            'teacher_assignments' => 'nullable|array',
+            'teacher_assignments.*.teacher_id' => 'required|exists:users,id',
+            'teacher_assignments.*.subject_id' => 'required|exists:subjects,id'
         ]);
 
         DB::beginTransaction();
         try {
-            $class->update([
-                'cohort_id' => $request->input('cohort_id'),
-                'name' => $request->input('name'),
-                'start_date' => $request->input('start_date'),
-                'end_date' => $request->input('end_date'),
-            ]);
+            $class->update($request->only('cohort_id', 'name', 'start_date', 'end_date'));
 
-          
-            if ($request->has('teacher_ids')) {
-                $class->teachers()->sync($request->input('teacher_ids'));
+            if ($request->has('teacher_assignments')) {
+                DB::table('class_teacher')->where('class_id', $class->id)->delete();
+                
+                $assignments = [];
+                foreach ($request->teacher_assignments as $assignment) {
+                    $assignments[] = [
+                        'class_id' => $class->id,
+                        'teacher_id' => $assignment['teacher_id'],
+                        'subject_id' => $assignment['subject_id'],
+                    ];
+                }
+                DB::table('class_teacher')->insert($assignments);
             }
 
             DB::commit();
@@ -166,10 +175,11 @@ class ClassController extends Controller
         DB::beginTransaction();
         try {
             $oldStudentIds = ClassEnrollment::where('class_id', $class->id)->pluck('student_id')->toArray();
-           $newStudentIds = array_unique($request->input('student_ids'));
+            $newStudentIds = array_unique($request->input('student_ids'));
 
             $addedIds = array_diff($newStudentIds, $oldStudentIds);
             $removedIds = array_diff($oldStudentIds, $newStudentIds);
+            
             ClassEnrollment::where('class_id', $class->id)->delete();
 
             $enrollments = [];
@@ -185,6 +195,7 @@ class ClassController extends Controller
             ClassEnrollment::insert($enrollments);
 
             DB::commit();
+            
             $addedUsers = User::whereIn('id', $addedIds)->get();
             foreach ($addedUsers as $user) {
                 Mail::to($user->email)->send(new ClassEnrollmentMail($class, 'added'));
@@ -194,6 +205,7 @@ class ClassController extends Controller
             foreach ($removedUsers as $user) {
                 Mail::to($user->email)->send(new ClassEnrollmentMail($class, 'removed'));
             }
+            
             return response()->json(['message' => 'Đồng bộ danh sách sinh viên vào lớp thành công'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
