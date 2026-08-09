@@ -106,7 +106,8 @@ export default function ComplaintManager() {
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-blue-500 bg-slate-50 hover:bg-slate-100/50 transition cursor-pointer"
                                 >
                                     <option value="">Chọn kỳ thi bạn muốn khiếu nại...</option>
-                                    {exams.length > 0 ? exams.map(e => (
+                                    {exams.length > 0 ? exams.filter(e => ![1, '1', true, 'true'].includes(e.is_practice))
+                                    .map(e => (
                                         <option key={e.id} value={e.id}>{e.title}</option>
                                     )) : (
                                         <option value="" disabled>Bạn chưa có lịch sử làm bài nào.</option>

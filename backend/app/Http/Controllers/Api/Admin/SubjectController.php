@@ -30,11 +30,15 @@ class SubjectController extends Controller
     }
     if (auth()->check() && auth()->user()->role === 'teacher') {
             $teacherId = auth()->id();
-            $query->whereHas('courses.cohorts.classes.teachers', function($q) use ($teacherId) {
-                $q->where('users.id', $teacherId);
+            
+            $query->whereIn('id', function($subQuery) use ($teacherId) {
+                $subQuery->select('subject_id')
+                         ->from('class_teacher')
+                         ->where('teacher_id', $teacherId)
+                         ->whereNotNull('subject_id');
             });
         }
-
+    
     $perPage = $request->input('per_page', 10);
     $subjects = $query->paginate($perPage);
 

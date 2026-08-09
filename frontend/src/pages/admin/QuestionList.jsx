@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Edit, Trash2, Search, Loader2, Upload, Download, Filter, ArrowLeft, BookOpen, FolderOpen, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, Upload, Download, Filter, ArrowLeft, BookOpen, FolderOpen, FileSpreadsheet, Lock, Eye } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -21,7 +21,6 @@ export default function QuestionList() {
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [questionSearch, setQuestionSearch] = useState('');
     const [filters, setFilters] = useState({ difficulty: '', type: ''});
-
 
     const [isImporting, setIsImporting] = useState(false);
     const fileInputRef = useRef(null);
@@ -83,7 +82,7 @@ export default function QuestionList() {
     const handleDelete = async (id) => {
         const result = await Swal.fire({
             title: 'Xóa câu hỏi?',
-            text: "Không thể hoàn tác hành động này!",
+            text: "Câu hỏi sẽ được đưa vào thùng rác để bảo vệ lịch sử bài thi. Không thể hoàn tác!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -93,7 +92,7 @@ export default function QuestionList() {
         if (result.isConfirmed) {
             try {
                 await api.delete(`${apiPrefix}/questions/${id}`);
-                toast.success('Xóa câu hỏi thành công');
+                toast.success('Đưa vào thùng rác thành công');
                 fetchQuestions(`${apiPrefix}/questions`, {
                     subject_id: selectedSubject.id,
                     search: questionSearch
@@ -105,7 +104,6 @@ export default function QuestionList() {
         }
     };
 
-    
     const handleImportClick = () => {
         fileInputRef.current.click();
     };
@@ -126,7 +124,6 @@ export default function QuestionList() {
             });
             toast.success('Import câu hỏi thành công!', { id: toastId });
             
-         
             if (selectedSubject) {
                 fetchQuestions(`${apiPrefix}/questions`, {
                     subject_id: selectedSubject.id,
@@ -369,6 +366,9 @@ export default function QuestionList() {
                                     tmp.innerHTML = q.content;
                                     const textContent = tmp.textContent || tmp.innerText || '';
 
+                                    // Kiểm tra xem câu hỏi đã bị khóa (đang sử dụng trong đề thi) hay chưa
+                                    const isLocked = q.exam_questions_count > 0 || q.is_used;
+
                                     return (
                                         <tr key={q.id} className="hover:bg-slate-50/80 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-700">{q.topic?.name || 'N/A'}</td>
@@ -378,29 +378,36 @@ export default function QuestionList() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`px-3 py-1 rounded-md text-xs font-bold ${
-                                                    q.type === 'fill_blank' ? '' : ''
-                                                }`}>
+                                                <span className={`px-3 py-1 rounded-md text-xs font-bold`}>
                                                     {q.type === 'fill_blank' ? 'Điền khuyết' : 'Trắc nghiệm'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`px-3 py-1 rounded-md text-[10px] font-black tracking-wider uppercase ${
-                                                    q.difficulty === 'easy' ? '' :
-                                                    q.difficulty === 'medium' ? '' :
-                                                    ''
-                                                }`}>
+                                                <span className={`px-3 py-1 rounded-md text-[10px] font-black tracking-wider uppercase`}>
                                                     {q.difficulty}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                                                        <Edit className="w-5 h-5" />
-                                                    </Link>
-                                                    <button onClick={() => handleDelete(q.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
-                                                        <Trash2 className="w-5 h-5" />
-                                                    </button>
+                                                    {isLocked ? (
+                                                        <>
+                                                            <button type="button" className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg cursor-help transition" title="Câu hỏi đã được dùng trong đề thi, không thể xóa">
+                                                                <Lock className="w-5 h-5" />
+                                                            </button>
+                                                            <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Xem chi tiết (Chỉ đọc)">
+                                                                <Eye className="w-5 h-5" />
+                                                            </Link>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Link to={`${apiPrefix}/questions/${q.id}/edit`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa câu hỏi">
+                                                                <Edit className="w-5 h-5" />
+                                                            </Link>
+                                                            <button onClick={() => handleDelete(q.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Xóa vào thùng rác">
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

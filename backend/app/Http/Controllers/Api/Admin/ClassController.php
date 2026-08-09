@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Classes;
+use App\Models\Subject;
 use App\Models\ClassEnrollment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -50,8 +51,15 @@ class ClassController extends Controller
 
         $perPage = $request->input('per_page', 10);
         $classes = $query->paginate($perPage);
-
         
+        $subjects = Subject::pluck('name', 'id');
+        $classes->getCollection()->transform(function ($class) use ($subjects) {
+            $class->teachers->transform(function ($teacher) use ($subjects) {
+                $teacher->setAttribute('subject_name', $subjects[$teacher->pivot->subject_id] ?? 'Chưa cập nhật');
+                return $teacher;
+            });
+            return $class;
+        });
 
         return response()->json($classes, 200);
     }
@@ -103,6 +111,11 @@ class ClassController extends Controller
         if (!$class) {
             return response()->json(['message' => 'Không tìm thấy lớp học'], 404);
         }
+        $subjects = Subject::pluck('name', 'id');
+        $class->teachers->transform(function ($teacher) use ($subjects) {
+            $teacher->setAttribute('subject_name', $subjects[$teacher->pivot->subject_id] ?? 'Chưa cập nhật');
+            return $teacher;
+        });
         return response()->json($class, 200);
     }
 

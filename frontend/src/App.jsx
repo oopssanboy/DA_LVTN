@@ -49,7 +49,9 @@ import ExamResult from './pages/student/ExamResult';
 import MyExams from './pages/student/MyExams.jsx';
 import PracticeExams from './pages/student/PracticeExams';
 import ExamHistory from './pages/student/ExamHistory';
+import MyCourses from './pages/student/MyCourses';
 import ComplaintManager from './pages/student/ComplaintManager';
+
 
 import StudentRadar from './pages/student/StudentRadar';
 import LearningPath from './pages/student/LearningPath.jsx';
@@ -158,6 +160,7 @@ function App() {
             <Route path="exams" element={<MyExams />} />
             <Route path="practice" element={<PracticeExams />} />
             <Route path="history" element={<ExamHistory />} />
+            <Route path="my-courses" element={<MyCourses />} />
            
             <Route path="radar" element={<StudentRadar />} />
             <Route path="learning-path" element={<LearningPath />} />

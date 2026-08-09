@@ -47,28 +47,28 @@ class ComplaintApprovalController extends Controller
                 }
                 
                 $complaint->update(['status' => 'resolved', 'admin_note' => $request->admin_note]);
-                $notiContent = "Khiếu nại điểm môn {$complaint->exam->title} đã được BQT phê duyệt. Điểm mới của bạn là: {$complaint->proposed_score}.";
-                $teacherContent = "Đề xuất sửa điểm cho SV {$complaint->studentUser->student->name} ĐÃ ĐƯỢC DUYỆT.";
+                $notiContent = "Khiếu nại điểm môn {$complaint->exam->title} đã được Quản trị viên phê duyệt. Điểm mới của bạn là: {$complaint->proposed_score}.";
+                $teacherContent = "Đề xuất sửa điểm cho Học viên {$complaint->studentUser->student->name} ĐÃ ĐƯỢC DUYỆT.";
                 
             } else {
                
                 $complaint->update(['status' => 'rejected', 'admin_note' => $request->admin_note]);
                 $notiContent = "Đề xuất sửa điểm môn {$complaint->exam->title} đã BỊ TỪ CHỐI. Điểm được giữ nguyên.";
-                $teacherContent = "Đề xuất sửa điểm cho SV {$complaint->studentUser->student->name} BỊ TỪ CHỐI.";
+                $teacherContent = "Đề xuất sửa điểm cho Học viên {$complaint->studentUser->student->name} BỊ TỪ CHỐI.";
             }
 
           
             Notification::create([
                 'user_id' => $complaint->studentUser->id, 'sender_id' => Auth::id() ?? 1,
                 'title' => "Kết quả khiếu nại môn {$complaint->exam->title}", 
-                'content' => $notiContent . " Ghi chú BQT: {$request->admin_note}", 
+                'content' => $notiContent . " Ghi chú Quản trị viên: {$request->admin_note}", 
                 'target_role' => 'student'
             ]);
 
             Notification::create([
                 'user_id' => $complaint->exam->teacher_id, 'sender_id' => Auth::id() ?? 1,
                 'title' => "Kết quả duyệt sửa điểm môn {$complaint->exam->title}", 
-                'content' => $teacherContent . " Ghi chú BQT: {$request->admin_note}", 
+                'content' => $teacherContent . " Ghi chú Quản trị viên: {$request->admin_note}", 
                 'target_role' => 'teacher'
             ]);
 

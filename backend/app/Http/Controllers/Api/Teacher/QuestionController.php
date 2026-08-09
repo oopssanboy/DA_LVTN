@@ -18,7 +18,8 @@ class QuestionController extends Controller
  
     public function index(Request $request)
     {
-        $query = Question::with(['subject', 'topic', 'choices', 'fillBlankAnswers']);
+        $query = Question::with(['subject', 'topic', 'choices', 'fillBlankAnswers'])
+        ->withCount('examQuestions');
 
         if (Auth::user()->role === 'teacher') {
             $query->where('teacher_id', Auth::id());
@@ -52,13 +53,63 @@ class QuestionController extends Controller
         return response()->json($questions);
     }
 
+    public function checkSimilarity(Request $request)
+    {
+        $content = strip_tags($request->input('content'));
+        $subjectId = $request->subject_id;
+        $excludeId = $request->exclude_id; 
+
+        $normalized = mb_strtolower(trim($content));
+        $hash = hash('sha256', $normalized);
+
+      
+        $exactMatch = Question::where('subject_id', $subjectId)
+            ->where('question_hash', $hash)
+            ->when($excludeId, function($q) use ($excludeId) {
+                return $q->where('id', '!=', $excludeId);
+            })
+            ->exists();
+
+        if ($exactMatch) {
+            return response()->json(['status' => 'exact_match', 'message' => 'Câu hỏi đã tồn tại chính xác 100% trong ngân hàng môn học này.']);
+        }
+
+    
+        $otherQuestions = Question::where('subject_id', $subjectId)
+            ->when($excludeId, function($q) use ($excludeId) {
+                return $q->where('id', '!=', $excludeId);
+            })->get();
+
+        $maxSim = 0;
+        $similarContent = '';
+        $similarOwner = '';
+
+        foreach ($otherQuestions as $q) {
+            $qNormalized = mb_strtolower(trim(strip_tags($q->content)));
+            similar_text($normalized, $qNormalized, $percent);
+            if ($percent > 80 && $percent > $maxSim) {
+                $maxSim = $percent;
+           
+                $similarContent = ($q->teacher_id == Auth::id()) ? strip_tags($q->content) : 'Một câu hỏi của giảng viên khác';
+                $similarOwner = ($q->teacher_id == Auth::id()) ? 'bạn' : 'giảng viên khác';
+            }
+        }
+
+        if ($maxSim > 80) {
+            return response()->json([
+                'status' => 'similar_match',
+                'similarity_percent' => round($maxSim),
+                'similar_content' => $similarContent,
+                'owner' => $similarOwner
+            ]);
+        }
+
+        return response()->json(['status' => 'safe']);
+    }
    
     public function store(Request $request)
     {
-        $existingQuestion = Question::where('content', 'like', '%' . $request->input('content') . '%')->first();
-        if ($existingQuestion) {
-            return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại.'], 422);
-        }
+        
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
             'topic_id' => 'required|exists:topics,id',
@@ -67,7 +118,12 @@ class QuestionController extends Controller
             'content' => 'required|string',
             'score' => 'required|numeric|min:0.1',
         ]);
-        
+        $normalized = mb_strtolower(trim(strip_tags($request->input('content'))));
+        $hash = hash('sha256', $normalized);
+
+        if (Question::where('subject_id', $request->subject_id)->where('question_hash', $hash)->exists()) {
+            return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại chính xác trong môn học này.'], 422);
+        }
         
         DB::beginTransaction();
         try {
@@ -79,6 +135,7 @@ class QuestionController extends Controller
                 'difficulty' => $request->input('difficulty'),
                 'content' => $request->input('content'), 
                 'score' => $request->input('score'),
+                'question_hash' => $hash,
             ]);
 
        
@@ -129,6 +186,9 @@ class QuestionController extends Controller
         if (!$question) {
             return response()->json(['message' => 'Không tìm thấy câu hỏi'], 404);
         }
+        if ($question->examQuestions()->exists()) {
+            return response()->json(['message' => 'Câu hỏi đã được sử dụng trong kỳ thi, không thể chỉnh sửa. Vui lòng tạo câu hỏi mới.'], 403);
+        }
 
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
@@ -138,8 +198,9 @@ class QuestionController extends Controller
             'content' => 'required|string',
             'score' => 'required|numeric|min:0.1',
         ]);
-        $existingQuestion = Question::where('content', 'like', '%' . $request->input('content') . '%')->first();
-        if ($existingQuestion) {
+        $normalized = mb_strtolower(trim(strip_tags($request->input('content'))));
+        $hash = hash('sha256', $normalized);
+        if (Question::where('subject_id', $request->subject_id)->where('question_hash', $hash)->where('id', '!=', $id)->exists()) {
             return response()->json(['message' => 'Nội dung câu hỏi đã tồn tại.'], 422);
         }
         DB::beginTransaction();
@@ -151,6 +212,7 @@ class QuestionController extends Controller
                 'difficulty' => $request->input('difficulty'),
                 'content' => $request->input('content'),
                 'score' => $request->input('score'),
+                'question_hash' => $hash,
             ]);
 
             if (in_array($request->input('type'), ['single', 'multiple'])) {
@@ -239,4 +301,5 @@ class QuestionController extends Controller
             
         return response()->json(['data' => $stats]);
     }
+    
 }

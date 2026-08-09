@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\StudentAnswer;
 use App\Models\ClassEnrollment;
 use App\Models\ExamAttempt;
+use App\Models\Subject;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -170,5 +171,31 @@ class ProgressController extends Controller
         }
 
         return response()->json(['current_course' => $currentCourseName, 'overall_progress' => $overallProgress, 'tree' => $tree, 'subject_scores' => $subjectScores, 'weaknesses' => $weaknesses]);
+    }
+    public function getMyClasses()
+    {
+        $studentId = Auth::id(); 
+        
+        $enrollments = ClassEnrollment::with([
+            'classes.cohort.course.subjects',
+            'classes.teachers.teacher'
+        ])
+        ->where('student_id', $studentId)
+        ->get();
+
+        $subjects = Subject::pluck('name', 'id');
+        
+        $classes = $enrollments->map(function ($enrollment) use ($subjects) {
+            $class = $enrollment->classes;
+            if ($class && $class->teachers) {
+                $class->teachers->transform(function ($teacher) use ($subjects) {
+                    $teacher->setAttribute('subject_name', $subjects[$teacher->pivot->subject_id] ?? 'Chưa cập nhật');
+                    return $teacher;
+                });
+            }
+            return $class;
+        })->filter();
+
+        return response()->json(['data' => $classes->values()]);
     }
 }

@@ -341,12 +341,16 @@ class PostExamController extends Controller
             'evidence' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:20480'
         ]);
 
-        $attempt = ExamAttempt::where('exam_id', $request->input('exam_id'))
+        $attempt = ExamAttempt::with('exam')
+            ->where('exam_id', $request->input('exam_id'))
             ->where('student_id', Auth::id())
             ->first();
 
-        if (!$attempt || $attempt->status !== 'submitted' || !$attempt->ended_at) {
+        if (!$attempt || $attempt->status == 'in_progress' || !$attempt->ended_at) {
             return response()->json(['message' => 'Không tìm thấy bài thi hoặc bài thi chưa được nộp hợp lệ.'], 400);
+        }
+        if ($attempt->exam->is_practice) {
+            return response()->json(['message' => 'Hệ thống không hỗ trợ khiếu nại đối với các kỳ thi ôn tập.'], 403);
         }
 
         $hoursPassed = \Carbon\Carbon::parse($attempt->ended_at)->diffInHours(now());

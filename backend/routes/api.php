@@ -92,6 +92,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('questions/import', [QuestionController::class, 'import']);
         Route::get('questions/export', [QuestionController::class, 'export']);
         Route::get('/questions/stats', [QuestionController::class, 'getStats']);
+        Route::post('questions/check-similarity', [QuestionController::class, 'checkSimilarity']);
         Route::apiResource('questions', QuestionController::class);
 
         Route::get('topics', [TopicController::class, 'index']);
@@ -144,6 +145,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('attempts/{attemptId}/violation', [ExamAttemptController::class, 'logViolation']);
         Route::get('attempts/{attemptId}/result', [ExamAttemptController::class, 'getResult']);
         Route::get('history', [ExamAttemptController::class, 'getHistory']);
+        Route::get('my-classes', [ProgressController::class, 'getMyClasses']);
         Route::get('enrolled-courses', [ProgressController::class, 'getEnrolledCourses']);
         Route::get('radar-stats', [ProgressController::class, 'getRadarStats']);
         Route::get('learning-path', [ProgressController::class, 'getLearningPath']);

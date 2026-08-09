@@ -113,15 +113,18 @@ class ExamController extends Controller
                 ->get();
 
             if ($conflictingExams->isNotEmpty()) {
-                $conflictingProctorNames = collect();
+                $conflicts = [];
                 foreach ($conflictingExams as $cExam) {
-                    foreach ($cExam->proctors as $p) {
-                        $conflictingProctorNames->push($p->name ?? $p->email);
-                    }
+                    $proctorNames = $cExam->proctors->map(function($p) { return $p->name ?? $p->email; })->implode(', ');
+                    $conflicts[] = [
+                        'exam_title' => $cExam->title,
+                        'time' => \Carbon\Carbon::parse($cExam->start_time)->format('H:i d/m/Y') . ' - ' . \Carbon\Carbon::parse($cExam->end_time)->format('H:i d/m/Y'),
+                        'proctors' => $proctorNames
+                    ];
                 }
-                $names = $conflictingProctorNames->unique()->implode(', ');
                 return response()->json([
-                    'message' => "Lỗi phân công! Giám thị [{$names}] đã có ca thi trùng với khung giờ này."
+                    'message' => "Lỗi phân công! Có giám thị đang bị trùng lịch.",
+                    'conflicts' => $conflicts
                 ], 422);
             }
         }
@@ -187,15 +190,17 @@ class ExamController extends Controller
                 ->get();
 
             if ($conflictingExams->isNotEmpty()) {
-                $conflictingProctorNames = collect();
+                $conflicts = [];
                 foreach ($conflictingExams as $cExam) {
-                    foreach ($cExam->proctors as $p) {
-                        $conflictingProctorNames->push($p->name ?? $p->email);
-                    }
+                    $proctorNames =$cExam->proctors->map(function($p) { return$p->name ?? $p->email; })->implode(', ');$conflicts[] = [
+                        'exam_title' => $cExam->title,
+                        'time' => \Carbon\Carbon::parse($cExam->start_time)->format('H:i d/m/Y') . ' - ' . \Carbon\Carbon::parse($cExam->end_time)->format('H:i d/m/Y'),
+                        'proctors' => $proctorNames
+                    ];
                 }
-                $names = $conflictingProctorNames->unique()->implode(', ');
                 return response()->json([
-                    'message' => "Lỗi phân công! Giám thị [{$names}] đã bị vướng ca thi khác trong khung giờ này."
+                    'message' => "Lỗi phân công! Có giám thị đang bị trùng lịch.",
+                    'conflicts' => $conflicts
                 ], 422);
             }
         }

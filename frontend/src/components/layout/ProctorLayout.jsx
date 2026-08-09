@@ -13,6 +13,9 @@ export default function ProctorLayout() {
   const [notifications, setNotifications] = useState([]);
   const notificationRef = useRef(null);
 
+  const [selectedNoti, setSelectedNoti] = useState(null);
+  const [showNotiModal, setShowNotiModal] = useState(false);
+
   useEffect(() => {
     api.get('/auth/notifications').then(res => setNotifications(res.data)).catch(console.error);
 
@@ -25,13 +28,19 @@ export default function ProctorLayout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMarkAsRead = async (e, notiId) => {
+  const handleViewNotification = async (e, notif) => {
     e.stopPropagation();
-    try {
-      await api.post(`/auth/notifications/${notiId}/read`);
-      setNotifications(prev => prev.map(n => n.id === notiId ? { ...n, is_read: 1 } : n));
-    } catch (error) {
-      console.error('Lỗi đánh dấu đọc:', error);
+    setSelectedNoti(notif);
+    setShowNotiModal(true);
+    setShowNotifications(false); 
+
+    if (!notif.is_read) {
+        try {
+            await api.post(`/auth/notifications/${notif.id}/read`);
+            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: 1 } : n));
+        } catch (error) {
+            console.error('Lỗi đánh dấu đọc:', error);
+        }
     }
   };
 
@@ -125,7 +134,7 @@ export default function ProctorLayout() {
                                 {notifications.map((notif) => (
                                     <div
                                         key={notif.id}
-                                        onClick={(e) => handleMarkAsRead(e, notif.id)}
+                                        onClick={(e) => handleViewNotification(e, notif)}
                                         className={`p-4 hover:bg-white cursor-pointer transition flex items-start gap-3 border-l-4 ${
                                             !notif.is_read ? 'bg-white border-emerald-500 shadow-sm' : 'border-transparent opacity-75 hover:opacity-100'
                                         }`}
@@ -171,6 +180,37 @@ export default function ProctorLayout() {
           <Outlet />
         </div>
       </main>
+
+      {showNotiModal && selectedNoti && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+                  <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-blue-50/50 shrink-0">
+                      <h3 className="font-bold text-lg text-blue-800 flex items-center gap-2">
+                          <Bell className="w-5 h-5 text-blue-600" /> Chi tiết thông báo
+                      </h3>
+                      <button onClick={() => setShowNotiModal(false)} className="text-slate-400 hover:text-slate-600 p-1.5 bg-white rounded-xl shadow-sm border border-slate-200 transition">
+                          <X className="w-5 h-5"/>
+                      </button>
+                  </div>
+                  
+                  <div className="p-6 bg-slate-50/30 overflow-y-auto max-h-[60vh]">
+                      <h4 className="text-xl font-bold text-slate-800 mb-2">{selectedNoti.title}</h4>
+                      <p className="text-xs text-slate-500 font-medium mb-5">
+                          Thời gian: {new Date(selectedNoti.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                      <div className="text-slate-700 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm leading-relaxed whitespace-pre-wrap text-sm">
+                          {selectedNoti.content}
+                      </div>
+                  </div>
+                  
+                  <div className="p-4 border-t border-slate-100 bg-white flex justify-end shrink-0">
+                      <button onClick={() => setShowNotiModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-sm">
+                          Đóng lại
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 }

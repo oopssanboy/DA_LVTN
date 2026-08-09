@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Save, X, Plus, Trash2, Loader2, Users, ShieldAlert, Search, Eye, EyeOff } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 export default function ExamForm() {
     const { id } = useParams();
@@ -190,7 +191,7 @@ export default function ExamForm() {
         }
 
         if (hasDuplicate) {
-            toast.error('Lỗi: Có dòng ma trận bị TRÙNG LẶP (Cùng Chủ đề & Độ khó). Vui lòng xóa hoặc gộp lại!');
+            toast.error('Lỗi: Có dòng ma trận bị TRÙNG LẶP. Vui lòng xóa hoặc gộp lại!');
             setLoading(false);
             return;
         }
@@ -219,11 +220,34 @@ export default function ExamForm() {
             }
             navigate(`${apiPrefix}/exams`);
         } catch (error) {
-            const errs = error.response?.data?.errors;
-            if (errs) {
-                Object.values(errs).forEach(errArray => toast.error(errArray[0]));
+            const resData = error.response?.data;
+            
+            if (resData?.conflicts && resData.conflicts.length > 0) {
+                const conflictHtml = `
+                <div class="text-left text-sm mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                    ${resData.conflicts.map(c => `
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                            <div class="font-bold mb-1">Kỳ thi: <span class="">${c.exam_title}</span></div>
+                            <div class="text-xs mb-1"><span class="font-semibold text-slate-700">Thời gian:</span> ${c.time}</div>
+                            <div class="text-xs"><span class="font-semibold text-slate-700">Giám thị trùng:</span> ${c.proctors}</div>
+                        </div>
+                    `).join('')}
+                </div>`;
+                
+                Swal.fire({
+                    title: 'Trùng lịch Giám thị!',
+                    html: `<p class="text-red-600 font-medium">${resData.message}</p>${conflictHtml}`,
+                    icon: 'error',
+                    confirmButtonText: 'Đã hiểu',
+                    customClass: {
+                        popup: 'rounded-2xl'
+                    }
+                });
+            } 
+            else if (resData?.errors) {
+                Object.values(resData.errors).forEach(errArray => toast.error(errArray[0]));
             } else {
-                toast.error(error.response?.data?.message || 'Lỗi khi lưu cấu hình kỳ thi');
+                toast.error(resData?.message || 'Lỗi khi lưu cấu hình kỳ thi');
             }
         } finally {
             setLoading(false);

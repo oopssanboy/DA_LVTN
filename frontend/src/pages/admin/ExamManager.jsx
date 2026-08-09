@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { Search, Plus, Edit, Trash2, ShieldAlert, ShieldCheck, Loader2, ArrowLeft, BookOpen, Layers, CheckSquare, Settings, Lock, Unlock, Eye, CirclePlay } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ShieldAlert, ShieldCheck, Loader2, ArrowLeft, BookOpen, Layers, CheckSquare, Settings, Lock, Unlock, Eye, CirclePlay, FileText, Calendar, Users, Shield, CheckCircle2, XCircle, X, UserCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import Badge from '../../components/common/Badge';
@@ -25,6 +25,11 @@ export default function ExamManager() {
   const [examSearch, setExamSearch] = useState('');
   const [examPage, setExamPage] = useState(1);
   const [examTotalPages, setExamTotalPages] = useState(1);
+
+
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedExam, setSelectedExam] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     if (viewMode === 'classes') fetchClasses();
@@ -116,6 +121,28 @@ export default function ExamManager() {
         toast.error(error.response?.data?.message || 'Lỗi sinh đề thi', { id: toastId });
       }
     }
+  };
+
+
+  const handleViewDetails = async (id) => {
+    setShowViewModal(true);
+    setLoadingDetails(true);
+    try {
+        const endpoint = user.role === 'admin' ? `/admin/exams/${id}` : `/teacher/exams/${id}`;
+        const res = await api.get(endpoint);
+        setSelectedExam(res.data.data || res.data);
+    } catch (error) {
+        toast.error('Lỗi tải chi tiết kỳ thi');
+        setShowViewModal(false);
+    } finally {
+        setLoadingDetails(false);
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+      if (!dateString) return 'Không giới hạn';
+      const date = new Date(dateString);
+      return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   return (
@@ -264,7 +291,13 @@ export default function ExamManager() {
                         <td className="px-6 py-4">
                           {isOwner ? (
                             <div className="flex items-center justify-end gap-2">
-                             
+                              <button 
+                                onClick={() => handleViewDetails(item.id)} 
+                                title="Xem chi tiết kỳ thi" 
+                                className="p-2 rounded-lg transition text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+                              >
+                                <Eye size={18} />
+                              </button>
                               <button 
                                 disabled={isRunning}
                                 onClick={() => handleGenerateExam(item.id)} 
@@ -299,8 +332,13 @@ export default function ExamManager() {
                               </button>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-end text-slate-400 text-xs font-bold gap-1 bg-slate-100 px-3 py-2 rounded-lg inline-flex ml-auto cursor-not-allowed">
-                               <ShieldAlert className="w-4 h-4"/> Chỉ xem
+                            <div className="flex items-center justify-end gap-2">
+                                <button 
+                                    onClick={() => handleViewDetails(item.id)} 
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition"
+                                >
+                                    <Eye size={16}/> Xem chi tiết
+                                </button>
                             </div>
                           )}
                         </td>
@@ -321,6 +359,202 @@ export default function ExamManager() {
               <button disabled={examPage === examTotalPages} onClick={() => setExamPage(p => p + 1)} className="px-4 py-2 bg-white border rounded-xl disabled:opacity-50 font-medium hover:bg-gray-100 transition">Sau</button>
             </div>
           )}
+        </div>
+      )}
+
+      
+      {showViewModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 shrink-0">
+                    <div>
+                        <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                            <FileText className="w-6 h-6 text-indigo-600" />
+                            Chi tiết Kỳ thi: <span className="text-indigo-700">{selectedExam?.title || 'Đang tải...'}</span>
+                        </h3>
+                    </div>
+                    <button onClick={() => setShowViewModal(false)} className="text-slate-400 hover:text-slate-600 p-1.5 bg-white rounded-xl shadow-sm border border-slate-200 transition"><X className="w-5 h-5"/></button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
+                    {loadingDetails ? (
+                        <div className="py-20 flex justify-center flex-col items-center gap-3">
+                            <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+                            <span className="text-slate-500 font-medium">Đang tải dữ liệu kỳ thi...</span>
+                        </div>
+                    ) : selectedExam ? (
+                        <div className="space-y-6">
+                   
+                            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                                    <BookOpen className="w-4 h-4 text-blue-500" /> Thông tin cơ bản
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="flex flex-col gap-1.5">
+                                        <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Môn học</span>
+                                        <span className="font-bold text-slate-800 text-base">{selectedExam.subject_name || selectedExam.subject?.name || 'Chưa cập nhật'}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Giảng viên ra đề</span>
+                                        <span className="font-bold text-blue-700 text-base">{selectedExam.teacher_name || selectedExam.teacher?.name || 'Chưa cập nhật'}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Mật khẩu phòng thi</span>
+                                        <span className="font-bold text-rose-600 text-base font-mono bg-rose-50 px-2 py-0.5 rounded w-fit">
+                                            {selectedExam.password || 'Không có'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                           
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                                        <Calendar className="w-4 h-4 text-emerald-500" /> Cấu hình Thời gian & Điểm
+                                    </h4>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <span className="text-slate-600 font-medium text-sm">Thời lượng làm bài:</span>
+                                            <span className="font-bold text-slate-800">{selectedExam.duration} phút</span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <span className="text-slate-600 font-medium text-sm">Tổng số câu hỏi:</span>
+                                            <span className="font-bold text-slate-800">{selectedExam.total_questions} câu</span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <span className="text-slate-600 font-medium text-sm">Điểm tối thiểu (Pass):</span>
+                                            <span className="font-bold text-emerald-600">{selectedExam.passing_score} / 10</span>
+                                        </div>
+                                        <div className="pt-2">
+                                            <div className="text-xs font-bold text-slate-500 uppercase mb-2">Lịch mở phòng thi:</div>
+                                            <div className="text-sm font-medium text-slate-700 bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                                                Từ: <strong className="text-amber-700">{formatDateTime(selectedExam.start_time)}</strong> <br/>
+                                                Đến: <strong className="text-amber-700">{formatDateTime(selectedExam.end_time)}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                       
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                                        <Settings className="w-4 h-4 text-purple-500" /> Quy chế thi
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                                            {selectedExam.is_practice ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-slate-300" />}
+                                            <span className={`text-sm font-medium ${selectedExam.is_practice ? 'text-emerald-700' : 'text-slate-500'}`}>Chế độ Thi thử (Practice Mode)</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                                            {selectedExam.shuffle_questions ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-slate-300" />}
+                                            <span className={`text-sm font-medium ${selectedExam.shuffle_questions ? 'text-slate-700' : 'text-slate-500'}`}>Trộn ngẫu nhiên thứ tự Câu hỏi</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                                            {selectedExam.shuffle_options ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-slate-300" />}
+                                            <span className={`text-sm font-medium ${selectedExam.shuffle_options ? 'text-slate-700' : 'text-slate-500'}`}>Trộn ngẫu nhiên Đáp án (A,B,C,D)</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-100 bg-slate-50">
+                                            {selectedExam.show_answers ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-slate-300" />}
+                                            <span className={`text-sm font-medium ${selectedExam.show_answers ? 'text-emerald-700' : 'text-slate-500'}`}>Cho phép Học viên xem đáp án sau khi thi</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                         
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3 border-b border-slate-100 pb-3">
+                                        <Users className="w-4 h-4 text-blue-500" /> Lớp học được chỉ định
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedExam.classes && selectedExam.classes.length > 0 ? (
+                                            selectedExam.classes.map(cls => (
+                                                <span key={cls.id} className="px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-700 font-bold text-sm rounded-lg">
+                                                    {cls.name}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-slate-400 text-sm italic">Chưa chỉ định lớp học</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3 border-b border-slate-100 pb-3">
+                                        <Shield className="w-4 h-4 text-amber-500" /> Giám thị coi thi
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedExam.proctors && selectedExam.proctors.length > 0 ? (
+                                            selectedExam.proctors.map(proc => (
+                                                <span key={proc.id} className="px-3 py-1.5 bg-amber-50 border border-amber-100 text-amber-700 font-bold text-sm rounded-lg flex items-center gap-1.5">
+                                                    <UserCircle className="w-4 h-4" /> {proc.name || proc.email || proc.proctor_code}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-slate-400 text-sm italic">Chưa phân công giám thị</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                                <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+                                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <Layers className="w-4 h-4 text-indigo-500" /> Ma trận sinh đề tự động
+                                    </h4>
+                                </div>
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                        <tr>
+                                            <th className="px-5 py-3 w-12 text-center">STT</th>
+                                            <th className="px-5 py-3">ID Chủ đề (Topic)</th>
+                                            <th className="px-5 py-3 text-center">Mức độ</th>
+                                            <th className="px-5 py-3 text-center">Số lượng câu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {selectedExam.matrices && selectedExam.matrices.length > 0 ? (
+                                            selectedExam.matrices.map((m, index) => (
+                                                <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="px-5 py-3 text-center font-medium text-slate-700">{index + 1}</td>
+                                                    <td className="px-5 py-3 font-bold text-slate-800">Chủ đề số {m.topic_id}</td>
+                                                    <td className="px-5 py-3 text-center">
+                                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                                            m.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-700' :
+                                                            m.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                            'bg-red-100 text-red-700'
+                                                        }`}>
+                                                            {m.difficulty === 'easy' ? 'Dễ' : m.difficulty === 'medium' ? 'Trung bình' : 'Khó'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-center font-bold text-indigo-600">{m.quantity}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="4" className="px-5 py-8 text-center text-slate-500 font-medium bg-slate-50/50">
+                                                    Kỳ thi này chưa được cấu hình ma trận đề.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    ) : (
+                        <div className="py-10 text-center text-red-500 font-medium">Không tải được dữ liệu.</div>
+                    )}
+                </div>
+                
+                <div className="p-4 border-t border-slate-100 bg-white flex justify-end shrink-0">
+                    <button onClick={() => setShowViewModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-2.5 rounded-xl font-bold transition shadow-sm">
+                        Đóng lại
+                    </button>
+                </div>
+            </div>
         </div>
       )}
     </div>
