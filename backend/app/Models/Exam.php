@@ -6,7 +6,7 @@ class Exam extends Model
 {
     protected $fillable = [
         'subject_id', 'teacher_id', 'title', 'duration', 'total_questions',
-        'password', 'passing_score', 'shuffle_questions', 'shuffle_options',
+        'password', 'passing_score', 'scoring_method', 'shuffle_questions', 'shuffle_options',
         'start_time', 'end_time', 'is_active', 'show_answers', 'is_practice'
     ];
     protected $casts = [

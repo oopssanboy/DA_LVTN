@@ -11,12 +11,12 @@ export default function ClassManager() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     
-    // Support Data (Giữ lại để map tên hiển thị ở bảng chính)
+  
     const [cohorts, setCohorts] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [allTeachers, setAllTeachers] = useState([]);
     
-    // Modal & Form (Thêm/Sửa Lớp)
+    
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const { register, handleSubmit, reset, watch, setValue } = useForm({
@@ -26,10 +26,9 @@ export default function ClassManager() {
     const teacherAssignments = watch('teacher_assignments') || [];
     const selectedCohortId = watch('cohort_id');
 
-    // Tự động lọc danh sách Môn học hợp lệ dựa theo Khóa học (Cohort) đã chọn
     const availableSubjects = cohorts.find(c => c.id == selectedCohortId)?.course?.subjects || [];
 
-    // Ghi danh Sinh viên
+   
     const [showEnrollModal, setShowEnrollModal] = useState(false);
     const [selectedClassForEnroll, setSelectedClassForEnroll] = useState(null);
     const [selectedStudentIds, setSelectedStudentIds] = useState([]);
@@ -40,28 +39,27 @@ export default function ClassManager() {
     const [loadingStudents, setLoadingStudents] = useState(false);
     const studentListRef = useRef(null);
 
-    // Xem chi tiết Lớp
+
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedClassDetails, setSelectedClassDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
-    // Modal Phân công (Giảng viên & Môn học)
+  
     const [activeRowIndex, setActiveRowIndex] = useState(null);
     
-    // Phân công Giảng viên
+    
     const [showTeacherModal, setShowTeacherModal] = useState(false);
     const [teacherSearch, setTeacherSearch] = useState('');
     const [pagedTeachers, setPagedTeachers] = useState([]);
     const [teacherPagination, setTeacherPagination] = useState({});
     const [loadingPagedTeachers, setLoadingPagedTeachers] = useState(false);
 
-    // Phân công Môn học
+   
     const [showSubjectModal, setShowSubjectModal] = useState(false);
     const [subjectSearch, setSubjectSearch] = useState('');
 
     const DEBOUNCE_DELAY = 100;
 
-    // --- CÁC HÀM FETCH DỮ LIỆU ---
     const fetchClasses = useCallback(async (url = '/admin/classes', params = {}) => {
         setLoading(true);
         try {
@@ -118,7 +116,6 @@ export default function ClassManager() {
     useEffect(() => {
         const fetchSupportData = async () => {
             try {
-                // Fetch danh sách môn học để map ID sang Tên môn
                 const [cohortsRes, subjectsRes, teachersRes] = await Promise.all([
                     api.get('/admin/cohorts?per_page=100'),
                     api.get('/admin/subjects?per_page=100'),
@@ -135,7 +132,7 @@ export default function ClassManager() {
         fetchClasses();
     }, [fetchClasses]);
 
-    // Tim kiếm chung
+   
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchClasses('/admin/classes', { search: searchQuery });
@@ -143,7 +140,6 @@ export default function ClassManager() {
         return () => clearTimeout(timer);
     }, [searchQuery, fetchClasses]);
 
-    // Tìm kiếm Enroll Học viên
     useEffect(() => {
         const timer = setTimeout(() => {
             if (showEnrollModal) fetchStudents('/admin/users', { search: studentSearch });
@@ -151,7 +147,7 @@ export default function ClassManager() {
         return () => clearTimeout(timer);
     }, [studentSearch, showEnrollModal, fetchStudents]);
 
-    // Tìm kiếm Phân công Giảng viên
+    
     useEffect(() => {
         const timer = setTimeout(() => {
             if (showTeacherModal) fetchPagedTeachers('/admin/users', { search: teacherSearch });
@@ -160,7 +156,7 @@ export default function ClassManager() {
     }, [teacherSearch, showTeacherModal, fetchPagedTeachers]);
 
 
-    // --- HÀM XỬ LÝ SỰ KIỆN ---
+
     const openModal = (cls = null) => {
         if (cls) {
             setEditingId(cls.id);
@@ -170,7 +166,7 @@ export default function ClassManager() {
                 start_date: cls.start_date || '',
                 end_date: cls.end_date || '',
                 teacher_assignments: cls.teachers ? cls.teachers.map(t => {
-                    // Tự động map tên môn học dựa trên ID từ DB
+              
                     const subjectName = subjects.find(s => s.id == t.pivot?.subject_id)?.name || 'Chưa cập nhật';
                     return {
                         teacher_id: t.id.toString(),
@@ -187,14 +183,13 @@ export default function ClassManager() {
         setShowModal(true);
     };
 
-    // Khi đổi Đợt tuyển sinh -> Reset lại toàn bộ phân công môn học để tránh chọn môn không hợp lệ
+  
     useEffect(() => {
         if (showModal && !editingId) {
             setValue('teacher_assignments', []);
         }
     }, [selectedCohortId]);
 
-    // Thao tác mảng Phân công
     const addAssignmentRow = () => {
         setValue('teacher_assignments', [...teacherAssignments, { teacher_id: '', teacher_name: '', subject_id: '', subject_name: '' }]);
     };
@@ -203,7 +198,6 @@ export default function ClassManager() {
         setValue('teacher_assignments', teacherAssignments.filter((_, i) => i !== index));
     };
 
-    // Mở Modal chọn Giảng Viên
     const openTeacherSelector = (index) => {
         setActiveRowIndex(index);
         setTeacherSearch('');
@@ -211,7 +205,6 @@ export default function ClassManager() {
         fetchPagedTeachers('/admin/users', { search: '' });
     };
 
-    // Mở Modal chọn Môn học (CHỈ HIỂN THỊ MÔN THUỘC KHÓA HỌC)
     const openSubjectSelector = (index) => {
         if (!selectedCohortId) {
             toast.error('Vui lòng chọn Đợt tuyển sinh trước khi chọn môn học!');
@@ -222,7 +215,6 @@ export default function ClassManager() {
         setShowSubjectModal(true);
     };
 
-    // Chọn Giảng viên xong
     const handleSelectTeacher = (teacher) => {
         const newArr = [...teacherAssignments];
         newArr[activeRowIndex] = {
@@ -234,7 +226,6 @@ export default function ClassManager() {
         setShowTeacherModal(false);
     };
 
-    // Chọn Môn học xong
     const handleSelectSubject = (subject) => {
         const newArr = [...teacherAssignments];
         newArr[activeRowIndex] = {
@@ -246,13 +237,11 @@ export default function ClassManager() {
         setShowSubjectModal(false);
     };
 
-    // Lọc danh sách môn học dựa trên Input tìm kiếm (Local search vì list đã tải sẵn theo Cohort)
     const filteredSubjects = availableSubjects.filter(s => 
         s.name.toLowerCase().includes(subjectSearch.toLowerCase()) || 
         s.code.toLowerCase().includes(subjectSearch.toLowerCase())
     );
 
-    // Submit Tạo/Sửa lớp học
     const onSubmit = async (data) => {
         const invalidAssignment = data.teacher_assignments.find(a => !a.teacher_id || !a.subject_id);
         if (invalidAssignment) {
@@ -354,14 +343,12 @@ export default function ClassManager() {
         }
     };
 
-    // Cột render hiển thị phân công cho bảng dữ liệu chính
     const renderTeacherAssignments = (teachersList) => {
         if (!teachersList || teachersList.length === 0) return <span className="text-slate-400 italic text-xs">Chưa phân công</span>;
         
         return (
             <div className="flex flex-col gap-1.5">
                 {teachersList.map((t, idx) => {
-                    // Dùng state `subjects` để lookup tên môn thay vì đợi Backend
                     const subjectName = subjects.find(s => s.id == t.pivot?.subject_id)?.name || 'Chưa cập nhật';
                     return (
                         <span key={idx} className="px-2.5 py-1 rounded-md text-xs font-bold border border-blue-100 flex items-center gap-1 w-fit bg-blue-50/50 text-slate-700">

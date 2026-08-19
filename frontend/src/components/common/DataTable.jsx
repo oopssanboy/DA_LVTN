@@ -1,4 +1,4 @@
-// src/components/common/DataTable.jsx
+
 export default function DataTable({ columns, data, actions }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-border">

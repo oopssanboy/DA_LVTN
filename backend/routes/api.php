@@ -141,6 +141,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         Route::post('exams/{examId}/start', [ExamAttemptController::class, 'startExam']);
         Route::get('attempts/{attemptId}', [ExamAttemptController::class, 'getAttempt']);
         Route::patch('attempts/{attemptId}/answers', [ExamAttemptController::class, 'saveAnswer']);
+        Route::post('attempts/{attempt}/run-code', [ExamAttemptController::class, 'runCode'])->middleware('throttle:5,1');
         Route::post('attempts/{attemptId}/submit', [ExamAttemptController::class, 'submitExam']);
         Route::post('attempts/{attemptId}/violation', [ExamAttemptController::class, 'logViolation']);
         Route::get('attempts/{attemptId}/result', [ExamAttemptController::class, 'getResult']);

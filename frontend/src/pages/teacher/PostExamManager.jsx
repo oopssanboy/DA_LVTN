@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Search, Loader2, Eye, ArrowLeft, Send, ShieldAlert, AlertTriangle, MessageSquare, Users, FileIcon, X, Info, CheckCircle2 } from 'lucide-react';
+import { Search, Loader2, Eye, ArrowLeft, Send, ShieldAlert, AlertTriangle, MessageSquare, Users, FileIcon, X, Info, CheckCircle2, Terminal, Code2 } from 'lucide-react';
 
 export default function PostExamManager() {
     const [data, setData] = useState({ reports: [], complaints: [] });
@@ -490,7 +490,7 @@ export default function PostExamManager() {
                         <div className="p-5 border-b flex justify-between items-center bg-white shrink-0">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-xl font-bold text-slate-800">Xử lý khiếu nại: {selectedComplaint.student_user?.student?.name}</h2>
-                                {/* {getStatusBadge(selectedComplaint.status)} */}
+                            
                             </div>
                             <button onClick={() => { setSelectedComplaint(null); fetchData(); }} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5"/></button>
                         </div>
@@ -528,15 +528,72 @@ export default function PostExamManager() {
                                         </div>
 
                                         <div className="flex-1 overflow-y-auto pr-3 space-y-4 custom-scrollbar">
-                                            {complaintDetails.answers?.map((ans, i) => (
-                                                <div key={i} className={`p-5 rounded-xl border bg-white shadow-sm ${ans.is_correct ? 'border-emerald-600' : 'border-rose-600'}`}>
-                                                    <div className="font-bold text-sm text-slate-800 mb-4 flex items-start gap-2">
-                                                        <span className="shrink-0 text-slate-500">Câu {i+1}:</span>
-                                                        <span dangerouslySetInnerHTML={{__html: ans.question?.content}}></span>
+                                            {complaintDetails.answers?.map((ans, i) => {
+                                                const isPartial = !ans.is_correct && Number(ans.score_earned) > 0;
+                                                let borderColor = 'border-rose-600';
+                                                if (ans.is_correct) borderColor = 'border-emerald-600';
+                                                else if (isPartial) borderColor = 'border-amber-400';
+
+                                                return (
+                                                <div key={i} className={`p-5 rounded-xl border bg-white shadow-sm ${borderColor}`}>
+                                                    
+                                                    <div className="flex justify-between items-start gap-4 mb-4">
+                                                        <div className="font-bold text-sm text-slate-800 flex items-start gap-2">
+                                                            <span className="shrink-0 text-slate-500">Câu {i+1}:</span>
+                                                            <span dangerouslySetInnerHTML={{__html: ans.question?.content}}></span>
+                                                        </div>
+                                                        <div className="shrink-0 text-right">
+                                                            <span className={`inline-block px-2.5 py-1 rounded-md border text-xs font-bold whitespace-nowrap ${ans.is_correct ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : isPartial ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                                                {Number(ans.score_earned).toFixed(2)} / {Number(ans.max_score || 0).toFixed(2)} đ
+                                                            </span>
+                                                        </div>
                                                     </div>
 
-                                                    {ans.question?.type !== 'fill_blank' && ans.question?.choices && (
-                                                        <div className="space-y-2 mb-4">
+                                                    {ans.question?.type === 'coding' ? (
+                                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 mt-3">
+                                                            <div className="flex flex-wrap gap-2 text-xs font-medium">
+                                                                <span className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 flex items-center gap-1"><Code2 className="w-3 h-3 text-indigo-500"/> {ans.language || 'N/A'}</span>
+                                                                <span className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 flex items-center gap-1"><Terminal className="w-3 h-3 text-slate-500"/> {ans.judge_status || 'N/A'}</span>
+                                                                <span className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200">Time: {ans.execution_time ? `${ans.execution_time}s` : 'N/A'}</span>
+                                                                <span className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200">RAM: {ans.memory_usage ? `${ans.memory_usage}KB` : 'N/A'}</span>
+                                                            </div>
+                                                            
+                                                            <div>
+                                                                <span className="text-xs font-bold text-slate-500 mb-1.5 block">Mã nguồn học viên nộp:</span>
+                                                                <pre className="bg-[#1e1e1e] text-slate-300 p-4 rounded-xl text-xs overflow-x-auto font-mono leading-relaxed border border-slate-700 shadow-inner">
+                                                                    {ans.answer_text || 'Không có mã nguồn'}
+                                                                </pre>
+                                                            </div>
+
+                                                            {ans.test_case_results && Array.isArray(ans.test_case_results) && ans.test_case_results.length > 0 && (
+                                                                <div>
+                                                                    <span className="text-xs font-bold text-slate-500 mb-2 block">Chi tiết Test Cases:</span>
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        {ans.test_case_results.map((tc, idx) => (
+                                                                            <div key={idx} className="bg-white border border-slate-200 p-2.5 rounded-lg flex justify-between items-center text-xs shadow-sm">
+                                                                                <span className="font-bold text-slate-700">{tc.is_hidden ? `Test Ẩn ${idx + 1}` : `Test Công khai ${idx + 1}`}</span>
+                                                                                <span className={`font-bold px-2 py-0.5 rounded ${tc.status === 'Accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                                                    {tc.status}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : ans.question?.type === 'fill_blank' ? (
+                                                        <div className="space-y-2 mt-3">
+                                                            <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                                                                <span className="text-xs text-slate-500 block mb-1">Học viên nhập:</span>
+                                                                <strong className={`text-base ${ans.is_correct ? 'text-emerald-600' : 'text-rose-600'}`}>{ans.answer_text || '(Bỏ trống)'}</strong>
+                                                            </div>
+                                                            <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50">
+                                                                <span className="text-xs text-emerald-600 block mb-1">Hệ thống chấp nhận:</span>
+                                                                <strong className="text-sm text-emerald-700">{ans.question.fill_blank_answers?.map(a => a.accepted_text).join(' HOẶC ')}</strong>
+                                                            </div>
+                                                        </div>
+                                                    ) : ans.question?.choices && (
+                                                        <div className="space-y-2 mt-3">
                                                             {ans.question.choices.map(choice => {
                                                                 const isStudentChoice = String(choice.id) === String(ans.choice_id);
                                                                 const isCorrectChoice = choice.is_correct == 1 || choice.is_correct === true;
@@ -560,21 +617,8 @@ export default function PostExamManager() {
                                                             })}
                                                         </div>
                                                     )}
-
-                                                    {ans.question?.type === 'fill_blank' && (
-                                                        <div className="space-y-2 mt-3">
-                                                            <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                                                                <span className="text-xs text-slate-500 block mb-1">Học viên nhập:</span>
-                                                                <strong className={`text-base ${ans.is_correct ? 'text-emerald-600' : 'text-rose-600'}`}>{ans.answer_text || '(Bỏ trống)'}</strong>
-                                                            </div>
-                                                            <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50">
-                                                                <span className="text-xs text-emerald-600 block mb-1">Hệ thống chấp nhận:</span>
-                                                                <strong className="text-sm text-emerald-700">{ans.question.fill_blank_answers?.map(a => a.accepted_text).join(' HOẶC ')}</strong>
-                                                            </div>
-                                                        </div>
-                                                    )}
                                                 </div>
-                                            ))}
+                                            )})}
                                         </div>
                                     </div>
                                 ) : (

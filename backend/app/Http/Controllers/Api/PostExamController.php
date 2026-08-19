@@ -249,10 +249,21 @@ class PostExamController extends Controller
  
 
         $attempt = ExamAttempt::with('violationLogs')->where('exam_id', $complaint->exam_id)->where('student_id', $complaint->student_id)->first();
+
         
         $answers = [];
         if ($attempt) {
             $answers = StudentAnswer::with(['question.choices', 'question.fillBlankAnswers'])->where('attempt_id', $attempt->id)->get();
+            $examQuestions = \App\Models\ExamQuestion::where('exam_id', $complaint->exam_id)
+                ->get()
+                ->keyBy('question_id');
+            
+            $answers->transform(function ($ans) use ($examQuestions) {
+                $ans->max_score = isset($examQuestions[$ans->question_id]) 
+                    ? $examQuestions[$ans->question_id]->question_score 
+                    : 0;
+                return $ans;
+            });
         }
 
         $report = Report::with('proctor')->where('exam_id', $complaint->exam_id)->first();

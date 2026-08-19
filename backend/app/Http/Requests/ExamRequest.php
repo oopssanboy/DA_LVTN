@@ -32,9 +32,11 @@ class ExamRequest extends FormRequest
             'shuffle_questions' => 'boolean',
             'shuffle_options' => 'boolean',
             'passing_score' => 'required|numeric|min:0|max:10',
-           
+            'scoring_method' => 'required|in:equal,weighted',
             'matrices' => 'required|array|min:1',
             'matrices.*.topic_id' => 'required|exists:topics,id', 
+            'matrices.*.question_type' => 'required|in:all,single,multiple,fill_blank,coding',
+            'matrices.*.fixed_score' => 'nullable|numeric|min:0.1|max:10',
             'matrices.*.difficulty' => 'required|in:easy,medium,hard',
             'matrices.*.quantity' => 'required|integer|min:1',
         ];

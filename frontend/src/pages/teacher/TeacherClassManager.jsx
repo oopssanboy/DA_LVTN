@@ -205,7 +205,7 @@ export default function TeacherClassManager() {
                                                 <tbody className="divide-y divide-slate-100">
                                                     {selectedClassDetails.teachers && selectedClassDetails.teachers.length > 0 ? (
                                                         selectedClassDetails.teachers.map((teacher, index) => {
-                                                            const subjectName = subjects.find(s => s.id == teacher.pivot.subject_id)?.name || 'N/A';
+                                                            const subjectName = teacher.subject_name || 'N/A';
                                                             return (
                                                                 <tr key={index} className="hover:bg-slate-50 transition-colors">
                                                                     <td className="px-4 py-3 text-center font-medium text-slate-700">{index + 1}</td>

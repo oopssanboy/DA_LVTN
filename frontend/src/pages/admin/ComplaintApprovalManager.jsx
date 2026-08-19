@@ -9,7 +9,7 @@ export default function ComplaintApprovalManager() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     
-    // Modal State
+ 
     const [showModal, setShowModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [adminNote, setAdminNote] = useState('');

@@ -6,7 +6,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Question extends Model
 {
     use SoftDeletes;
-    protected $fillable = ['teacher_id', 'subject_id', 'topic_id', 'type', 'difficulty', 'content', 'score', 'question_hash'];
+    protected $fillable = [
+        'teacher_id', 'subject_id', 'topic_id', 'type', 'difficulty', 
+        'content', 'score', 'time_limit', 'memory_limit', 'allowed_languages', 'question_hash'
+    ];
+    protected $casts = [
+        'allowed_languages' => 'array', 
+    ];
 
     public function teacher() { return $this->belongsTo(Teacher::class, 'teacher_id', 'user_id'); }
     public function subject() { return $this->belongsTo(Subject::class); }
@@ -14,4 +20,5 @@ class Question extends Model
     public function choices() { return $this->hasMany(Choice::class); }
     public function fillBlankAnswers()  { return $this->hasMany(FillBlankAnswer::class);}
     public function examQuestions() { return $this->hasMany(ExamQuestion::class); }
+    public function testCases() {  return $this->hasMany(TestCase::class); }
 }

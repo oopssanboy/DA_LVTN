@@ -98,7 +98,7 @@ export default function MyCourses() {
                 </div>
             )}
 
-            {/* MODAL CHI TIẾT */}
+          
             {showModal && selectedClass && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">

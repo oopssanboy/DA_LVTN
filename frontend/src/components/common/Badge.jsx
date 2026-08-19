@@ -1,4 +1,4 @@
-// src/components/common/Badge.jsx
+
 export default function Badge({ variant = 'default', children }) {
   const variants = {
     success: 'bg-green-100 text-green-700 border border-green-200',

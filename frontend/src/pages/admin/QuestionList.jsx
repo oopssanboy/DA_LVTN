@@ -340,6 +340,7 @@ export default function QuestionList() {
                             <option value="single">Trắc nghiệm 1 đáp án</option>
                             <option value="multiple">Trắc nghiệm nhiều đáp án</option>
                             <option value="fill_blank">Điền khuyết</option>
+                            <option value="coding">Code (Lập trình)</option>
                         </select>
                     </div>
                 </div>
@@ -366,7 +367,6 @@ export default function QuestionList() {
                                     tmp.innerHTML = q.content;
                                     const textContent = tmp.textContent || tmp.innerText || '';
 
-                                    // Kiểm tra xem câu hỏi đã bị khóa (đang sử dụng trong đề thi) hay chưa
                                     const isLocked = q.exam_questions_count > 0 || q.is_used;
 
                                     return (
@@ -379,7 +379,7 @@ export default function QuestionList() {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <span className={`px-3 py-1 rounded-md text-xs font-bold`}>
-                                                    {q.type === 'fill_blank' ? 'Điền khuyết' : 'Trắc nghiệm'}
+                                                    {q.type === 'coding' ? 'Code (Lập trình)' : (q.type === 'fill_blank' ? 'Điền khuyết' : 'Trắc nghiệm')}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-center">
